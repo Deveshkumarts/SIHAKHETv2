@@ -1,0 +1,34 @@
+path: C:/Users/CMRMuthuthiyagarajan/Downloads/SIH26/SIH_Dataset_27class
+train: train/images
+val:   val/images
+test:  test/images
+
+nc: 27
+names:
+  0: Shipwrecks
+  1: bottle
+  2: brown-glass-bottle
+  3: can
+  4: chain
+  5: drink-carton
+  6: drink-sachet
+  7: glass-bottle
+  8: glass-jar
+  9: hook
+  10: large-tire
+  11: metal-bottle
+  12: metal-box
+  13: pipeline or cable
+  14: plastic-bidon
+  15: plastic-bottle
+  16: plastic-pipe
+  17: plastic-propeller
+  18: potion-glass-bottle
+  19: propeller
+  20: rotating-platform
+  21: shampoo-bottle
+  22: small-tire
+  23: standing-bottle
+  24: tire
+  25: valve
+  26: wrench
