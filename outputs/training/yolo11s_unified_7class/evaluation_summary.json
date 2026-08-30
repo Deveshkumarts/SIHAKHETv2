@@ -1,0 +1,20 @@
+{
+  "model": "yolo11s_unified_7class",
+  "dataset": "Unified_Sonar_Dataset",
+  "total_test_images": 438,
+  "precision": 0.8069,
+  "recall": 0.736,
+  "mAP50": 0.7194,
+  "mAP50_95": 0.5652,
+  "latency_ms": 11.97,
+  "fps": 83.6,
+  "per_class_map50": {
+    "shipwreck": 0.4987,
+    "airplane": 0.2837,
+    "mine": 0.1605,
+    "human": 0.1562,
+    "engineering platform": 0.955,
+    "pipeline or cable": 0.9598,
+    "underwater residual mound": 0.9427
+  }
+}

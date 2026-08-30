@@ -1,0 +1,37 @@
+{
+  "conf_threshold": 0.25,
+  "matching_iou": 0.5,
+  "total_gt_boxes": 348,
+  "total_pred_boxes": 287,
+  "true_positives": 173,
+  "false_positives": 114,
+  "false_negatives": 175,
+  "poor_localization": 23,
+  "low_confidence_count": 131,
+  "precision": 0.6028,
+  "recall": 0.4971,
+  "fn_by_class": {
+    "shipwreck": 20,
+    "airplane": 7,
+    "mine": 62,
+    "human": 86
+  },
+  "gt_by_class": {
+    "shipwreck": 89,
+    "airplane": 21,
+    "mine": 123,
+    "human": 115
+  },
+  "fn_by_size": {
+    "very_small": 97,
+    "small": 31,
+    "medium": 13,
+    "large": 34
+  },
+  "gt_by_size": {
+    "very_small": 156,
+    "small": 40,
+    "medium": 55,
+    "large": 97
+  }
+}

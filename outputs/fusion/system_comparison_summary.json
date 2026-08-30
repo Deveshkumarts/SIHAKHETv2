@@ -1,0 +1,80 @@
+{
+  "dataset_test_images": 248,
+  "ground_truth_targets": 348,
+  "total_yolo_detections": 358,
+  "latency_breakdown_ms": {
+    "yolo_ms": 30.04,
+    "roi_extraction_ms": 0.25,
+    "segformer_ms": 7.2,
+    "fusion_ms": 0.02,
+    "total_ms": 37.51,
+    "end_to_end_fps": 26.7
+  },
+  "ablation_results": [
+    {
+      "system": "System A (YOLO11 Only)",
+      "alpha": 1.0,
+      "beta": 0.0,
+      "precision": 53.07,
+      "recall": 54.6,
+      "f1_score": 53.82,
+      "fp_rejected": 0,
+      "fp_rejection_rate": "0.0%",
+      "verified_count": 358,
+      "latency_ms": 30.04,
+      "fps": 33.3
+    },
+    {
+      "system": "System C: Fusion (\u03b1=0.7, \u03b2=0.3)",
+      "alpha": 0.7,
+      "beta": 0.3,
+      "precision": 81.52,
+      "recall": 43.1,
+      "f1_score": 56.39,
+      "fp_rejected": 134,
+      "fp_rejection_rate": "79.8%",
+      "verified_count": 184,
+      "latency_ms": 37.51,
+      "fps": 26.7
+    },
+    {
+      "system": "System C: Fusion (\u03b1=0.6, \u03b2=0.4)",
+      "alpha": 0.6,
+      "beta": 0.4,
+      "precision": 86.25,
+      "recall": 39.66,
+      "f1_score": 54.33,
+      "fp_rejected": 146,
+      "fp_rejection_rate": "86.9%",
+      "verified_count": 160,
+      "latency_ms": 37.51,
+      "fps": 26.7
+    },
+    {
+      "system": "System C: Fusion (\u03b1=0.5, \u03b2=0.5)",
+      "alpha": 0.5,
+      "beta": 0.5,
+      "precision": 88.72,
+      "recall": 33.91,
+      "f1_score": 49.06,
+      "fp_rejected": 153,
+      "fp_rejection_rate": "91.1%",
+      "verified_count": 133,
+      "latency_ms": 37.51,
+      "fps": 26.7
+    },
+    {
+      "system": "System C: Fusion (\u03b1=0.4, \u03b2=0.6)",
+      "alpha": 0.4,
+      "beta": 0.6,
+      "precision": 89.47,
+      "recall": 24.43,
+      "f1_score": 38.37,
+      "fp_rejected": 158,
+      "fp_rejection_rate": "94.0%",
+      "verified_count": 95,
+      "latency_ms": 37.51,
+      "fps": 26.7
+    }
+  ]
+}

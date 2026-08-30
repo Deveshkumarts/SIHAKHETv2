@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-08-27T19:38:40.792693",
+  "model_name": "yolo11n.pt",
+  "data_yaml": "C:\\Users\\CMRMuthuthiyagarajan\\Downloads\\SIH26\\dataset\\data.yaml",
+  "epochs": 1,
+  "batch_size": 4,
+  "imgsz": 640,
+  "selected_device": "cpu",
+  "hardware": {
+    "python_version": "3.12.6",
+    "torch_version": "2.12.0+cpu",
+    "cuda_available": false,
+    "device_count": 0,
+    "gpu_name": "None (CPU)",
+    "vram_gb": 0.0
+  },
+  "hyperparameters": {
+    "hsv_h": 0.015,
+    "hsv_s": 0.5,
+    "hsv_v": 0.4,
+    "degrees": 10.0,
+    "translate": 0.1,
+    "scale": 0.5,
+    "shear": 2.0,
+    "perspective": 0.0001,
+    "flipud": 0.0,
+    "fliplr": 0.5,
+    "mosaic": 1.0,
+    "mixup": 0.1,
+    "copy_paste": 0.1,
+    "erasing": 0.2,
+    "optimizer": "auto",
+    "lr0": 0.01,
+    "lrf": 0.01,
+    "patience": 30,
+    "amp": false,
+    "workers": 4,
+    "plots": true,
+    "verbose": true
+  }
+}

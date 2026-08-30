@@ -1,0 +1,8 @@
+{
+  "split": "test",
+  "num_samples": 348,
+  "pixel_precision": 0.88,
+  "pixel_recall": 0.9245,
+  "mean_iou": 0.8207,
+  "dice_coefficient": 0.9006
+}

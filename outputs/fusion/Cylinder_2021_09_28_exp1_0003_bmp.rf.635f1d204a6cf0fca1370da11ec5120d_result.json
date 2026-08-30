@@ -1,0 +1,33 @@
+{
+  "image": "Combined_Dataset/test/images/Cylinder_2021_09_28_exp1_0003_bmp.rf.635f1d204a6cf0fca1370da11ec5120d.jpg",
+  "detections": [
+    {
+      "class_id": 2,
+      "class_name": "mine",
+      "confidence": 0.3225,
+      "bbox": [
+        494.56,
+        313.53,
+        512.59,
+        334.7
+      ],
+      "roi_bbox": [
+        490,
+        308,
+        518,
+        340
+      ],
+      "seg_quality": 0.0486,
+      "fusion_score": 0.2403,
+      "decision": "REJECT"
+    }
+  ],
+  "timings": {
+    "yolo_ms": 1860.37,
+    "roi_ms": 0.14,
+    "segformer_ms": 35.15,
+    "fusion_ms": 0.02,
+    "total_ms": 1895.68,
+    "total_fps": 0.5
+  }
+}

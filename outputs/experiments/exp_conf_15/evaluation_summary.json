@@ -1,0 +1,52 @@
+{
+  "model": "C:\\Users\\CMRMuthuthiyagarajan\\Downloads\\SIH26\\outputs\\training\\yolo11s_combined_dataset\\weights\\best.pt",
+  "split": "test",
+  "imgsz": 640,
+  "conf_threshold": 0.15,
+  "iou_threshold": 0.5,
+  "device": "0",
+  "overall": {
+    "precision": 0.7819,
+    "recall": 0.5269,
+    "map50": 0.5288,
+    "map50_95": 0.247,
+    "inference_speed_ms": 17.82,
+    "fps": 56.1
+  },
+  "per_class": {
+    "shipwreck": {
+      "class_id": 0,
+      "precision": 0.7927,
+      "recall": 0.7865,
+      "map50": 0.7858,
+      "map50_95": 0.368
+    },
+    "airplane": {
+      "class_id": 1,
+      "precision": 0.8071,
+      "recall": 0.5986,
+      "map50": 0.581,
+      "map50_95": 0.2884
+    },
+    "mine": {
+      "class_id": 2,
+      "precision": 0.7192,
+      "recall": 0.4789,
+      "map50": 0.503,
+      "map50_95": 0.1949
+    },
+    "human": {
+      "class_id": 3,
+      "precision": 0.8084,
+      "recall": 0.2435,
+      "map50": 0.2453,
+      "map50_95": 0.1368
+    }
+  },
+  "speed_profile_ms": {
+    "preprocess": 2.676943548386413,
+    "inference": 17.824577822572735,
+    "loss": 0.0005048387067525314,
+    "postprocess": 2.2496899193554545
+  }
+}

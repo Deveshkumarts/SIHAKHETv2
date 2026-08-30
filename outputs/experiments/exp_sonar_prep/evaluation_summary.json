@@ -1,0 +1,52 @@
+{
+  "model": "C:\\Users\\CMRMuthuthiyagarajan\\Downloads\\SIH26\\outputs\\experiments\\exp_sonar_prep\\weights\\best.pt",
+  "split": "test",
+  "imgsz": 832,
+  "conf_threshold": 0.15,
+  "iou_threshold": 0.5,
+  "device": "0",
+  "overall": {
+    "precision": 0.6817,
+    "recall": 0.5657,
+    "map50": 0.5256,
+    "map50_95": 0.2275,
+    "inference_speed_ms": 13.61,
+    "fps": 73.49
+  },
+  "per_class": {
+    "shipwreck": {
+      "class_id": 0,
+      "precision": 0.7414,
+      "recall": 0.7865,
+      "map50": 0.7639,
+      "map50_95": 0.3766
+    },
+    "airplane": {
+      "class_id": 1,
+      "precision": 0.7998,
+      "recall": 0.7619,
+      "map50": 0.6987,
+      "map50_95": 0.2731
+    },
+    "mine": {
+      "class_id": 2,
+      "precision": 0.4698,
+      "recall": 0.4797,
+      "map50": 0.4109,
+      "map50_95": 0.1531
+    },
+    "human": {
+      "class_id": 3,
+      "precision": 0.7158,
+      "recall": 0.2348,
+      "map50": 0.2288,
+      "map50_95": 0.1072
+    }
+  },
+  "speed_profile_ms": {
+    "preprocess": 2.9598725806438106,
+    "inference": 13.60692943547204,
+    "loss": 0.0003729838798819636,
+    "postprocess": 0.6549673387179346
+  }
+}

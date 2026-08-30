@@ -1,0 +1,32 @@
+{
+  "model": "best.pt",
+  "conf_threshold": 0.1,
+  "total_images_processed": 4,
+  "total_debris_detected": 0,
+  "results": [
+    {
+      "image": "sea_sample_val_001.jpg",
+      "detection_count": 0,
+      "detections": [],
+      "output_image": "pred_sea_sample_val_001.jpg"
+    },
+    {
+      "image": "sea_sample_val_002.jpg",
+      "detection_count": 0,
+      "detections": [],
+      "output_image": "pred_sea_sample_val_002.jpg"
+    },
+    {
+      "image": "sea_sample_val_003.jpg",
+      "detection_count": 0,
+      "detections": [],
+      "output_image": "pred_sea_sample_val_003.jpg"
+    },
+    {
+      "image": "sea_sample_val_004.jpg",
+      "detection_count": 0,
+      "detections": [],
+      "output_image": "pred_sea_sample_val_004.jpg"
+    }
+  ]
+}

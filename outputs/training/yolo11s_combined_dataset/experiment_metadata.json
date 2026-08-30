@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-08-27T20:20:42.367678",
+  "model_name": "yolo11s.pt",
+  "data_yaml": "C:\\Users\\CMRMuthuthiyagarajan\\Downloads\\SIH26\\Combined_Dataset\\data.yaml",
+  "epochs": 50,
+  "batch_size": 16,
+  "imgsz": 640,
+  "selected_device": "0",
+  "hardware": {
+    "python_version": "3.12.6",
+    "torch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "device_count": 1,
+    "gpu_name": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "vram_gb": 6.0
+  },
+  "hyperparameters": {
+    "hsv_h": 0.015,
+    "hsv_s": 0.5,
+    "hsv_v": 0.4,
+    "degrees": 10.0,
+    "translate": 0.1,
+    "scale": 0.5,
+    "shear": 2.0,
+    "perspective": 0.0001,
+    "flipud": 0.0,
+    "fliplr": 0.5,
+    "mosaic": 1.0,
+    "mixup": 0.1,
+    "copy_paste": 0.1,
+    "erasing": 0.2,
+    "optimizer": "auto",
+    "lr0": 0.01,
+    "lrf": 0.01,
+    "patience": 30,
+    "amp": true,
+    "workers": 4,
+    "plots": true,
+    "verbose": true
+  }
+}
