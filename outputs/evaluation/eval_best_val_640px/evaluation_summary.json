@@ -1,0 +1,66 @@
+{
+  "model": "C:\\Users\\CMRMuthuthiyagarajan\\Downloads\\SIH26\\outputs\\training\\smoke_test\\weights\\best.pt",
+  "split": "val",
+  "imgsz": 640,
+  "conf_threshold": 0.25,
+  "iou_threshold": 0.6,
+  "device": "cpu",
+  "overall": {
+    "precision": 0.0,
+    "recall": 0.0,
+    "map50": 0.0,
+    "map50_95": 0.0,
+    "inference_speed_ms": 92.02,
+    "fps": 10.87
+  },
+  "per_class": {
+    "plastic_bottle": {
+      "class_id": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "map50": 0.0,
+      "map50_95": 0.0
+    },
+    "plastic_bag": {
+      "class_id": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "map50": 0.0,
+      "map50_95": 0.0
+    },
+    "fishing_net": {
+      "class_id": 2,
+      "precision": 0.0,
+      "recall": 0.0,
+      "map50": 0.0,
+      "map50_95": 0.0
+    },
+    "can": {
+      "class_id": 3,
+      "precision": 0.0,
+      "recall": 0.0,
+      "map50": 0.0,
+      "map50_95": 0.0
+    },
+    "glass": {
+      "class_id": 4,
+      "precision": 0.0,
+      "recall": 0.0,
+      "map50": 0.0,
+      "map50_95": 0.0
+    },
+    "other_debris": {
+      "class_id": 5,
+      "precision": 0.0,
+      "recall": 0.0,
+      "map50": 0.0,
+      "map50_95": 0.0
+    }
+  },
+  "speed_profile_ms": {
+    "preprocess": 0.9866000000329223,
+    "inference": 92.02232500001628,
+    "loss": 0.00047500020627921913,
+    "postprocess": 0.27802499994322716
+  }
+}

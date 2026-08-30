@@ -1,0 +1,27 @@
+{
+  "YOLOv11": {
+    "Precision": 0.879998649718646,
+    "Recall": 0.885995218887559,
+    "mAP@50": 0.924705486304655,
+    "mAP@50-95": 0.8429473374967952
+  },
+  "SegFormer": {
+    "mIoU": 0.6350262485379008,
+    "Dice Score": 0.7687091613689127
+  },
+  "ResNet18": {
+    "Accuracy": 0.9987341772151899,
+    "F1-Score_Weighted": 0.9987322065517988,
+    "F1-Score_Macro": 0.9983086355686253
+  },
+  "System": {
+    "End-to-End Success Rate": 50.50632911392405,
+    "Preprocessing_Time_ms": 2.441816961689693,
+    "YOLOv11_Time_ms": 18.301089620254523,
+    "SegFormer_Time_ms": 5.902770379631149,
+    "ResNet18_Time_ms": 23.614886835183583,
+    "Total_Inference_Time_ms": 50.63759911355203,
+    "FPS": 19.74817166504192,
+    "Hardware": "NVIDIA GeForce RTX 4050 Laptop GPU"
+  }
+}

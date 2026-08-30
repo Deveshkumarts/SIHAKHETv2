@@ -1,0 +1,33 @@
+{
+  "YOLOv11": {
+    "Precision": 0.88,
+    "Recall": 0.886,
+    "F1_Score": 0.883,
+    "mAP_50": 0.9247,
+    "mAP_50_95": 0.8429,
+    "Preproc_ms": 0.4155,
+    "Inference_ms": 6.6142,
+    "Post_ms": 1.2563,
+    "FPS": 120.6844
+  },
+  "SegFormer": {
+    "mIoU": 0.635,
+    "Dice_Score": 0.7687,
+    "Pixel_Accuracy": 0.7128,
+    "Boundary_F1": 0.2098,
+    "FW_IoU": 0.635,
+    "FG_Confidence": 0.5779,
+    "Inference_ms": 4.3031,
+    "FPS": 232.3888
+  },
+  "ResNet18": {
+    "Accuracy": 0.9987,
+    "Top3_Accuracy": 1.0,
+    "Precision_W": 0.9988,
+    "Recall_W": 0.9987,
+    "F1_Weighted": 0.9987,
+    "F1_Macro": 0.9983,
+    "ROC_AUC_Macro": 1.0,
+    "ROC_AUC_Weighted": 1.0
+  }
+}

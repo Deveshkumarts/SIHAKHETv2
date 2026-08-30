@@ -1,0 +1,45 @@
+﻿# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.ipynb_checkpoints
+
+# Environments
+venv/
+env/
+.env
+
+# Large Raw and Preprocessed Datasets
+SIH DATASETS/
+SIH_Dataset_27class/
+data/
+datasets/
+
+# Large Training Checkpoints & Intermediate Runs
+runs/
+outputs/training/
+outputs/predictions/
+outputs/visualizations/
+outputs/visualizations_sonar/
+outputs/segformer/evaluation/
+outputs/segformer/weights/
+outputs/experiments/
+outputs/exported/
+outputs/fusion/
+
+# Root models
+/yolo11n.pt
+/yolo11s.pt
+
+# Media and video temp files
+*.mp4
+*.avi
+*.mov
+*.mkv
+
+# OS & IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+outputs/error_analysis/
