@@ -13,8 +13,12 @@ import torchvision.models as models
 import torchvision.transforms as transforms
 import cv2
 import numpy as np
+import ssl
 from pathlib import Path
 from typing import Dict, List, Tuple, Any, Optional
+
+# Fix SSL certificate verification error when downloading pretrained weights on Windows
+ssl._create_default_https_context = ssl._create_unverified_context
 
 # Master 27-Class Taxonomy
 MASTER_CLASSES = [
