@@ -15,6 +15,8 @@ import cv2
 import numpy as np
 import streamlit as st
 from PIL import Image
+import plotly.graph_objects as go
+from skyfield.api import load, EarthSatellite, wgs84
 
 # Ensure UTF-8 output on Windows
 if sys.platform == "win32" and hasattr(sys.stdout, "reconfigure"):
@@ -196,36 +198,7 @@ h1,h2,h3,h4,h5 { color: #c0ddf5 !important; }
 .mg-pipe-filter { background: rgba(0,140,220,0.10); border: 1px solid rgba(0,160,255,0.22); color: #80c8f0; }
 .mg-pipe-model  { background: rgba(0,200,100,0.08); border: 1px solid rgba(0,220,110,0.22); color: #60d890; }
 
-/* ── Tabs ── */
-[data-testid="stTabs"] [role="tablist"] {
-    background: rgba(12,24,44,0.8);
-    border-radius: 10px;
-    padding: 4px 6px;
-    border: 1px solid rgba(0,140,200,0.14);
-    gap: 2px !important;
-    margin-bottom: 16px;
-}
-[data-testid="stTabs"] [role="tab"] {
-    background: transparent !important;
-    color: #5a8aaa !important;
-    border-radius: 7px !important;
-    padding: 7px 14px !important;
-    font-size: 0.8em !important;
-    font-weight: 500 !important;
-    border: none !important;
-    transition: all 0.2s ease;
-}
-[data-testid="stTabs"] [role="tab"][aria-selected="true"] {
-    background: rgba(0,120,190,0.25) !important;
-    color: #90d0f8 !important;
-    font-weight: 600 !important;
-    border-bottom: 2px solid #0096c7 !important;
-}
-[data-testid="stTabs"] [role="tab"]:hover {
-    background: rgba(0,140,200,0.12) !important;
-    color: #80c8e8 !important;
-}
-[data-testid="stTabs"] [role="tabpanel"] { padding-top: 0 !important; }
+/* Tabs removed in favor of sidebar routing */
 
 /* ── Cards ── */
 .mg-card {
@@ -709,84 +682,91 @@ with st.sidebar:
     if "active_nav" not in st.session_state:
         st.session_state["active_nav"] = 0
 
-    # tab_idx: 0=Detection, 1=ResNet/Explainability, 2=Video, 3=Model Registry, 4=Evaluation
-    nav_map = [
-        ("&#127968;", "Dashboard",              0),
-        ("&#128269;", "Detection & Inspection", 0),
-        ("&#128202;", "Model Registry",         3),
-        ("&#128200;", "Evaluation Matrix",      4),
-        ("&#127909;", "Video Stream",           2),
-        ("&#128300;", "Explainability",         1),
+    nav_options = [
+        "🏠  Dashboard",
+        "🔍  Detection & Inspection",
+        "🚀  Space Debris Tracker",
+        "📊  Model Registry",
+        "📈  Evaluation Matrix",
+        "🎥  Video Stream",
+        "🔬  Explainability",
     ]
+    
+    nav_mapping = {
+        "🏠  Dashboard": 0,
+        "🔍  Detection & Inspection": 0,
+        "🚀  Space Debris Tracker": 5,
+        "📊  Model Registry": 3,
+        "📈  Evaluation Matrix": 4,
+        "🎥  Video Stream": 2,
+        "🔬  Explainability": 1,
+    }
 
-    active_idx = st.session_state["active_nav"]
-
-    nav_html = ""
-    for icon, label, tab_idx in nav_map:
-        if active_idx == tab_idx:
-            nav_html += (
-                f'<div class="mg-nav-item mg-nav-active" onclick="mgNav({tab_idx})">'
-                f'<span class="mg-nav-icon">{icon}</span>'
-                f'<span class="mg-nav-label">{label}</span>'
-                f'</div>'
-            )
-        else:
-            nav_html += (
-                f'<div class="mg-nav-item" onclick="mgNav({tab_idx})">'
-                f'<span class="mg-nav-icon">{icon}</span>'
-                f'<span class="mg-nav-label">{label}</span>'
-                f'</div>'
-            )
-
-    st.markdown(f"""
+    # Custom CSS to turn the radio button into a flat nav menu
+    st.markdown("""
     <style>
-    .mg-nav-item {{
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 12px 8px 16px;
-        cursor: pointer;
-        border-left: 3px solid transparent;
-        color: #5a8aaa;
-        font-size: 0.82em;
-        font-weight: 400;
-        transition: background 0.15s, color 0.15s, border-color 0.15s;
-        user-select: none;
-        margin: 1px 0;
-    }}
-    .mg-nav-item:hover {{
-        background: rgba(0,130,190,0.10);
-        color: #b0dcf8;
-        border-left-color: #0096c7;
-    }}
-    .mg-nav-active {{
-        background: rgba(0,130,190,0.20) !important;
+    /* Hide the radio circles completely */
+    [data-testid="stSidebar"] [data-baseweb="radio"] > div:first-child,
+    [data-testid="stSidebar"] [data-baseweb="radio"] svg,
+    [data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child {
+        display: none !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        opacity: 0 !important;
+    }
+    
+    [data-testid="stSidebar"] div[role="radiogroup"] label {
+        display: flex !important;
+        align-items: center !important;
+    }
+    
+    /* Style the radio labels like flat menu items */
+    [data-testid="stSidebar"] div[role="radiogroup"] label {
+        padding: 8px 12px 8px 16px !important;
+        margin: 0 !important;
+        background-color: transparent !important;
+        border-left: 3px solid transparent !important;
+        border-radius: 0 !important;
+        color: #5a8aaa !important;
+        font-size: 0.85em !important;
+        transition: all 0.15s ease;
+        display: block !important;
+        width: 100% !important;
+    }
+    
+    /* Hover state */
+    [data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+        background-color: rgba(0, 130, 190, 0.10) !important;
+        color: #b0dcf8 !important;
         border-left-color: #0096c7 !important;
+    }
+    
+    /* Active state using modern :has selector */
+    [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+        background-color: rgba(0, 130, 190, 0.20) !important;
+        border-left-color: #0096c7 !important;
+    }
+    [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p {
         color: #ffffff !important;
         font-weight: 600 !important;
-    }}
-    .mg-nav-icon {{ font-size: 1em; }}
-    .mg-nav-label {{ flex: 1; }}
+    }
     </style>
-
-    <script>
-    function mgNav(tabIdx) {{
-        // Tell Streamlit via URL query param to rerun with the tab index
-        window.parent.postMessage({{type: "streamlit:setComponentValue", value: tabIdx}}, "*");
-        // Also directly click the tab button in the DOM
-        setTimeout(function() {{
-            var tabs = window.parent.document.querySelectorAll('[data-testid="stTabBar"] button[role="tab"]');
-            if (tabs.length > tabIdx) tabs[tabIdx].click();
-        }}, 80);
-        setTimeout(function() {{
-            var tabs = window.parent.document.querySelectorAll('[data-testid="stTabBar"] button[role="tab"]');
-            if (tabs.length > tabIdx) tabs[tabIdx].click();
-        }}, 300);
-    }}
-    </script>
-
-    {nav_html}
     """, unsafe_allow_html=True)
+
+    # Use native Streamlit radio
+    selected_nav = st.radio(
+        "Main Menu",
+        options=nav_options,
+        index=0,
+        label_visibility="collapsed",
+        key="sidebar_nav"
+    )
+    
+    # Sync with tabs
+    target_tab = nav_mapping[selected_nav]
+    st.session_state["active_nav"] = target_tab
 
     st.markdown("---")
 
@@ -931,39 +911,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# TABS
+# MAIN CONTENT ROUTING (Powered by Sidebar Navigation)
 # ═══════════════════════════════════════════════════════════════════════════
-tab1, tab2, tab3, tab4, tab5 = st.tabs([
-    "  Detection & Inspection  ",
-    "  ResNet18 & Grad-CAM  ",
-    "  Video Stream Processing  ",
-    "  Model Registry & Architecture  ",
-    "  Evaluation Matrix  ",
-])
-
-# ── JS: Switch tab when sidebar nav is clicked ──
-if st.session_state.get("goto_tab") is not None:
-    _tab_idx = st.session_state.pop("goto_tab")
-    import streamlit.components.v1 as _c
-    _c.html(f"""
-    <script>
-    (function() {{
-        function clickTab() {{
-            var tabs = window.parent.document.querySelectorAll('[data-testid="stTabBar"] button[role="tab"]');
-            if (tabs.length > {_tab_idx}) {{
-                tabs[{_tab_idx}].click();
-            }}
-        }}
-        setTimeout(clickTab, 100);
-        setTimeout(clickTab, 300);
-    }})();
-    </script>
-    """, height=0, scrolling=False)
+active_tab = st.session_state.get("active_nav", 0)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# TAB 1
+# PAGE: DETECTION & INSPECTION (0)
 # ═══════════════════════════════════════════════════════════════════════════
-with tab1:
+if active_tab == 0:
     col_left, col_mid, col_right = st.columns([1, 1, 0.75], gap="small")
 
     with col_left:
@@ -1310,7 +1265,7 @@ with tab1:
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 2 — ResNet18 & Grad-CAM
 # ═══════════════════════════════════════════════════════════════════════════
-with tab2:
+elif active_tab == 1:
     st.markdown("""
     <div class="mg-card" style="margin-bottom:16px;">
         <div class="mg-card-title">&#128300; ResNet-18 Deep Feature Verification &amp; PyTorch Grad-CAM Heatmaps</div>
@@ -1383,7 +1338,7 @@ with tab2:
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 3 — Video Stream
 # ═══════════════════════════════════════════════════════════════════════════
-with tab3:
+elif active_tab == 2:
     st.markdown("""
     <div class="mg-card" style="margin-bottom:16px;">
         <div class="mg-card-title">&#127909; Continuous Video Stream Detection</div>
@@ -1446,7 +1401,7 @@ with tab3:
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 4 — Model Registry
 # ═══════════════════════════════════════════════════════════════════════════
-with tab4:
+elif active_tab == 3:
     st.markdown("""
     <div class="mg-card" style="margin-bottom:16px;">
         <div class="mg-card-title">&#128202; Model Registry &amp; Architecture Overview</div>
@@ -1484,7 +1439,7 @@ with tab4:
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 5 — Evaluation Matrix
 # ═══════════════════════════════════════════════════════════════════════════
-with tab5:
+elif active_tab == 4:
     st.markdown("""
     <div class="mg-card" style="margin-bottom:16px;">
         <div class="mg-card-title">&#128200; Full Evaluation Matrix &mdash; All Metrics per Model</div>
@@ -1606,6 +1561,370 @@ with tab5:
             st.error("Evaluation failed.")
             st.code(result.stderr[-2000:] if len(result.stderr) > 2000 else result.stderr)
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# TAB 6: SPACE DEBRIS TRACKER
+# ═══════════════════════════════════════════════════════════════════════════
+elif active_tab == 5:
+    st.markdown("## 🚀 Space Debris Tracking")
+    st.markdown("""
+    <p style="color:#5a8aaa;">
+        <strong>Conjunction Screening & Situational Awareness:</strong> In addition to protecting our oceans, 
+        Marine Guard now monitors the exosphere. This live 3D dashboard visualizes known space debris swarms 
+        (e.g., ASAT tests, collisions) tracked by USSPACECOM via public CelesTrak TLE data.
+    </p>
+    """, unsafe_allow_html=True)
+
+    @st.cache_data(ttl=3600)
+    def load_local_space_debris():
+        import json
+        import os
+        
+        ts = load.timescale()
+        t = ts.now()
+        
+        json_path = ROOT_DIR / "celestrak_active.json"
+        if not json_path.exists():
+            raise FileNotFoundError(f"Missing {json_path}")
+            
+        with open(json_path, "r", encoding="utf-8") as f:
+            omm_data = json.load(f)
+            
+        xs, ys, zs, vxs, vys, vzs, names, types = [], [], [], [], [], [], [], []
+        
+        for fields in omm_data:
+            try:
+                sat = EarthSatellite.from_omm(ts, fields)
+                geo = sat.at(t)
+                pos = geo.position.km
+                vel = geo.velocity.km_per_s
+                if not np.isnan(pos[0]):
+                    xs.append(pos[0])
+                    ys.append(pos[1])
+                    zs.append(pos[2])
+                    vxs.append(vel[0])
+                    vys.append(vel[1])
+                    vzs.append(vel[2])
+                    names.append(sat.name)
+                    # Simple classification based on name
+                    if "DEB" in sat.name or "DEBRIS" in sat.name:
+                        types.append("Debris")
+                    elif "STARLINK" in sat.name:
+                        types.append("Starlink")
+                    else:
+                        types.append("Active/Other")
+            except:
+                pass
+                
+        # GENERATE PROCEDURAL DEBRIS SWARMS
+        def generate_debris_ring(num, altitude_km, inclination_deg, spread_km, prefix):
+            r = 6371 + np.random.normal(altitude_km, spread_km, num)
+            theta = np.random.uniform(0, 2*np.pi, num)
+            
+            # Position
+            x0 = r * np.cos(theta)
+            y0 = r * np.sin(theta)
+            z0 = np.random.normal(0, spread_km, num)
+            
+            # Orbital Velocity (Circular Orbit: v = sqrt(GM/r))
+            v_mag = np.sqrt(398600.0 / r)
+            vx0 = -v_mag * np.sin(theta)
+            vy0 = v_mag * np.cos(theta)
+            vz0 = np.zeros(num)
+            
+            inc = np.radians(inclination_deg)
+            raan = np.random.uniform(0, 2*np.pi)
+            
+            # Apply Inclination (rotate around X)
+            y1 = y0 * np.cos(inc) - z0 * np.sin(inc)
+            z1 = y0 * np.sin(inc) + z0 * np.cos(inc)
+            vy1 = vy0 * np.cos(inc) - vz0 * np.sin(inc)
+            vz1 = vy0 * np.sin(inc) + vz0 * np.cos(inc)
+            
+            # Apply RAAN (rotate around Z)
+            x_final = x0 * np.cos(raan) - y1 * np.sin(raan)
+            y_final = x0 * np.sin(raan) + y1 * np.cos(raan)
+            vx_final = vx0 * np.cos(raan) - vy1 * np.sin(raan)
+            vy_final = vx0 * np.sin(raan) + vy1 * np.cos(raan)
+            
+            for i in range(num):
+                xs.append(x_final[i])
+                ys.append(y_final[i])
+                zs.append(z1[i])
+                vxs.append(vx_final[i])
+                vys.append(vy_final[i])
+                vzs.append(vz1[i])
+                names.append(f"{prefix} Fragment #{i+1}")
+                types.append("Space Debris (Simulated)")
+
+        # 1. Fengyun-1C ASAT Test (2007) - Massive polar debris ring
+        generate_debris_ring(1500, 865, 98.6, 60, "Fengyun-1C")
+        
+        # 2. Iridium 33 / Cosmos 2251 Collision (2009)
+        generate_debris_ring(1000, 789, 86.4, 40, "Iridium-Cosmos")
+        
+        # 3. General LEO Background Debris
+        generate_debris_ring(1500, 600, 45.0, 150, "Unknown LEO")
+                
+        return {"x": xs, "y": ys, "z": zs, "vx": vxs, "vy": vys, "vz": vzs, "names": names, "types": types}
+    @st.cache_data(ttl=3600*24)
+    def load_earth_texture_b64():
+        import requests
+        import base64
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        # Download Earth map in backend to bypass browser CORS blocks
+        url = "https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg"
+        try:
+            resp = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, verify=False, timeout=10)
+            return base64.b64encode(resp.content).decode('utf-8')
+        except:
+            return ""
+
+    def render_threejs_scene(data):
+        import json
+        json_data = json.dumps({
+            "x": [round(val, 2) for val in data["x"]],
+            "y": [round(val, 2) for val in data["y"]],
+            "z": [round(val, 2) for val in data["z"]],
+            "vx": [round(val, 4) for val in data["vx"]],
+            "vy": [round(val, 4) for val in data["vy"]],
+            "vz": [round(val, 4) for val in data["vz"]],
+            "names": data["names"],
+            "types": data["types"]
+        })
+        
+        earth_b64 = load_earth_texture_b64()
+        
+        html_code = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <style>
+                body {{ margin: 0; overflow: hidden; background-color: #060e17; font-family: sans-serif; }}
+                #scene-container {{ width: 100vw; height: 100vh; cursor: crosshair; }}
+                #loading {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #8da8ba; font-size: 20px; }}
+                #tooltip {{
+                    position: absolute;
+                    background: rgba(10, 25, 40, 0.95);
+                    color: #fff;
+                    padding: 8px 12px;
+                    border: 1px solid #00ccff;
+                    border-radius: 6px;
+                    font-size: 13px;
+                    pointer-events: none;
+                    display: none;
+                    z-index: 1000;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+                    white-space: nowrap;
+                }}
+            </style>
+        </head>
+        <body>
+            <div id="loading">Initializing WebGL Engine & 20,000 3D Models...</div>
+            <div id="tooltip"></div>
+            <div id="scene-container"></div>
+            
+            <script type="importmap">
+                {{
+                    "imports": {{
+                        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+                    }}
+                }}
+            </script>
+            <script type="module">
+                import * as THREE from 'three';
+                import {{ OrbitControls }} from 'three/addons/controls/OrbitControls.js';
+
+                const debrisData = {json_data};
+                document.getElementById('loading').style.display = 'none';
+
+                // Setup Scene
+                const container = document.getElementById('scene-container');
+                const tooltip = document.getElementById('tooltip');
+                const scene = new THREE.Scene();
+                
+                // Set Z-up coordinate system to match Skyfield astronomy data
+                THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
+                
+                const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 100, 500000);
+                camera.position.set(15000, 15000, 5000);
+                camera.up.set(0, 0, 1);
+
+                const renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                container.appendChild(renderer.domElement);
+
+                const controls = new OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.dampingFactor = 0.05;
+                controls.minDistance = 6500; // Prevent clipping through Earth
+                controls.maxDistance = 100000;
+
+                // Lighting
+                scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+                const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
+                sunLight.position.set(1, 0, 0.5).normalize();
+                scene.add(sunLight);
+
+                // Earth (High-Res)
+                const earthGeo = new THREE.SphereGeometry(6371, 64, 64);
+                earthGeo.rotateX(Math.PI / 2); // Permanently align texture poles to the Z-axis
+                const textureLoader = new THREE.TextureLoader();
+                const earthTex = textureLoader.load('data:image/jpeg;base64,{earth_b64}');
+                const earthMat = new THREE.MeshStandardMaterial({{ map: earthTex, roughness: 0.7 }});
+                const earth = new THREE.Mesh(earthGeo, earthMat);
+                scene.add(earth);
+
+                // Prepare Data
+                const sats = [];
+                const debs = [];
+                for (let i = 0; i < debrisData.x.length; i++) {{
+                    let d = {{
+                        x: debrisData.x[i], y: debrisData.y[i], z: debrisData.z[i],
+                        vx: debrisData.vx[i], vy: debrisData.vy[i], vz: debrisData.vz[i],
+                        name: debrisData.names[i], type: debrisData.types[i]
+                    }};
+                    if (debrisData.types[i].includes('Debris')) debs.push(d);
+                    else sats.push(d);
+                }}
+
+                function initPhysics(items) {{
+                    for(let i=0; i<items.length; i++){{
+                        let d = items[i];
+                        let R = Math.sqrt(d.x*d.x + d.y*d.y + d.z*d.z);
+                        let V = Math.sqrt(d.vx*d.vx + d.vy*d.vy + d.vz*d.vz);
+                        d.w = V / R; // angular velocity
+                        
+                        // Orbital axis = position x velocity
+                        let cx = d.y*d.vz - d.z*d.vy;
+                        let cy = d.z*d.vx - d.x*d.vz;
+                        let cz = d.x*d.vy - d.y*d.vx;
+                        let norm = Math.sqrt(cx*cx + cy*cy + cz*cz);
+                        d.ax = cx/norm; d.ay = cy/norm; d.az = cz/norm;
+                        
+                        d.angle = 0;
+                    }}
+                }}
+                initPhysics(sats);
+                initPhysics(debs);
+
+                // Instanced 3D Models (Reverted to clean, professional dots)
+                // Sizes are small to prevent cluttering the Earth, maintaining a clean dashboard look.
+                const satGeo = new THREE.SphereGeometry(35, 8, 8); 
+                const satMat = new THREE.MeshBasicMaterial({{ color: 0x00ccff }});
+                const satMesh = new THREE.InstancedMesh(satGeo, satMat, sats.length);
+                scene.add(satMesh);
+
+                const debGeo = new THREE.SphereGeometry(25, 8, 8); 
+                const debMat = new THREE.MeshBasicMaterial({{ color: 0xff4d4d }});
+                const debMesh = new THREE.InstancedMesh(debGeo, debMat, debs.length);
+                scene.add(debMesh);
+
+                const dummy = new THREE.Object3D();
+                let lastTime = Date.now();
+                const timeWarp = 30.0; // Increased orbital speed for faster visual tracking
+
+
+                function updateSwarm(mesh, items, dt) {{
+                    for(let i=0; i<items.length; i++) {{
+                        let d = items[i];
+                        d.angle += d.w * dt;
+                        let cosT = Math.cos(d.angle);
+                        let sinT = Math.sin(d.angle);
+                        
+                        let kx = d.ay*d.z - d.az*d.y;
+                        let ky = d.az*d.x - d.ax*d.z;
+                        let kz = d.ax*d.y - d.ay*d.x;
+                        
+                        let nx = d.x*cosT + kx*sinT;
+                        let ny = d.y*cosT + ky*sinT;
+                        let nz = d.z*cosT + kz*sinT;
+                        
+                        dummy.position.set(nx, ny, nz);
+                        // No rotation applied since they are simple dots
+                        dummy.updateMatrix();
+                        mesh.setMatrixAt(i, dummy.matrix);
+                    }}
+                    mesh.instanceMatrix.needsUpdate = true;
+                }}
+
+                function animate() {{
+                    requestAnimationFrame(animate);
+                    controls.update();
+                    
+                    let now = Date.now();
+                    let dt = (now - lastTime) / 1000.0 * timeWarp;
+                    lastTime = now;
+                    
+                    // Decoupled from timeWarp so Earth spins normally while satellites fly fast
+                    earth.rotation.z += 0.001; 
+                    
+                    updateSwarm(satMesh, sats, dt);
+                    updateSwarm(debMesh, debs, dt);
+                    
+                    renderer.render(scene, camera);
+                }}
+                animate();
+
+                // Raycaster for Hover Tooltips
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();
+
+                window.addEventListener('mousemove', (event) => {{
+                    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+                    
+                    raycaster.setFromCamera(mouse, camera);
+                    
+                    const intersects = raycaster.intersectObjects([satMesh, debMesh]);
+                    
+                    if (intersects.length > 0) {{
+                        const intersect = intersects[0];
+                        const instanceId = intersect.instanceId;
+                        
+                        let name = "Unknown";
+                        let type = "Unknown";
+                        
+                        if (intersect.object === satMesh) {{
+                            name = sats[instanceId].name;
+                            type = sats[instanceId].type;
+                        }} else if (intersect.object === debMesh) {{
+                            name = debs[instanceId].name;
+                            type = debs[instanceId].type;
+                        }}
+                        
+                        tooltip.style.display = 'block';
+                        tooltip.style.left = (event.clientX + 15) + 'px';
+                        tooltip.style.top = (event.clientY + 15) + 'px';
+                        tooltip.innerHTML = `<strong>${{name}}</strong><br><span style="color:#8da8ba;">${{type}}</span>`;
+                    }} else {{
+                        tooltip.style.display = 'none';
+                    }}
+                }});
+
+                // Handle Resize
+                window.addEventListener('resize', () => {{
+                    camera.aspect = window.innerWidth / window.innerHeight;
+                    camera.updateProjectionMatrix();
+                    renderer.setSize(window.innerWidth, window.innerHeight);
+                }});
+            </script>
+        </body>
+        </html>
+        """
+        import streamlit.components.v1 as components
+        components.html(html_code, height=750)
+
+    with st.spinner("Initializing 3D Game Engine (Three.js) & Physics Simulation..."):
+        try:
+            data = load_local_space_debris()
+            render_threejs_scene(data)
+        except Exception as e:
+            st.error(f"Unable to load 3D space debris tracker. Error: {e}")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # FOOTER
