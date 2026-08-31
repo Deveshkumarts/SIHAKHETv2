@@ -705,33 +705,92 @@ with st.sidebar:
         unsafe_allow_html=True
     )
 
-    nav_items = [
-        ("&#127968;", "Dashboard", False),
-        ("&#128269;", "Detection &amp; Inspection", True),
-        ("&#128202;", "Model Registry", False),
-        ("&#128200;", "Evaluation Matrix", False),
-        ("&#127909;", "Video Stream", False),
-        ("&#128300;", "Explainability", False),
+    # ── Nav items (pure HTML — no Streamlit button cards) ──
+    if "active_nav" not in st.session_state:
+        st.session_state["active_nav"] = 0
+
+    # tab_idx: 0=Detection, 1=ResNet/Explainability, 2=Video, 3=Model Registry, 4=Evaluation
+    nav_map = [
+        ("&#127968;", "Dashboard",              0),
+        ("&#128269;", "Detection & Inspection", 0),
+        ("&#128202;", "Model Registry",         3),
+        ("&#128200;", "Evaluation Matrix",      4),
+        ("&#127909;", "Video Stream",           2),
+        ("&#128300;", "Explainability",         1),
     ]
-    for icon, label, active in nav_items:
-        if active:
-            st.markdown(
-                f'<div style="background:rgba(0,130,190,0.20);border-left:3px solid #0096c7;'
-                f'color:#b0dcf8;font-size:0.8em;padding:7px 12px 7px 13px;'
-                f'display:flex;align-items:center;gap:8px;margin:1px 0;">'
-                f'<span>{icon}</span><span style="font-weight:600;">{label}</span></div>',
-                unsafe_allow_html=True
+
+    active_idx = st.session_state["active_nav"]
+
+    nav_html = ""
+    for icon, label, tab_idx in nav_map:
+        if active_idx == tab_idx:
+            nav_html += (
+                f'<div class="mg-nav-item mg-nav-active" onclick="mgNav({tab_idx})">'
+                f'<span class="mg-nav-icon">{icon}</span>'
+                f'<span class="mg-nav-label">{label}</span>'
+                f'</div>'
             )
         else:
-            st.markdown(
-                f'<div style="color:#5a8aaa;font-size:0.8em;padding:6px 12px 6px 16px;'
-                f'display:flex;align-items:center;gap:8px;margin:1px 0;">'
-                f'<span>{icon}</span><span>{label}</span></div>',
-                unsafe_allow_html=True
+            nav_html += (
+                f'<div class="mg-nav-item" onclick="mgNav({tab_idx})">'
+                f'<span class="mg-nav-icon">{icon}</span>'
+                f'<span class="mg-nav-label">{label}</span>'
+                f'</div>'
             )
+
+    st.markdown(f"""
+    <style>
+    .mg-nav-item {{
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 12px 8px 16px;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+        color: #5a8aaa;
+        font-size: 0.82em;
+        font-weight: 400;
+        transition: background 0.15s, color 0.15s, border-color 0.15s;
+        user-select: none;
+        margin: 1px 0;
+    }}
+    .mg-nav-item:hover {{
+        background: rgba(0,130,190,0.10);
+        color: #b0dcf8;
+        border-left-color: #0096c7;
+    }}
+    .mg-nav-active {{
+        background: rgba(0,130,190,0.20) !important;
+        border-left-color: #0096c7 !important;
+        color: #ffffff !important;
+        font-weight: 600 !important;
+    }}
+    .mg-nav-icon {{ font-size: 1em; }}
+    .mg-nav-label {{ flex: 1; }}
+    </style>
+
+    <script>
+    function mgNav(tabIdx) {{
+        // Tell Streamlit via URL query param to rerun with the tab index
+        window.parent.postMessage({{type: "streamlit:setComponentValue", value: tabIdx}}, "*");
+        // Also directly click the tab button in the DOM
+        setTimeout(function() {{
+            var tabs = window.parent.document.querySelectorAll('[data-testid="stTabBar"] button[role="tab"]');
+            if (tabs.length > tabIdx) tabs[tabIdx].click();
+        }}, 80);
+        setTimeout(function() {{
+            var tabs = window.parent.document.querySelectorAll('[data-testid="stTabBar"] button[role="tab"]');
+            if (tabs.length > tabIdx) tabs[tabIdx].click();
+        }}, 300);
+    }}
+    </script>
+
+    {nav_html}
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
 
+    
     # ── Settings header ──
     st.markdown(
         '<div style="font-size:0.63em;font-weight:600;letter-spacing:0.08em;color:#3a6a88;'
@@ -881,6 +940,25 @@ tab1, tab2, tab3, tab4, tab5 = st.tabs([
     "  Model Registry & Architecture  ",
     "  Evaluation Matrix  ",
 ])
+
+# ── JS: Switch tab when sidebar nav is clicked ──
+if st.session_state.get("goto_tab") is not None:
+    _tab_idx = st.session_state.pop("goto_tab")
+    import streamlit.components.v1 as _c
+    _c.html(f"""
+    <script>
+    (function() {{
+        function clickTab() {{
+            var tabs = window.parent.document.querySelectorAll('[data-testid="stTabBar"] button[role="tab"]');
+            if (tabs.length > {_tab_idx}) {{
+                tabs[{_tab_idx}].click();
+            }}
+        }}
+        setTimeout(clickTab, 100);
+        setTimeout(clickTab, 300);
+    }})();
+    </script>
+    """, height=0, scrolling=False)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # TAB 1
