@@ -1,4 +1,4 @@
-﻿# Python bytecode & cache
+# Python bytecode & cache
 __pycache__/
 *.py[cod]
 *$py.class
@@ -17,3 +17,14 @@ SIH26.rar
 Thumbs.db
 .vscode/
 .idea/
+
+# Local databases & test artifacts
+*.db
+*.sqlite3
+outputs/*.db
+outputs/*.sql
+outputs/test_*
+data/test_*
+runs/detect/val-2/
+runs/detect/weights/
+

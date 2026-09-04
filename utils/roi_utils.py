@@ -9,9 +9,67 @@ import numpy as np
 from typing import List, Dict, Tuple, Any, Optional
 
 
+def get_adaptive_padding_ratio(
+    conf: float = 0.80,
+    snr_db: float = 12.0,
+    uncertainty: str = "LOW"
+) -> float:
+    """
+    Selects adaptive expansion padding scale:
+      - Tight (1.2× / pad=0.10): High confidence, low uncertainty, clear acoustic signature.
+      - Nominal (1.5× / pad=0.25): Standard survey detections.
+      - Loose (2.0× / pad=0.50): High uncertainty, low SNR (< 8 dB) to capture full acoustic shadow.
+    """
+    if uncertainty == "HIGH" or snr_db < 8.0 or conf < 0.35:
+        return 0.50  # Loose (2.0x bounding box)
+    elif conf >= 0.70 and uncertainty == "LOW" and snr_db >= 12.0:
+        return 0.10  # Tight (1.2x bounding box)
+    return 0.25      # Nominal (1.5x bounding box)
+
+
+def validate_roi_quality(
+    roi_crop: np.ndarray,
+    original_bbox: List[float],
+    clamped_bbox: List[int],
+    image_shape: Tuple[int, int, ...]
+) -> Tuple[bool, float, str]:
+    """
+    ROI Quality Gate:
+    Validates crop dimensions, boundary clipping, and pixel variance before feeding to SegFormer.
+
+    Returns:
+        (is_valid, quality_score_0_to_1, status_reason)
+    """
+    if roi_crop is None or roi_crop.size == 0:
+        return False, 0.0, "Empty crop"
+
+    h_crop, w_crop = roi_crop.shape[:2]
+    if h_crop < 10 or w_crop < 10:
+        return False, 0.2, "Crop too small (< 10px)"
+
+    # Check pixel variance (reject solid black water-column or saturated washout)
+    gray = cv2.cvtColor(roi_crop, cv2.COLOR_BGR2GRAY) if len(roi_crop.shape) == 3 else roi_crop
+    std_val = float(np.std(gray))
+    if std_val < 3.0:
+        return False, 0.3, "Uniform intensity / zero contrast residual"
+
+    # Check edge clipping fraction
+    h_img, w_img = image_shape[:2]
+    rx1, ry1, rx2, ry2 = clamped_bbox
+    clipped_edges = 0
+    if rx1 == 0: clipped_edges += 1
+    if ry1 == 0: clipped_edges += 1
+    if rx2 == w_img: clipped_edges += 1
+    if ry2 == h_img: clipped_edges += 1
+
+    clip_penalty = clipped_edges * 0.15
+    quality_score = max(0.4, round(1.0 - clip_penalty, 2))
+    return True, quality_score, "Good ROI"
+
+
 def expand_and_clamp_bbox(
     bbox: List[float],
-    image_shape: Tuple[int, int, int],
+    image_shape: Tuple[int, int, ...],
     padding_ratio: float = 0.25
 ) -> List[int]:
     """
@@ -20,7 +78,7 @@ def expand_and_clamp_bbox(
     Args:
         bbox: [x1, y1, x2, y2]
         image_shape: (H, W, C)
-        padding_ratio: Fractional expansion applied to width and height (default 0.25 = 25%)
+        padding_ratio: Fractional expansion applied to width and height (e.g. 0.10=1.2x, 0.25=1.5x, 0.50=2.0x)
 
     Returns:
         [rx1, ry1, rx2, ry2] as integers clamped to [0, 0, W, H]

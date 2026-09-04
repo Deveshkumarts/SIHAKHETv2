@@ -1,0 +1,8 @@
+# Anoma Sonar Anomaly Dataset
+path: C:/Users/CMRMuthuthiyagarajan/Downloads/SIHAKHETv2-main/SIHAKHETv2-main/samples/anoma
+train: train/images
+val: valid/images
+test: text/images
+
+nc: 4
+names: ['Debris Target', 'Small Acoustic Fragment', 'Structural Cluster', 'Subsea Linear Structure']

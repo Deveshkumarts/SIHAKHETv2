@@ -1,0 +1,109 @@
+{
+  "timestamp": "2026-09-01T11:03:21.719791",
+  "dataset_config": {
+    "data_yaml": "C:\\Users\\CMRMuthuthiyagarajan\\Downloads\\SIHAKHETv2-main\\SIHAKHETv2-main\\samples\\anoma\\data.yaml",
+    "split": "val",
+    "imgsz": 640,
+    "conf_thresh": 0.25,
+    "iou_thresh": 0.45
+  },
+  "hardware": {
+    "os": "Windows",
+    "os_release": "11",
+    "python_version": "3.12.6",
+    "pytorch_version": "2.6.0+cu124",
+    "cuda_available": true,
+    "device_requested": "0",
+    "device_name": "NVIDIA GeForce RTX 4050 Laptop GPU",
+    "cuda_version": "12.4",
+    "device_count": 1,
+    "vram_total_gb": 6.0
+  },
+  "model_info": {
+    "weights_file": "C:\\Users\\CMRMuthuthiyagarajan\\Downloads\\SIHAKHETv2-main\\SIHAKHETv2-main\\weights\\yolo11s_anoma_best.pt",
+    "file_size_mb": 18.29,
+    "total_parameters": 9429340,
+    "trainable_parameters": 0,
+    "total_layers": 320,
+    "num_classes": 4,
+    "class_names": [
+      "Debris Target",
+      "Small Acoustic Fragment",
+      "Structural Cluster",
+      "Subsea Linear Structure"
+    ]
+  },
+  "detection_metrics": {
+    "precision": 0.6719,
+    "recall": 0.3621,
+    "f1_score": 0.4706,
+    "mAP50": 0.3459,
+    "mAP50_95": 0.2124
+  },
+  "localization": {
+    "mean_iou_matched": 0.7856,
+    "per_class_mean_iou": {
+      "Debris Target": 0.8058055222034455,
+      "Small Acoustic Fragment": 0.6331278681755066,
+      "Structural Cluster": 0.0,
+      "Subsea Linear Structure": 0.7848442829572237
+    }
+  },
+  "speed_metrics": {
+    "mean_ms": 11.89,
+    "std_ms": 1.88,
+    "min_ms": 9.34,
+    "max_ms": 19.02,
+    "p95_ms": 15.82,
+    "fps": 84.13
+  },
+  "training_diagnostics": {
+    "status": "Analyzed successfully",
+    "epochs_trained": 25,
+    "overfitting_detected": false,
+    "divergence_slope": 0.0,
+    "plot_saved_to": "eval_outputs\\training_curves.png"
+  },
+  "per_class_metrics": [
+    {
+      "class_id": 0,
+      "class_name": "Debris Target",
+      "ap50": 0.619,
+      "ap50_95": 0.4408,
+      "precision": 0.7056,
+      "recall": 0.6471,
+      "f1": 0.6751,
+      "mean_iou": 0.8058
+    },
+    {
+      "class_id": 1,
+      "class_name": "Small Acoustic Fragment",
+      "ap50": 0.025,
+      "ap50_95": 0.0075,
+      "precision": 0.217,
+      "recall": 0.0263,
+      "f1": 0.0469,
+      "mean_iou": 0.6331
+    },
+    {
+      "class_id": 2,
+      "class_name": "Structural Cluster",
+      "ap50": 0.0,
+      "ap50_95": 0.0,
+      "precision": 1.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "mean_iou": 0.0
+    },
+    {
+      "class_id": 3,
+      "class_name": "Subsea Linear Structure",
+      "ap50": 0.7395,
+      "ap50_95": 0.4015,
+      "precision": 0.7651,
+      "recall": 0.775,
+      "f1": 0.77,
+      "mean_iou": 0.7848
+    }
+  ]
+}

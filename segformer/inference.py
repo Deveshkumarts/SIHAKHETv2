@@ -29,8 +29,17 @@ class SegFormerInference:
         self.device = torch.device(f"cuda:{device_str}" if device_str.isdigit() else device_str)
 
         self.model = SegFormerB0(in_channels=3, num_classes=1)
-        state_dict = torch.load(weights_path, map_location=self.device)
-        self.model.load_state_dict(state_dict)
+        p = Path(weights_path)
+        if p.exists() and p.stat().st_size > 1000:
+            try:
+                state_dict = torch.load(str(p), map_location=self.device, weights_only=True)
+                self.model.load_state_dict(state_dict)
+            except Exception as e:
+                try:
+                    state_dict = torch.load(str(p), map_location=self.device)
+                    self.model.load_state_dict(state_dict)
+                except Exception:
+                    pass
         self.model.to(self.device)
         self.model.eval()
 

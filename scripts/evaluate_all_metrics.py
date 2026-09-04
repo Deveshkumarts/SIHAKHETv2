@@ -1,4 +1,4 @@
-﻿"""
+"""
 Full Evaluation Matrix - All Possible Metrics per Model
 YOLOv11 | SegFormer | ResNet-18
 Akhet AI Platform - SIH 2026
@@ -26,13 +26,14 @@ from ultralytics import YOLO
 
 warnings.filterwarnings("ignore")
 
-ROOT_DIR = Path(r"C:\Users\CMRMuthuthiyagarajan\Downloads\SIH26")
+ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from resnet.classifier import ResNet18InferenceEngine, MASTER_CLASSES
 from segformer.inference import SegFormerInference
 from utils.sonar_preprocess import preprocess_universal_image
 from utils.roi_utils import expand_and_clamp_bbox
+from utils.device_utils import get_device_info
 
 DATA_YAML         = ROOT_DIR / "SIH_Dataset_27class/data.yaml"
 YOLO_WEIGHTS      = ROOT_DIR / "runs/detect/sih27class/yolo11s_sih_27class/weights/best.pt"
@@ -43,8 +44,9 @@ TEST_LBL_DIR      = ROOT_DIR / "SIH_Dataset_27class/test/labels"
 OUT_DIR           = ROOT_DIR / "outputs/evaluation/plots"
 OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-device_str = "0" if torch.cuda.is_available() else "cpu"
-gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
+hw_info = get_device_info()
+device_str = "0" if hw_info["cuda_available"] else "cpu"
+gpu_name = hw_info["gpu_name"]
 CLASS_NAMES = MASTER_CLASSES
 
 BG  = "#0d1b2a"

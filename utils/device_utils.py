@@ -9,18 +9,45 @@ import torch
 
 def get_device_info() -> dict:
     """
-    Query system for PyTorch, Python, CUDA, and GPU hardware information.
+    Query system dynamically for PyTorch, Python, CUDA, and GPU hardware information.
+    Accurately detects whatever GPU is currently running (RTX 3050, RTX 4050, etc.)
+    or gracefully reports CPU mode.
     """
-    cuda_available = torch.cuda.is_available()
-    info = {
+    try:
+        cuda_available = torch.cuda.is_available()
+    except Exception:
+        cuda_available = False
+
+    gpu_name = "None (CPU)"
+    short_name = "CPU Mode"
+    vram_gb = 0.0
+    device_count = 0
+    cuda_version = getattr(torch.version, "cuda", None) or "N/A"
+
+    if cuda_available:
+        try:
+            device_count = torch.cuda.device_count()
+            if device_count > 0:
+                raw_name = torch.cuda.get_device_name(0)
+                gpu_name = raw_name if raw_name else "NVIDIA GPU"
+                # Create a concise short name (e.g., "RTX 3050", "RTX 4050", "GTX 1650")
+                short_name = gpu_name.replace("NVIDIA GeForce ", "").replace(" Laptop GPU", "").strip()
+                vram_gb = round(torch.cuda.get_device_properties(0).total_memory / (1024**3), 2)
+        except Exception as e:
+            gpu_name = f"CUDA GPU (Detection Error: {e})"
+            short_name = "CUDA GPU"
+
+    return {
         "python_version": sys.version.split()[0],
         "torch_version": torch.__version__,
         "cuda_available": cuda_available,
-        "device_count": torch.cuda.device_count() if cuda_available else 0,
-        "gpu_name": torch.cuda.get_device_name(0) if cuda_available else "None (CPU)",
-        "vram_gb": round(torch.cuda.get_device_properties(0).total_memory / (1024**3), 2) if cuda_available else 0.0,
+        "cuda_version": cuda_version,
+        "device_count": device_count,
+        "gpu_name": gpu_name,
+        "short_gpu_name": short_name,
+        "vram_gb": vram_gb,
     }
-    return info
+
 
 
 def select_device(requested: str = "auto") -> str:

@@ -204,3 +204,74 @@ class ResNet18InferenceEngine:
             "gradcam_overlay": overlay,
             "cam_raw": cam_resized
         }
+
+    def predict_with_mc_dropout(
+        self,
+        roi_bgr: np.ndarray,
+        num_passes: int = 10,
+        target_class_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Monte Carlo (MC) Dropout Uncertainty Estimation.
+        Performs N stochastic forward passes with active dropout to measure
+        epistemic uncertainty, predictive variance (sigma^2), and predictive entropy.
+        """
+        base_result = self.predict_roi(roi_bgr, target_class_name=target_class_name)
+        if roi_bgr is None or roi_bgr.size == 0:
+            base_result.update({
+                "uncertainty_variance": 0.0,
+                "entropy": 0.0,
+                "uncertainty_flag": "LOW",
+                "recommended_action": "Accept"
+            })
+            return base_result
+
+        roi_rgb = cv2.cvtColor(roi_bgr, cv2.COLOR_BGR2RGB)
+        tensor = self.transform(roi_rgb).unsqueeze(0).to(self.device)
+
+        def enable_dropout(m):
+            if isinstance(m, nn.Dropout):
+                m.train()
+
+        self.model.apply(enable_dropout)
+
+        stochastic_probs = []
+        with torch.no_grad():
+            for _ in range(num_passes):
+                logits = self.model(tensor)
+                probs = F.softmax(logits, dim=1).squeeze().cpu().numpy()
+                stochastic_probs.append(probs)
+
+        self.model.eval()
+
+        stochastic_probs = np.array(stochastic_probs)
+        mean_probs = np.mean(stochastic_probs, axis=0)
+        variance_per_class = np.var(stochastic_probs, axis=0)
+
+        pred_idx = int(np.argmax(mean_probs))
+        pred_variance = float(variance_per_class[pred_idx])
+        mean_variance = float(np.mean(variance_per_class))
+
+        eps = 1e-9
+        entropy = float(-np.sum(mean_probs * np.log(mean_probs + eps)))
+
+        if pred_variance < 0.015 and entropy < 1.0:
+            uncertainty_flag = "LOW"
+            action = "Accept"
+        elif pred_variance < 0.045 and entropy < 2.0:
+            uncertainty_flag = "MODERATE"
+            action = "Accept with Caution"
+        else:
+            uncertainty_flag = "HIGH"
+            action = "Flag for Expert Review"
+
+        base_result.update({
+            "mc_pred_class": MASTER_CLASSES[pred_idx],
+            "mc_pred_conf": round(float(mean_probs[pred_idx]), 3),
+            "uncertainty_variance": round(pred_variance, 4),
+            "mean_variance": round(mean_variance, 4),
+            "entropy": round(entropy, 3),
+            "uncertainty_flag": uncertainty_flag,
+            "recommended_action": action
+        })
+        return base_result
