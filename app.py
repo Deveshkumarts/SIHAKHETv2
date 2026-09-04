@@ -2601,7 +2601,7 @@ elif active_tab == 7:
 
             with c_crop:
                 crop_p = Path(item.get("crop_path", ""))
-                if crop_p.exists():
+                if crop_p.is_file():
                     st.image(str(crop_p), use_container_width=True, caption=f"Sample: {sample_id}")
                 else:
                     st.markdown(
