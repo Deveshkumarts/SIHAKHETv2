@@ -60,7 +60,7 @@ def build_gis_hotspot_figure(
     # 1. Survey Track Line
     if survey_track and len(survey_track) > 1:
         t_lats, t_lons = zip(*survey_track)
-        fig.add_trace(go.Scattermapbox(
+        fig.add_trace(go.Scattermap(
             lat=t_lats,
             lon=t_lons,
             mode="lines+markers",
@@ -78,7 +78,7 @@ def build_gis_hotspot_figure(
         d_lons = [d["longitude"] for d in valid_dets]
         d_confs = [d.get("conf", 0.8) for d in valid_dets]
 
-        fig.add_trace(go.Densitymapbox(
+        fig.add_trace(go.Densitymap(
             lat=d_lats,
             lon=d_lons,
             z=d_confs,
@@ -123,7 +123,7 @@ def build_gis_hotspot_figure(
             )
             marker_colors.append("#2ecc71" if unc == "LOW" else ("#f39c12" if unc == "MODERATE" else "#e74c3c"))
 
-        fig.add_trace(go.Scattermapbox(
+        fig.add_trace(go.Scattermap(
             lat=d_lats,
             lon=d_lons,
             mode="markers+text",
@@ -144,7 +144,7 @@ def build_gis_hotspot_figure(
         center_lon = float(np.mean(d_lons))
 
     fig.update_layout(
-        mapbox=dict(
+        map=dict(
             style="carto-darkmatter",
             center=dict(lat=center_lat, lon=center_lon),
             zoom=zoom,
