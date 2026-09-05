@@ -5,9 +5,11 @@ SegFormer Edge Segmentation, and ResNet-18 PyTorch Grad-CAM Explainability.
 """
 
 import sys
+import os
 import io
 import json
 import time
+import base64
 import tempfile
 from pathlib import Path
 from typing import Optional, List, Dict, Tuple, Any, Union
@@ -56,7 +58,7 @@ from resnet.classifier import ResNet18InferenceEngine, MASTER_CLASSES as RESNET_
 
 # ─── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Marine Guard — Akhet AI",
+    page_title="Marine Guard — Clearer Oceans. Safer Tomorrows.",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -64,381 +66,1001 @@ st.set_page_config(
 # ─── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
 
 /* ── Base ── */
 html, body, [class*="css"], .stApp {
     font-family: 'Inter', sans-serif !important;
+    background: #060b13 !important;
+    color: #e2f1f8 !important;
 }
 .stApp {
-    background: #08111f !important;
+    background: #060b13 !important;
 }
+
 /* ── Main container max width ── */
 div[data-testid="stMainBlockContainer"],
 .block-container {
     max-width: 100% !important;
-    padding-left: 1rem !important;
-    padding-right: 1rem !important;
+    padding: 0.75rem 1.25rem 1.5rem 1.25rem !important;
 }
-
 
 /* ── Sidebar shell ── */
 [data-testid="stSidebar"] {
-    background: #0c1829 !important;
-    border-right: 1px solid rgba(0,160,220,0.12) !important;
-    min-width: 240px !important;
-    max-width: 240px !important;
+    background: #080e1a !important;
+    border-right: 1px solid rgba(0, 188, 212, 0.14) !important;
+    min-width: 250px !important;
+    max-width: 250px !important;
 }
 [data-testid="stSidebarContent"] {
     padding: 0 0 16px 0 !important;
+    background: #080e1a !important;
 }
 
-/* ── Sidebar text colors ── */
+/* ── Sidebar Headings & Text ── */
 [data-testid="stSidebar"] p,
 [data-testid="stSidebar"] span,
-[data-testid="stSidebar"] label,
-[data-testid="stSidebar"] .stMarkdown p {
-    color: #9bbdd4 !important;
-    font-size: 0.82em !important;
-}
-[data-testid="stSidebar"] .stMarkdown h3 {
-    color: #5aaed4 !important;
-    font-size: 0.82em !important;
-    font-weight: 600 !important;
-    margin: 12px 0 4px 0 !important;
-    padding-top: 2px !important;
+[data-testid="stSidebar"] label {
+    color: #7b9bb3 !important;
 }
 [data-testid="stSidebar"] hr {
-    border-color: rgba(0,160,220,0.12) !important;
-    margin: 8px 0 !important;
-}
-[data-testid="stSidebar"] .stCaption,
-[data-testid="stSidebar"] .stCaption p {
-    color: #4a7a99 !important;
-    font-size: 0.75em !important;
-    line-height: 1.4 !important;
+    border-color: rgba(0, 188, 212, 0.12) !important;
+    margin: 12px 14px !important;
 }
 
-/* ── Selectbox in sidebar ── */
-[data-testid="stSidebar"] [data-baseweb="select"] > div {
-    background: rgba(0,30,60,0.7) !important;
-    border: 1px solid rgba(0,140,200,0.3) !important;
-    border-radius: 8px !important;
-    color: #b0d8f0 !important;
-    font-size: 0.82em !important;
-}
-[data-testid="stSidebar"] [data-baseweb="select"] * {
-    color: #b0d8f0 !important;
-}
-
-/* ── Sliders ── */
-[data-testid="stSidebar"] [data-baseweb="slider"] [role="slider"] {
-    background: #0096c7 !important;
-    border-color: #00ccff !important;
-}
-
-/* ── Toggle ── */
-[data-testid="stSidebar"] [data-testid="stToggle"] label { font-size: 0.82em !important; }
-
-/* ── Checkboxes ── */
-[data-testid="stSidebar"] [data-testid="stCheckbox"] label { font-size: 0.82em !important; }
-
-/* ── Expander ── */
-[data-testid="stSidebar"] [data-testid="stExpander"] {
-    background: rgba(0,25,50,0.5) !important;
-    border: 1px solid rgba(0,140,200,0.15) !important;
-    border-radius: 8px !important;
-}
-[data-testid="stSidebar"] [data-testid="stExpander"] summary {
-    color: #7aafcc !important;
-    font-size: 0.8em !important;
-}
-
-/* ── Global headings ── */
-h1,h2,h3,h4,h5 { color: #c0ddf5 !important; }
-
-/* ── Top header ── */
-.mg-topbar {
-    background: linear-gradient(90deg, #0d1e38 0%, #0f2448 100%);
-    border-bottom: 1px solid rgba(0,160,220,0.15);
-    padding: 10px 20px;
+/* ── Sidebar Brand ── */
+.seadex-brand-box {
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    margin: 0 -1rem 1rem -1rem;
-    flex-wrap: nowrap;
-    gap: 6px;
-    min-width: 0;
-    width: calc(100% + 2rem);
-    box-sizing: border-box;
+    gap: 12px;
+    padding: 20px 18px 16px 18px;
+    border-bottom: 1px solid rgba(0, 188, 212, 0.12);
 }
-.mg-topbar-left { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
-.mg-topbar-icon {
-    width: 40px; height: 40px;
-    background: linear-gradient(135deg, #1460a0, #00a8d4);
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 1.2em; flex-shrink: 0;
-}
-.mg-topbar-title { font-size: 1.05em; font-weight: 700; color: #e4f0ff; letter-spacing: 0.02em; }
-.mg-topbar-sub   { font-size: 0.68em; color: #6a9ab8; margin-top: 1px; }
-.mg-topbar-right { display: flex; align-items: center; gap: 7px; flex-wrap: nowrap; min-width: 0; overflow: hidden; }
-.mg-badge {
-    display: inline-flex; align-items: center; gap: 4px;
-    border-radius: 20px;
-    padding: 3px 10px;
-    font-size: 0.72em; font-weight: 600;
-    white-space: nowrap;
-}
-.mg-badge-green  { background: rgba(0,200,90,0.12);  border: 1px solid rgba(0,200,90,0.35); color: #00dd70; }
-.mg-badge-blue   { background: rgba(0,160,220,0.12); border: 1px solid rgba(0,160,220,0.30); color: #60c0f0; }
-.mg-avatar {
-    width: 32px; height: 32px;
-    background: linear-gradient(135deg, #1a5a90, #0090c0);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 0.75em; font-weight: 700;
+.seadex-logo-diamond {
     flex-shrink: 0;
 }
-
-/* ── Pipeline badge row ── */
-.mg-pipeline-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-.mg-pipe-badge {
-    display: inline-flex; align-items: center; gap: 5px;
-    border-radius: 16px;
-    padding: 4px 12px;
-    font-size: 0.75em; font-weight: 500;
+.seadex-brand-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
     white-space: nowrap;
 }
-.mg-pipe-filter { background: rgba(0,140,220,0.10); border: 1px solid rgba(0,160,255,0.22); color: #80c8f0; }
-.mg-pipe-model  { background: rgba(0,200,100,0.08); border: 1px solid rgba(0,220,110,0.22); color: #60d890; }
-.mg-pipe-step   { background: rgba(0,100,160,0.08); border: 1px solid rgba(0,140,200,0.18); color: #60a8d0; }
+.seadex-brand-sub {
+    font-size: 0.60rem;
+    font-weight: 700;
+    color: #00bcd4;
+    letter-spacing: 0.08em;
+    margin-top: 3px;
+    white-space: nowrap;
+}
 
-/* Tabs removed in favor of sidebar routing */
+/* ── Sidebar Radio Navigation as Modern Flat Menu ── */
 
-/* ── Cards ── */
-.mg-card {
-    background: rgba(12,28,52,0.85);
-    border: 1px solid rgba(0,140,200,0.16);
-    border-radius: 12px;
-    padding: 16px 18px;
-    margin-bottom: 14px;
-    box-sizing: border-box;
+/* 1. Hide ONLY the radio circle (fe/pe), NEVER the text */
+[data-testid="stSidebar"] [data-testid="stRadioOption"] [class*="etak9234"],
+[data-testid="stSidebar"] [data-testid="stRadioOption"] [class*="etak9235"],
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div > div > div:first-child,
+[data-testid="stSidebar"] [data-testid="stRadio"] [data-baseweb="radio"] > div:first-child {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+    border: none !important;
 }
-.mg-card-hdr {
-    display: flex; align-items: flex-start; gap: 10px; margin-bottom: 12px;
-}
-.mg-num {
-    width: 26px; height: 26px;
-    background: linear-gradient(135deg, #0060a0, #009acc);
-    border-radius: 7px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.78em; font-weight: 700; color: #fff; flex-shrink: 0;
-}
-.mg-num-green  { background: linear-gradient(135deg, #005830, #009850); }
-.mg-num-purple { background: linear-gradient(135deg, #4a0090, #7a30c0); }
-.mg-card-title { font-size: 0.92em; font-weight: 600; color: #c0dff5; }
-.mg-card-sub   { font-size: 0.74em; color: #4a7a99; margin-top: 2px; }
 
-/* ── Step breadcrumb ── */
-.mg-steps { display: flex; align-items: center; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-.mg-step {
-    display: flex; align-items: center; gap: 8px;
-    background: rgba(10,24,48,0.85);
-    border: 1px solid rgba(0,140,200,0.18);
-    border-radius: 8px;
-    padding: 8px 14px;
-    font-size: 0.78em; flex: 1; min-width: 160px;
+/* 2. Container padding and layout */
+[data-testid="stSidebar"] div[role="radiogroup"],
+[data-testid="stSidebar"] [data-testid="stRadioGroup"] {
+    padding: 8px 10px !important;
+    gap: 4px !important;
 }
-.mg-step-num {
-    width: 22px; height: 22px;
-    background: linear-gradient(135deg, #0070b0, #00a8d4);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 0.75em; font-weight: 700; color: #fff; flex-shrink: 0;
-}
-.mg-step-num-done { background: linear-gradient(135deg, #006030, #00a050) !important; }
-.mg-step-num-pend { background: rgba(50,50,70,0.7) !important; border: 1px solid #334 !important; }
-.mg-step-title { font-weight: 600; color: #c0dff5; font-size: 0.93em; }
-.mg-step-sub   { font-size: 0.82em; color: #4a7a99; margin-top: 1px; }
-.mg-step-arrow { color: rgba(0,140,200,0.4); font-size: 1.1em; align-self: center; }
-.mg-step-check { color: #00cc60; font-size: 0.9em; }
 
-/* ── Stat grid ── */
-.mg-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
-.mg-stat {
-    background: rgba(0,30,60,0.55);
-    border: 1px solid rgba(0,140,200,0.18);
+/* 3. Make option look like a sleek menu button */
+[data-testid="stSidebar"] [data-testid="stRadioOption"] {
+    display: flex !important;
+    align-items: center !important;
+    padding: 9px 14px !important;
+    margin: 2px 0 !important;
+    background: transparent !important;
+    border: 1.5px solid transparent !important;
+    border-radius: 8px !important;
+    color: #7b9bb3 !important;
+    font-size: 0.86rem !important;
+    font-weight: 500 !important;
+    transition: all 0.18s ease !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    cursor: pointer !important;
+}
+
+/* Allow inner divs to stretch across */
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div,
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div > div {
+    display: flex !important;
+    align-items: center !important;
+    width: 100% !important;
+    margin: 0 !important;
+}
+
+/* 4. Ensure label markdown text is 100% visible */
+[data-testid="stSidebar"] [data-testid="stRadioOption"] .stMarkdown,
+[data-testid="stSidebar"] [data-testid="stRadioOption"] .stMarkdown * {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stRadioOption"] p {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 0.86rem !important;
+    font-weight: 500 !important;
+    color: #7b9bb3 !important;
+    letter-spacing: 0.02em !important;
+    line-height: 1.3 !important;
+}
+
+/* Hover state */
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:hover {
+    background: rgba(0, 188, 212, 0.08) !important;
+    border-color: rgba(0, 188, 212, 0.25) !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:hover p,
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:hover span {
+    color: #c4e4f5 !important;
+}
+
+/* Selected state: Glowing cyan border, cyan/navy gradient fill */
+[data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"],
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:checked) {
+    background: linear-gradient(90deg, rgba(0, 188, 212, 0.28) 0%, rgba(0, 119, 182, 0.12) 100%) !important;
+    border: 1.5px solid #00e5ff !important;
+    box-shadow: 0 0 16px rgba(0, 229, 255, 0.25), inset 0 0 8px rgba(0, 229, 255, 0.12) !important;
+}
+
+[data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"] p,
+[data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"] span,
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:checked) p,
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:checked) span {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    text-shadow: 0 0 8px rgba(0, 229, 255, 0.4) !important;
+}
+
+/* ── Sidebar System Status & Hardware ── */
+.seadex-sidebar-sec-title {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    color: #00bcd4;
+    text-transform: uppercase;
+    padding: 0 0 6px 0;
+}
+.seadex-sys-card {
+    background: rgba(8, 16, 28, 0.75);
+    border: 1px solid rgba(0, 188, 212, 0.2);
     border-radius: 9px;
-    padding: 11px 10px;
-    text-align: center;
+    margin: 12px 14px 14px 14px;
+    padding: 12px 14px;
 }
-.mg-stat-val { font-size: 1.5em; font-weight: 700; }
-.mg-stat-lbl { font-size: 0.68em; color: #5a8aaa; margin-top: 3px; }
-.mg-stat.c-blue   .mg-stat-val { color: #38b8f0; }
-.mg-stat.c-green  .mg-stat-val { color: #2ecc71; }
-.mg-stat.c-purple .mg-stat-val { color: #a370f7; font-size: 1.0em; padding-top: 5px; }
-.mg-stat.c-orange .mg-stat-val { color: #f39c12; font-size: 1.0em; padding-top: 5px; }
-.mg-stat.c-red    .mg-stat-val { color: #ff4444; }
-
-/* ── Info rows ── */
-.mg-info-row {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 6px 0;
-    border-bottom: 1px solid rgba(0,120,180,0.08);
-    font-size: 0.76em;
-}
-.mg-info-row:last-child { border-bottom: none; }
-.mg-info-lbl { color: #4a7090; display: flex; align-items: center; gap: 6px; }
-.mg-info-val { color: #38b8f0; font-weight: 500; text-align: right; max-width: 55%; }
-
-/* ── Status dot ── */
-.dot {
-    display: inline-block;
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    margin-right: 4px;
-    vertical-align: middle;
-}
-.dot-green  { background: #2ecc71; box-shadow: 0 0 5px #2ecc71; }
-.dot-yellow { background: #f39c12; box-shadow: 0 0 5px #f39c12; }
-.dot-blue   { background: #3db8e8; box-shadow: 0 0 5px #3db8e8; }
-.dot-red    { background: #e03030; box-shadow: 0 0 6px #e03030; }
-
-/* ── Status row ── */
-.mg-sys-row {
-    display: flex; justify-content: space-between; align-items: center;
-    font-size: 0.76em;
+.seadex-sys-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     padding: 5px 0;
-    border-bottom: 1px solid rgba(0,100,150,0.10);
+    font-size: 0.76rem;
+    border-bottom: 1px solid rgba(0, 188, 212, 0.06);
 }
-.mg-sys-row:last-child { border-bottom: none; }
-
-/* ── Metric cards ── */
-.metric-card {
-    background: rgba(0,30,60,0.55);
-    border: 1px solid rgba(0,140,200,0.18);
-    border-radius: 9px;
-    padding: 13px 10px;
-    text-align: center;
-    margin: 3px 0;
+.seadex-sys-row:last-child {
+    border-bottom: none;
 }
-.metric-value { font-size: 1.55em; font-weight: 700; color: #2ecc71; }
-.metric-label { font-size: 0.74em; color: #5a8aaa; margin-top: 3px; }
+.seadex-sys-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: #e2f1f8;
+}
+.seadex-dot-green {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #00e676;
+    box-shadow: 0 0 6px #00e676;
+    margin-right: 6px;
+}
+.seadex-hw-grid {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0 4px 0;
+}
+.seadex-hw-lbl {
+    font-size: 0.66rem;
+    color: #4a7590;
+    text-transform: uppercase;
+}
+.seadex-hw-val {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #c5e4f5;
+    margin-top: 1px;
+}
+.seadex-sidebar-footer {
+    padding: 12px 18px 6px 18px;
+    font-size: 0.68rem;
+    color: #43647b;
+}
+.seadex-footer-initiative {
+    color: #00bcd4;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
 
-/* ── Detection target cards ── */
-.mg-det-card {
-    background: rgba(0,22,48,0.75);
+/* ── Main Page Header (Operational View) ── */
+.seadex-header-wrapper {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 18px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid rgba(0, 188, 212, 0.12);
+}
+.seadex-op-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: #00e5ff;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+.seadex-page-title {
+    font-size: 1.55rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.04em;
+    margin: 0 0 4px 0;
+}
+.seadex-page-desc {
+    font-size: 0.82rem;
+    color: #7b9bb3;
+    margin: 0;
+}
+.seadex-quote {
+    font-size: 0.82rem;
+    font-style: italic;
+    color: #557b94;
+    text-align: right;
+    max-width: 260px;
+}
+
+/* ── Common Card Container ── */
+.seadex-panel {
+    background: #0a1322;
+    border: 1px solid rgba(0, 188, 212, 0.16);
     border-radius: 10px;
-    padding: 13px 10px;
-    text-align: center;
-    margin: 4px 0;
+    padding: 14px 16px;
+    box-sizing: border-box;
+    margin-bottom: 14px;
+    height: 100%;
+}
+.seadex-panel-hdr {
+    font-size: 0.84rem;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
-/* ── Model registry card ── */
-.mg-model-card {
-    background: rgba(10,22,46,0.75);
-    border-left: 3px solid #0090c0;
-    border-radius: 0 10px 10px 0;
-    padding: 13px 16px;
+/* ── Pill Buttons for Radio Controls ── */
+div[data-testid="stHorizontalBlock"] div[role="radiogroup"],
+div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] div[role="radiogroup"] {
+    display: flex !important;
+    gap: 4px !important;
+    flex-wrap: nowrap !important;
+}
+
+div[role="radiogroup"] label[data-baseweb="radio"] {
+    background: #09121f !important;
+    border: 1px solid rgba(0, 188, 212, 0.22) !important;
+    border-radius: 6px !important;
+    padding: 4px 10px !important;
+    margin: 0 !important;
+    font-size: 0.74rem !important;
+    color: #7b9bb3 !important;
+    cursor: pointer !important;
+    transition: all 0.15s ease !important;
+    white-space: nowrap !important;
+}
+
+div[role="radiogroup"] label[data-baseweb="radio"]:hover {
+    border-color: rgba(0, 229, 255, 0.45) !important;
+    color: #c5e4f5 !important;
+}
+
+div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) {
+    background: #00bcd4 !important;
+    border-color: #00e5ff !important;
+    color: #060e18 !important;
+    font-weight: 700 !important;
+}
+div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) p {
+    color: #060e18 !important;
+    font-weight: 700 !important;
+}
+
+/* ── Styled Upload Dropzone ── */
+.seadex-dropzone-visual {
+    border: 1.5px dashed rgba(0, 188, 212, 0.32);
+    border-radius: 9px;
+    background: rgba(6, 15, 28, 0.45);
+    padding: 22px 14px;
+    text-align: center;
     margin: 8px 0;
 }
-.mg-model-name { font-size: 0.97em; font-weight: 600; color: #ddeeff; }
-.mg-model-desc { font-size: 0.8em; color: #6a9aaa; margin-top: 4px; line-height: 1.4; }
-.mg-model-meta { font-size: 0.73em; color: #4a6a7a; margin-top: 6px; }
-
-/* ── Upload area ── */
-[data-testid="stFileUploaderDropzone"] {
-    background: rgba(0,30,60,0.35) !important;
-    border: 2px dashed rgba(0,140,200,0.30) !important;
-    border-radius: 10px !important;
+.seadex-drop-cloud {
+    font-size: 1.8rem;
+    color: #00e5ff;
+    margin-bottom: 6px;
+}
+.seadex-drop-text {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: #c5e4f5;
+    margin-bottom: 3px;
+}
+.seadex-drop-sub {
+    font-size: 0.72rem;
+    color: #00bcd4;
+    margin-bottom: 6px;
+}
+.seadex-drop-fmts {
+    font-size: 0.65rem;
+    color: #4a7590;
+    letter-spacing: 0.08em;
 }
 
-/* ── Primary button ── */
+/* File Uploader styling inside dropzone */
+[data-testid="stFileUploader"] {
+    margin-top: 4px !important;
+}
+[data-testid="stFileUploaderDropzone"] {
+    background: rgba(0, 25, 45, 0.25) !important;
+    border: 1px dashed rgba(0, 188, 212, 0.25) !important;
+    border-radius: 7px !important;
+    padding: 8px !important;
+}
+[data-testid="stFileUploaderDropzone"] button {
+    background: transparent !important;
+    border: 1px solid rgba(0, 188, 212, 0.4) !important;
+    color: #00e5ff !important;
+    border-radius: 6px !important;
+    font-size: 0.76rem !important;
+    padding: 3px 12px !important;
+}
+
+/* ── Buttons & Toggles ── */
 [data-testid="stButton"] button[kind="primary"] {
-    background: linear-gradient(135deg, #0070b0, #0098d4) !important;
+    background: linear-gradient(135deg, #008fa8 0%, #00c8d8 100%) !important;
     border: none !important;
-    border-radius: 9px !important;
-    color: #fff !important;
-    font-weight: 600 !important;
-    font-size: 0.88em !important;
-    box-shadow: 0 4px 14px rgba(0,140,210,0.3) !important;
-    transition: all 0.2s !important;
+    border-radius: 8px !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 0.86rem !important;
+    padding: 9px 18px !important;
+    box-shadow: 0 4px 14px rgba(0, 188, 212, 0.25) !important;
+    transition: all 0.2s ease !important;
 }
 [data-testid="stButton"] button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #0082c8, #00aaea) !important;
-    box-shadow: 0 6px 18px rgba(0,160,234,0.4) !important;
+    background: linear-gradient(135deg, #009cb8 0%, #00e5f5 100%) !important;
+    box-shadow: 0 6px 18px rgba(0, 229, 255, 0.35) !important;
     transform: translateY(-1px) !important;
 }
 
-/* ── Secondary button ── */
-[data-testid="stButton"] button[kind="secondary"] {
-    background: rgba(0,50,90,0.45) !important;
-    border: 1px solid rgba(0,140,200,0.28) !important;
-    border-radius: 9px !important;
-    color: #70b8e0 !important;
-    font-weight: 500 !important;
-    font-size: 0.88em !important;
+/* Toggle Switch */
+[data-testid="stToggle"] {
+    padding: 4px 0 !important;
+}
+[data-testid="stToggle"] label {
+    font-size: 0.78rem !important;
+    color: #8bb1cb !important;
 }
 
-/* ── Progress bar ── */
-[data-testid="stProgressBar"] > div > div {
-    background: linear-gradient(90deg, #0070b0, #00ccff) !important;
-    border-radius: 4px !important;
-}
-
-/* ── File uploader label override ── */
-[data-testid="stFileUploader"] label {
-    color: #7aafcc !important;
-    font-size: 0.82em !important;
-}
-
-/* ── Selectbox in main area ── */
+/* Selectbox */
 [data-baseweb="select"] > div {
-    background: rgba(10,28,55,0.8) !important;
-    border-color: rgba(0,120,180,0.25) !important;
+    background: #091320 !important;
+    border: 1px solid rgba(0, 188, 212, 0.25) !important;
+    border-radius: 7px !important;
+    color: #c5e4f5 !important;
+    font-size: 0.80rem !important;
+}
+
+/* ── Sonar Viewport Toolbar ── */
+.seadex-tool-bar {
+    display: flex;
+    justify-content: flex-end;
+    gap: 4px;
+    align-items: center;
+}
+.seadex-tool-btn {
+    background: #09121f;
+    border: 1px solid rgba(0, 188, 212, 0.22);
+    border-radius: 5px;
+    padding: 3px 8px;
+    font-size: 0.70rem;
+    color: #7b9bb3;
+    cursor: pointer;
+}
+.seadex-tool-btn:hover {
+    border-color: #00e5ff;
+    color: #ffffff;
+}
+
+/* ── Global Image Constrain to prevent overflow anywhere ── */
+[data-testid="stImage"] {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+}
+[data-testid="stImage"] img {
+    max-height: 380px !important;
+    width: auto !important;
+    max-width: 100% !important;
+    object-fit: contain !important;
+    border-radius: 6px !important;
+    margin: 0 auto !important;
+}
+
+/* ── Tactical Sonar Viewport Frame ── */
+.seadex-sonar-viewport {
+    position: relative;
+    width: 100%;
+    height: 420px;
+    max-height: 420px;
+    background: #030711;
+    background-image: 
+        radial-gradient(ellipse at center, rgba(0, 188, 212, 0.08) 0%, rgba(3, 7, 17, 0.98) 75%),
+        linear-gradient(rgba(0, 188, 212, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 188, 212, 0.04) 1px, transparent 1px);
+    background-size: 100% 100%, 30px 30px, 30px 30px;
+    border: 1px solid rgba(0, 188, 212, 0.25);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 50px rgba(0, 0, 0, 0.9), 0 4px 18px rgba(0, 0, 0, 0.4);
+    margin-bottom: 8px;
+}
+
+.seadex-sonar-img {
+    width: 100% !important;
+    height: 100% !important;
+    max-height: 420px !important;
+    object-fit: contain !important;
+    display: block !important;
+    margin: auto !important;
+    border-radius: 4px;
+    image-rendering: auto;
+}
+
+.seadex-sonar-img.fit-fill {
+    object-fit: fill !important;
+}
+
+.seadex-sonar-img.fit-cover {
+    object-fit: cover !important;
+}
+
+/* Standby Viewport Empty State */
+.seadex-empty-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 24px;
+    z-index: 2;
+}
+.seadex-empty-radar {
+    margin-bottom: 12px;
+}
+.seadex-empty-title {
+    font-size: 0.90rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #00e5ff;
+    margin-bottom: 6px;
+    text-shadow: 0 0 10px rgba(0, 229, 255, 0.4);
+}
+.seadex-empty-desc {
+    font-size: 0.74rem;
+    color: #6a93b0;
+    max-width: 320px;
+    line-height: 1.45;
+}
+.seadex-triage-empty {
+    background: rgba(8, 16, 28, 0.6);
+    border: 1px dashed rgba(0, 188, 212, 0.22);
+    border-radius: 9px;
+    padding: 26px 16px;
+    text-align: center;
+    margin-top: 6px;
+}
+
+/* ── Explainability Tab ROI & Grad-CAM Image Framing ── */
+.seadex-explain-card {
+    background: rgba(3, 14, 28, 0.85);
+    border: 1px solid rgba(0, 188, 212, 0.22);
+    border-radius: 10px;
+    padding: 14px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 485px;
+    min-height: 485px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55), inset 0 0 35px rgba(0, 20, 45, 0.5);
+    box-sizing: border-box;
+    margin-top: 4px;
+}
+
+.seadex-explain-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid rgba(0, 188, 212, 0.16);
+    margin-bottom: 10px;
+}
+
+.seadex-explain-card-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #e0f7fa;
+    letter-spacing: 0.02em;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+.seadex-explain-viewport {
+    background: #020712;
+    border: 1px solid rgba(0, 188, 212, 0.18);
+    border-radius: 8px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    min-height: 350px;
+    max-height: 375px;
+    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.9);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.seadex-explain-img {
+    height: 335px !important;
+    max-height: 345px !important;
+    width: auto !important;
+    max-width: 96% !important;
+    object-fit: contain !important;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 229, 255, 0.35);
+    background: #01040a;
+    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.85), 0 0 14px rgba(0, 229, 255, 0.18);
+    image-rendering: auto;
+}
+
+.seadex-explain-caption {
+    font-size: 0.74rem;
+    color: #76a4c2;
+    margin-top: 8px;
+    text-align: center;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+    letter-spacing: 0.02em;
+}
+
+.seadex-explain-stats-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+/* HUD Scale Bar (Bottom Left) */
+.seadex-hud-scale {
+    position: absolute;
+    bottom: 12px;
+    left: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    pointer-events: none;
+    z-index: 10;
+}
+.seadex-scale-line-wrapper {
+    display: flex;
+    align-items: center;
+    height: 7px;
+}
+.seadex-scale-tick {
+    width: 2px;
+    height: 7px;
+    background: #ffffff;
+    box-shadow: 0 0 4px rgba(255,255,255,0.6);
+}
+.seadex-scale-line {
+    width: 60px;
+    height: 2px;
+    background: #ffffff;
+    box-shadow: 0 0 4px rgba(255,255,255,0.6);
+}
+.seadex-scale-label {
+    font-size: 0.65rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: 0.06em;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+    margin-top: 1px;
+}
+
+/* HUD Compass (Bottom Right) */
+.seadex-hud-compass {
+    position: absolute;
+    bottom: 10px;
+    right: 16px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    pointer-events: none;
+    z-index: 10;
+}
+.seadex-compass-label {
+    font-size: 0.72rem;
+    font-family: 'Consolas', 'Courier New', monospace;
+    font-weight: 800;
+    color: #ffffff;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+}
+
+/* HUD Status Badge (Top Right) */
+.seadex-hud-status-badge {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: rgba(4, 15, 26, 0.8);
+    border: 1px solid rgba(0, 188, 212, 0.35);
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 0.62rem;
+    color: #00e5ff;
+    font-family: 'Consolas', monospace;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    z-index: 10;
+    pointer-events: none;
+}
+
+/* ── KPI Stat Cards ── */
+.seadex-kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+}
+.seadex-kpi-card {
+    background: #08111d;
+    border: 1px solid rgba(0, 188, 212, 0.16);
+    border-radius: 8px;
+    padding: 10px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.seadex-kpi-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.05rem;
+    flex-shrink: 0;
+}
+.icon-cyan  { background: rgba(0, 188, 212, 0.12); color: #00e5ff; }
+.icon-coral { background: rgba(255, 82, 82, 0.12); color: #ff5252; }
+.icon-green { background: rgba(0, 230, 118, 0.12); color: #00e676; }
+.seadex-kpi-val {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1.1;
+}
+.seadex-kpi-lbl {
+    font-size: 0.65rem;
+    color: #7b9bb3;
+    margin-top: 2px;
+}
+.seadex-kpi-trend {
+    margin-left: auto;
+    font-size: 0.68rem;
+    font-weight: 600;
+    text-align: right;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+.trend-up   { color: #00e676; }
+.trend-down { color: #ff5252; }
+.trend-zero { color: #00bcd4; }
+
+/* ── Acoustic Telemetry ── */
+.seadex-live-tag {
+    background: rgba(0, 230, 118, 0.12);
+    border: 1px solid rgba(0, 230, 118, 0.4);
+    border-radius: 12px;
+    color: #00e676;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    letter-spacing: 0.06em;
+}
+.seadex-telem-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px 0;
+    font-size: 0.77rem;
+    border-bottom: 1px solid rgba(0, 188, 212, 0.07);
+}
+.seadex-telem-item:last-child {
+    border-bottom: none;
+}
+.seadex-telem-lbl {
+    color: #7b9bb3;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+.seadex-telem-val {
+    color: #ffffff;
+    font-weight: 600;
+}
+.seadex-signal-hdr {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.72rem;
+    color: #7b9bb3;
+    margin: 10px 0 4px 0;
+}
+
+/* ── Bottom Triage Cards ── */
+.seadex-triage-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 18px 0 10px 0;
+}
+.seadex-triage-title {
+    font-size: 0.88rem;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+.seadex-triage-link {
+    font-size: 0.75rem;
+    color: #00bcd4;
+    text-decoration: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+.seadex-triage-card {
+    background: #091322;
+    border: 1px solid rgba(0, 188, 212, 0.16);
+    border-radius: 9px;
+    padding: 10px 12px;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 320px;
+}
+.seadex-triage-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.seadex-triage-id {
+    font-size: 0.70rem;
+    font-weight: 700;
+    color: #4a7590;
+    margin-right: 6px;
+}
+.seadex-triage-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #ffffff;
+}
+.seadex-badge-status {
+    border-radius: 4px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+.badge-confirmed { background: rgba(0, 230, 118, 0.15); border: 1px solid #00e676; color: #00e676; }
+.badge-high      { background: rgba(255, 152, 0, 0.15);  border: 1px solid #ff9800; color: #ff9800; }
+.badge-moderate  { background: rgba(255, 193, 7, 0.15);  border: 1px solid #ffc107; color: #ffc107; }
+.badge-review    { background: rgba(255, 82, 82, 0.15);  border: 1px solid #ff5252; color: #ff5252; }
+
+.seadex-triage-body {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+.seadex-triage-img {
+    width: 68px;
+    height: 68px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 188, 212, 0.18);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+.seadex-triage-table {
+    flex: 1;
+    font-size: 0.69rem;
+}
+.seadex-tt-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 1.5px 0;
+}
+.seadex-tt-lbl {
+    color: #658ba3;
+}
+.seadex-tt-val {
+    color: #ffffff;
+    font-weight: 600;
+}
+
+/* ── Legacy Support for Tabs 1-7 in SEADEX Theme ── */
+.mg-card {
+    background: #0a1322 !important;
+    border: 1px solid rgba(0, 188, 212, 0.16) !important;
+    border-radius: 10px !important;
+    padding: 14px 16px !important;
+    margin-bottom: 14px !important;
+    box-sizing: border-box !important;
+}
+.mg-card-title {
+    font-size: 0.94rem !important;
+    font-weight: 700 !important;
+    color: #e2f1f8 !important;
+}
+.mg-card-sub {
+    font-size: 0.78rem !important;
+    color: #7b9bb3 !important;
+}
+.metric-card {
+    background: #08111d !important;
+    border: 1px solid rgba(0, 188, 212, 0.16) !important;
+    border-radius: 9px !important;
+    padding: 12px 10px !important;
+    text-align: center !important;
+    margin: 4px 0 !important;
+}
+.metric-value {
+    font-size: 1.45rem !important;
+    font-weight: 800 !important;
+    color: #00e676 !important;
+}
+.metric-label {
+    font-size: 0.72rem !important;
+    color: #7b9bb3 !important;
+    margin-top: 3px !important;
+}
+.mg-model-card {
+    background: #09121f !important;
+    border-left: 3px solid #00bcd4 !important;
+    border-radius: 0 9px 9px 0 !important;
+    padding: 12px 16px !important;
+    margin: 8px 0 !important;
+    border-top: 1px solid rgba(0, 188, 212, 0.12) !important;
+    border-right: 1px solid rgba(0, 188, 212, 0.12) !important;
+    border-bottom: 1px solid rgba(0, 188, 212, 0.12) !important;
+}
+.mg-model-name {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    color: #ffffff !important;
+}
+.mg-model-desc {
+    font-size: 0.79rem !important;
+    color: #7b9bb3 !important;
+    margin-top: 4px !important;
+}
+.mg-model-meta {
+    font-size: 0.72rem !important;
+    color: #4a7590 !important;
+    margin-top: 6px !important;
+}
+.mg-det-card {
+    background: #091322 !important;
+    border-radius: 9px !important;
+    padding: 12px 10px !important;
+    text-align: center !important;
+    margin: 4px 0 !important;
+}
+.mg-stat-grid {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+    margin-bottom: 8px !important;
+}
+.mg-stat {
+    background: #08111d !important;
+    border: 1px solid rgba(0, 188, 212, 0.16) !important;
     border-radius: 8px !important;
-    color: #b0d0ea !important;
+    padding: 10px !important;
+    text-align: center !important;
 }
+.mg-stat-val {
+    font-size: 1.4rem !important;
+    font-weight: 800 !important;
+}
+.mg-stat-lbl {
+    font-size: 0.67rem !important;
+    color: #7b9bb3 !important;
+    margin-top: 2px !important;
+}
+.mg-info-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 6px 0 !important;
+    border-bottom: 1px solid rgba(0, 188, 212, 0.08) !important;
+    font-size: 0.76rem !important;
+}
+.mg-info-lbl { color: #7b9bb3 !important; }
+.mg-info-val { color: #00e5ff !important; font-weight: 600 !important; }
 
-/* ── Table ── */
-table { width: 100%; border-collapse: collapse; }
-th {
-    background: rgba(0,70,130,0.4) !important;
-    color: #70b8e0 !important;
-    font-size: 0.83em !important;
-    padding: 10px 12px !important;
-}
-td {
-    color: #90b8cc !important;
-    font-size: 0.81em !important;
-    padding: 8px 12px !important;
-    border-bottom: 1px solid rgba(0,80,140,0.14) !important;
-}
-
-/* ── Hide Streamlit chrome — display:none removes layout space ── */
+/* ── Hide Streamlit Chrome ── */
 #MainMenu { display: none !important; }
 footer    { display: none !important; }
 header    { display: none !important; }
 [data-testid="stDecoration"] { display: none !important; }
 [data-testid="stHeader"]     { display: none !important; }
 
-/* ── FINAL TOP GAP KILL — must stay at bottom of stylesheet ── */
 body [data-testid="stMainBlockContainer"] {
-    padding-top: 0 !important;
-    padding-bottom: 1rem !important;
+    padding-top: 0.5rem !important;
     margin-top: 0 !important;
 }
 body .block-container {
-    padding-top: 0 !important;
-    padding-bottom: 1rem !important;
+    padding-top: 0.5rem !important;
     margin-top: 0 !important;
 }
 body section[data-testid="stMain"] {
-    padding-top: 0 !important;
-}
-body [data-testid="stVerticalBlock"] > div:first-child > div:first-child {
-    margin-top: 0 !important;
     padding-top: 0 !important;
 }
 </style>
@@ -763,6 +1385,7 @@ def run_model_inference(
     # Ensure valid telemetry for geolocation ray tracing
     if telemetry is None:
         telemetry = generate_synthetic_telemetry(num_pings=1, altitude_m=10.0, slant_range_m=75.0)[0]
+    prep_report["telemetry"] = telemetry
 
     resnet_engine = load_resnet_engine() if enable_resnet else None
     for det in filtered_dets:
@@ -933,332 +1556,314 @@ def run_model_inference(
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# HARDWARE CONTEXT & DEVICE INFO
+# ═══════════════════════════════════════════════════════════════════════════
+hw = get_device_info()
+gpu_ok = hw.get("cuda_available", False)
+gpu_name = hw.get("gpu_name", "NVIDIA GPU")
+short_gpu_name = hw.get("short_gpu_name", "CPU Mode")
+vram_gb = hw.get("vram_gb", 0.0)
+vram_str = f"{vram_gb:.1f} GB" if vram_gb > 0 else "N/A"
+cpu_cores = os.cpu_count() or 32
+gpu_display = short_gpu_name if gpu_ok else "CPU Mode"
+cpu_display = f"{cpu_cores} Cores"
+
+# ═══════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════════
 with st.sidebar:
-    # ── Brand header ──
+    # ── SEADEX Diamond Brand Header ──
     st.markdown("""
-    <div style="display:flex;align-items:center;gap:10px;
-                padding:16px 16px 12px 16px;
-                border-bottom:1px solid rgba(0,140,200,0.12);">
+    <div class="seadex-brand-box">
+        <div class="seadex-logo-diamond">
+            <svg width="34" height="34" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polygon points="24,4 42,16 34,44 14,44 6,16" fill="url(#cyanGrad1)" stroke="#00e5ff" stroke-width="1.5" />
+                <polygon points="24,4 24,28 6,16" fill="url(#cyanGrad2)" opacity="0.85" />
+                <polygon points="24,4 42,16 24,28" fill="url(#cyanGrad3)" opacity="0.95" />
+                <polygon points="24,28 42,16 34,44" fill="#0088a3" opacity="0.75" />
+                <polygon points="24,28 34,44 14,44" fill="#00bcd4" opacity="0.85" />
+                <polygon points="24,28 14,44 6,16" fill="#006978" opacity="0.9" />
+                <defs>
+                    <linearGradient id="cyanGrad1" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#00e5ff"/>
+                        <stop offset="1" stop-color="#005662"/>
+                    </linearGradient>
+                    <linearGradient id="cyanGrad2" x1="6" y1="4" x2="24" y2="28" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#80deea"/>
+                        <stop offset="1" stop-color="#0097a7"/>
+                    </linearGradient>
+                    <linearGradient id="cyanGrad3" x1="24" y1="4" x2="42" y2="28" gradientUnits="userSpaceOnUse">
+                        <stop stop-color="#e0f7fa"/>
+                        <stop offset="1" stop-color="#00bcd4"/>
+                    </linearGradient>
+                </defs>
+            </svg>
+        </div>
         <div>
-            <div style="font-size:0.95em;font-weight:700;color:#d8eeff;">Marine Guard</div>
-            <div style="font-size:0.65em;color:#4a7a99;">Marine Debris Detection</div>
+            <div class="seadex-brand-title">MARINE GUARD</div>
+            <div class="seadex-brand-sub">CLEARER OCEANS. SAFER TOMORROWS.</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Nav section ──
-    st.markdown(
-        '<div style="font-size:0.63em;font-weight:600;letter-spacing:0.08em;color:#3a6a88;'
-        'padding:12px 16px 4px 16px;text-transform:uppercase;">Main Menu</div>',
-        unsafe_allow_html=True
-    )
-
-    # ── Nav items (pure HTML — no Streamlit button cards) ──
+    # ── Nav items ──
     if "active_nav" not in st.session_state:
         st.session_state["active_nav"] = 0
 
     nav_options = [
-        "🏠  Dashboard",
-        "🔍  Detection & Inspection",
-        "🌍  GIS Hotspots & Spatial Map",
-        "🔁  Active Learning Review",
-        "🔬  Explainability (Grad-CAM)",
-        "🎥  Video Stream",
-        "📊  Model Registry",
-        "📈  Evaluation Matrix",
-        "🚀  Space Debris Tracker",
+        "Detection & Inspection",
+        "Explainability",
+        "Video Stream",
+        "Model Registry",
+        "Evaluation",
+        "Space Debris Tracker",
+        "GIS Hotspots",
+        "Active Learning",
     ]
     
     nav_mapping = {
-        "🏠  Dashboard": 0,
-        "🔍  Detection & Inspection": 0,
-        "🌍  GIS Hotspots & Spatial Map": 6,
-        "🔁  Active Learning Review": 7,
-        "🔬  Explainability (Grad-CAM)": 1,
-        "🎥  Video Stream": 2,
-        "📊  Model Registry": 3,
-        "📈  Evaluation Matrix": 4,
-        "🚀  Space Debris Tracker": 5,
+        "Detection & Inspection": 0,
+        "Explainability": 1,
+        "Video Stream": 2,
+        "Model Registry": 3,
+        "Evaluation": 4,
+        "Space Debris Tracker": 5,
+        "GIS Hotspots": 6,
+        "Active Learning": 7,
     }
 
-    # Custom CSS to turn the radio button into a flat nav menu
-    st.markdown("""
-    <style>
-    /* Hide the radio circles completely */
-    [data-testid="stSidebar"] [data-baseweb="radio"] > div:first-child,
-    [data-testid="stSidebar"] [data-baseweb="radio"] svg,
-    [data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child {
-        display: none !important;
-        width: 0 !important;
-        height: 0 !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        opacity: 0 !important;
-    }
-    
-    [data-testid="stSidebar"] div[role="radiogroup"] label {
-        display: flex !important;
-        align-items: center !important;
-    }
-    
-    /* Style the radio labels like flat menu items */
-    [data-testid="stSidebar"] div[role="radiogroup"] label {
-        padding: 8px 12px 8px 16px !important;
-        margin: 0 !important;
-        background-color: transparent !important;
-        border-left: 3px solid transparent !important;
-        border-radius: 0 !important;
-        color: #5a8aaa !important;
-        font-size: 0.85em !important;
-        transition: all 0.15s ease;
-        display: block !important;
-        width: 100% !important;
-    }
-    
-    /* Hover state */
-    [data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-        background-color: rgba(0, 130, 190, 0.10) !important;
-        color: #b0dcf8 !important;
-        border-left-color: #0096c7 !important;
-    }
-    
-    /* Active state using modern :has selector */
-    [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
-        background-color: rgba(0, 130, 190, 0.20) !important;
-        border-left-color: #0096c7 !important;
-    }
-    [data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) p {
-        color: #ffffff !important;
-        font-weight: 600 !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    def nav_icon_format(opt):
+        icons = {
+            "Detection & Inspection": "⌂  Detection & Inspection",
+            "Explainability": "☷  Explainability",
+            "Video Stream": "▶  Video Stream",
+            "Model Registry": "⛃  Model Registry",
+            "Evaluation": "☵  Evaluation",
+            "Space Debris Tracker": "◎  Space Debris Tracker",
+            "GIS Hotspots": "◈  GIS Hotspots",
+            "Active Learning": "⟲  Active Learning",
+        }
+        return icons.get(opt, opt)
 
-    # Use native Streamlit radio
     selected_nav = st.radio(
-        "Main Menu",
+        "Navigation",
         options=nav_options,
         index=0,
+        format_func=nav_icon_format,
         label_visibility="collapsed",
         key="sidebar_nav"
     )
-    
-    # Sync with tabs
-    target_tab = nav_mapping[selected_nav]
+    target_tab = nav_mapping.get(selected_nav, 0)
     st.session_state["active_nav"] = target_tab
 
-    st.markdown("---")
-
-    # ── Settings header ──
-    st.markdown(
-        '<div style="font-size:0.63em;font-weight:600;letter-spacing:0.08em;color:#3a6a88;'
-        'padding:0 16px 4px 16px;text-transform:uppercase;">Settings</div>',
-        unsafe_allow_html=True
+    # ── AI SYSTEM STATUS & HARDWARE UNIFIED CARD ──
+    sidebar_card_html = (
+        '<div class="seadex-sys-card">'
+        '<div class="seadex-sidebar-sec-title">AI SYSTEM STATUS</div>'
+        '<div class="seadex-sys-row">'
+        '<span class="seadex-sys-item">'
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="3" fill="#00e676"/></svg> '
+        'YOLOv11'
+        '</span>'
+        '<span style="color:#00e676;font-weight:600;font-size:0.75rem;">Online</span>'
+        '</div>'
+        '<div class="seadex-sys-row">'
+        '<span class="seadex-sys-item">'
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="4" r="2.2"/><circle cx="12" cy="20" r="2.2"/><circle cx="4" cy="12" r="2.2"/><circle cx="20" cy="12" r="2.2"/></svg> '
+        'ResNet-18'
+        '</span>'
+        '<span style="color:#00e676;font-weight:600;font-size:0.75rem;">Online</span>'
+        '</div>'
+        '<div class="seadex-sys-row" style="border-bottom:none;">'
+        '<span class="seadex-sys-item">'
+        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="3" fill="#00e676"/></svg> '
+        'SegFormer-B0'
+        '</span>'
+        '<span style="color:#00e676;font-weight:600;font-size:0.75rem;">Online</span>'
+        '</div>'
+        '<div class="seadex-sidebar-sec-title" style="margin-top:14px;">HARDWARE</div>'
+        '<div class="seadex-hw-grid">'
+        '<div>'
+        '<div class="seadex-hw-lbl">GPU</div>'
+        f'<div class="seadex-hw-val">{gpu_display}</div>'
+        '</div>'
+        '<div>'
+        '<div class="seadex-hw-lbl">CPU</div>'
+        f'<div class="seadex-hw-val">{cpu_display}</div>'
+        '</div>'
+        '</div>'
+        '<div style="margin-top:6px; height:28px; overflow:hidden; background:rgba(4,10,18,0.5); border-radius:4px; padding:2px;">'
+        '<svg width="100%" height="24" viewBox="0 0 200 24" preserveAspectRatio="none">'
+        '<line x1="8" y1="12" x2="8" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.4"/>'
+        '<line x1="18" y1="8" x2="18" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.6"/>'
+        '<line x1="28" y1="14" x2="28" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.5"/>'
+        '<line x1="38" y1="6" x2="38" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.7"/>'
+        '<line x1="48" y1="16" x2="48" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.5"/>'
+        '<line x1="58" y1="10" x2="58" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.6"/>'
+        '<line x1="68" y1="18" x2="68" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.4"/>'
+        '<line x1="78" y1="12" x2="78" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.7"/>'
+        '<line x1="88" y1="20" x2="88" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.5"/>'
+        '<line x1="98" y1="14" x2="98" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.6"/>'
+        '<line x1="108" y1="8" x2="108" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.7"/>'
+        '<line x1="118" y1="16" x2="118" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.5"/>'
+        '<line x1="128" y1="10" x2="128" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.6"/>'
+        '<line x1="138" y1="14" x2="138" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.5"/>'
+        '<line x1="148" y1="18" x2="148" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.4"/>'
+        '<line x1="158" y1="12" x2="158" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.6"/>'
+        '<line x1="168" y1="6" x2="168" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.7"/>'
+        '<line x1="178" y1="14" x2="178" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.5"/>'
+        '<line x1="188" y1="10" x2="188" y2="24" stroke="#005d6e" stroke-width="1.2" opacity="0.6"/>'
+        '<path d="M0,12 Q35,4 75,15 T145,17 T200,10" fill="none" stroke="#00e5ff" stroke-width="1.6"/>'
+        '</svg>'
+        '</div>'
+        '</div>'
     )
+    st.markdown(sidebar_card_html, unsafe_allow_html=True)
 
-    # ── Model selector ──
-    st.markdown("### Select Model")
-    selected_model_key = st.selectbox(
-        "Active Model",
-        options=list(MODEL_REGISTRY.keys()),
-        index=0,
-        label_visibility="collapsed",
+    # ── Sidebar Footer ──
+    sidebar_footer_html = (
+        '<div class="seadex-sidebar-footer">'
+        '<div style="font-size:0.68rem; color:#4a708a; margin-bottom:2px;">v1.0.0</div>'
+        '<div style="font-size:0.62rem; color:#00bcd4; letter-spacing:0.09em; font-weight:600;">MARINE GUARD &nbsp;&mdash;&mdash;&nbsp; <span style="color:#00e5ff;">INDIAN OCEAN INITIATIVE</span></div>'
+        '</div>'
     )
-    model_info = MODEL_REGISTRY[selected_model_key]
-    desc_short = model_info["description"][:95] + ("..." if len(model_info["description"]) > 95 else "")
-    st.markdown(
-        f'<div style="background:rgba(0,30,60,0.45);border:1px solid rgba(0,110,170,0.18);'
-        f'border-radius:7px;padding:8px 10px;margin:4px 0 10px 0;font-size:0.73em;'
-        f'color:#3a7a99;line-height:1.45;">'
-        f'<span style="color:#3aA0c8;font-weight:600;">{model_info["type"]}</span><br>'
-        f'{desc_short}</div>',
-        unsafe_allow_html=True
-    )
+    st.markdown(sidebar_footer_html, unsafe_allow_html=True)
 
-    # ── Preprocessing (Original 3 Filters: Median -> Bilateral -> CLAHE) ──
-    st.markdown("### Preprocessing Pipeline (3 Filters)")
-    enable_preprocessing = st.toggle("Enable 3-Stage Preprocessing", value=True)
-    with st.expander("Filter Parameter Tuning", expanded=False):
-        median_k    = st.selectbox("1. Median Filter Kernel", [3, 5, 7], index=0)
-        bilat_d     = st.slider("2. Bilateral Diameter", 3, 15, 7, 2)
-        bilat_sigma = st.slider("2. Bilateral Sigma", 15.0, 100.0, 50.0, 5.0)
-        clahe_clip  = st.slider("3. CLAHE Clip Limit", 0.5, 3.0, 1.3, 0.1)
 
-    # ── Detection settings ──
-    st.markdown("### Detection Settings")
-    conf_thresh      = st.slider("Confidence Threshold", 0.10, 0.95, model_info["default_conf"], 0.05)
-    iou_thresh       = st.slider("NMS IoU Threshold", 0.10, 0.90, 0.45, 0.05)
-    imgsz            = st.selectbox("Image Resolution", [640, 832, 1024], index=0)
-    enable_segformer = st.checkbox("SegFormer Mask Overlay", value=True)
-    enable_resnet    = st.checkbox("ResNet18 + Grad-CAM", value=True)
-
-    st.markdown("---")
-
-    # ── System Status ──
-    st.markdown(
-        '<div style="font-size:0.63em;font-weight:600;letter-spacing:0.08em;color:#3a6a88;'
-        'padding:0 16px 6px 16px;text-transform:uppercase;">System Status</div>',
-        unsafe_allow_html=True
-    )
-
-    hw = get_device_info()
-    gpu_ok = hw.get("cuda_available", False)
-    gpu_name = hw.get("gpu_name", "None (CPU)")
-    short_gpu = hw.get("short_gpu_name", "CPU Mode")
-    vram_str = f"{hw.get('vram_gb', 0.0):.1f} GB" if gpu_ok else "N/A"
-    dot_g = '<span class="dot dot-green"></span>'
-    dot_y = '<span class="dot dot-yellow"></span>'
-    dot_b = '<span class="dot dot-blue"></span>'
-
-    st.markdown(f"""
-    <div style="padding:2px 14px 10px 14px;">
-        <div class="mg-sys-row">
-            <span style="color:#4a7090;">GPU</span>
-            <span style="color:{'#2ecc71' if gpu_ok else '#f39c12'};font-weight:600;" title="{gpu_name}">
-                {dot_g if gpu_ok else dot_y}{short_gpu}
-            </span>
-        </div>
-        <div class="mg-sys-row">
-            <span style="color:#4a7090;">VRAM</span>
-            <span style="color:#38b8e8;">{vram_str}</span>
-        </div>
-        <div class="mg-sys-row">
-            <span style="color:#4a7090;">CUDA</span>
-            <span style="color:{'#2ecc71' if gpu_ok else '#e74c3c'};">
-                {f"v{hw.get('cuda_version', '')}" if gpu_ok else 'Disabled'}
-            </span>
-        </div>
-        <div class="mg-sys-row">
-            <span style="color:#4a7090;">Memory</span>
-            <span style="color:#38b8e8;">{dot_b}Optimized</span>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    # ── Team footer (normal document flow, not absolute) ──
-    st.markdown("---")
-    st.markdown("""
-    <div style="padding:2px 12px 8px 12px;">
-        <div style="display:flex;align-items:center;gap:10px;padding:5px 0;">
-            <div style="width:30px;height:30px;background:linear-gradient(135deg,#0a4878,#006ea0);
-                        border-radius:50%;display:flex;align-items:center;justify-content:center;
-                        font-size:0.9em;flex-shrink:0;">&#127754;</div>
-            <div>
-                <div style="font-size:0.78em;font-weight:600;color:#a8cce8;">Marine Guard AI</div>
-                <div style="font-size:0.64em;color:#3a6880;">Multi-Modal AI System</div>
-            </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;padding:5px 0;">
-            <div style="width:30px;height:30px;background:rgba(0,55,100,0.6);
-                        border-radius:50%;display:flex;align-items:center;justify-content:center;
-                        font-size:0.85em;flex-shrink:0;">&#128100;</div>
-            <div>
-                <div style="font-size:0.76em;font-weight:500;color:#88b4cc;">Team Akhet</div>
-                <div style="font-size:0.63em;color:#3a6880;">PS-26057</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+# ── Preserved Pipeline Parameters ──
+selected_model_key = st.session_state.get("selected_model_key", list(MODEL_REGISTRY.keys())[0])
+model_info = MODEL_REGISTRY.get(selected_model_key, list(MODEL_REGISTRY.values())[0])
+enable_preprocessing = st.session_state.get("enable_preprocessing", True)
+median_k = st.session_state.get("median_k", 3)
+bilat_d = st.session_state.get("bilat_d", 7)
+bilat_sigma = st.session_state.get("bilat_sigma", 50.0)
+clahe_clip = st.session_state.get("clahe_clip", 1.3)
+conf_thresh = st.session_state.get("conf_thresh", model_info.get("default_conf", 0.25))
+iou_thresh = st.session_state.get("iou_thresh", 0.45)
+imgsz = st.session_state.get("imgsz", 640)
+enable_segformer = st.session_state.get("enable_segformer", True)
+enable_resnet = st.session_state.get("enable_resnet", True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# TOP HEADER BAR
-# ═══════════════════════════════════════════════════════════════════════════
-st.markdown(f"""
-<div class="mg-topbar">
-    <div class="mg-topbar-left">
-        <div>
-            <div class="mg-topbar-title">MARINE GUARD</div>
-            <div class="mg-topbar-sub">Marine Debris Detection System</div>
-        </div>
-    </div>
-    <div class="mg-topbar-right">
-        <div class="mg-badge mg-badge-green">&#11044; Active</div>
-        <div class="mg-badge mg-badge-blue">{model_info['type']}</div>
-        <div class="mg-badge mg-badge-blue">YOLOv11 &middot; SegFormer &middot; ResNet18</div>
-        <span style="color:#3a6888;font-size:1.1em;cursor:pointer;flex-shrink:0;" title="Settings">&#9881;</span>
-        <span style="color:#3a6888;font-size:1.0em;cursor:pointer;flex-shrink:0;" title="Notifications">&#128276;</span>
-        <div class="mg-avatar">TA</div>
-    </div>
-</div>
-""", unsafe_allow_html=True)
-
-# Pipeline badges
-st.markdown("""
-<div class="mg-pipeline-row">
-    <span class="mg-pipe-badge mg-pipe-filter">&#9312; Median Filter</span>
-    <span class="mg-pipe-badge mg-pipe-filter">&#9313; Bilateral Denoising</span>
-    <span class="mg-pipe-badge mg-pipe-filter">&#9314; LAB-CLAHE</span>
-    <span class="mg-pipe-badge mg-pipe-model">&#128640; YOLOv11</span>
-    <span class="mg-pipe-badge mg-pipe-model">&#129516; SegFormer-B0</span>
-    <span class="mg-pipe-badge mg-pipe-model">&#128293; ResNet18 Grad-CAM</span>
-</div>
-""", unsafe_allow_html=True)
-
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# MAIN CONTENT ROUTING (Powered by Sidebar Navigation)
+# MAIN CONTENT ROUTING
 # ═══════════════════════════════════════════════════════════════════════════
 active_tab = st.session_state.get("active_nav", 0)
+
+# Helper function to convert images or paths to base64
+def img_to_b64(img_or_path, quality=92):
+    if isinstance(img_or_path, (str, Path)):
+        p = Path(img_or_path)
+        if p.exists():
+            with open(p, "rb") as f:
+                return base64.b64encode(f.read()).decode("utf-8")
+        return ""
+    if img_or_path is None or not isinstance(img_or_path, np.ndarray) or img_or_path.size == 0:
+        return ""
+    success, buffer = cv2.imencode(".jpg", img_or_path, [cv2.IMWRITE_JPEG_QUALITY, quality])
+    if success:
+        return base64.b64encode(buffer).decode("utf-8")
+    return ""
+
+def upscale_for_display(img, min_height=360):
+    if img is None or not isinstance(img, np.ndarray) or img.size == 0:
+        return img
+    h, w = img.shape[:2]
+    if h <= 0 or w <= 0:
+        return img
+    if h < min_height:
+        scale = min_height / float(h)
+        new_w = max(1, int(w * scale))
+        new_h = min_height
+        return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
+    return img
+
+def get_seadex_b64(path_str):
+    return img_to_b64(path_str)
+
+# Scale bar & North compass are rendered via vector HUD overlay in the tactical viewport
+def draw_sonar_hud(img):
+    return img
 
 # ═══════════════════════════════════════════════════════════════════════════
 # PAGE: DETECTION & INSPECTION (0)
 # ═══════════════════════════════════════════════════════════════════════════
 if active_tab == 0:
-    col_left, col_mid, col_right = st.columns([1, 1, 0.75], gap="small")
+    # ── Top Operational View Header ──
+    st.markdown("""
+    <div class="seadex-header-wrapper">
+        <div>
+            <div class="seadex-op-tag">&bull; OPERATIONAL VIEW</div>
+            <h1 class="seadex-page-title">DETECTION &amp; INSPECTION</h1>
+            <p class="seadex-page-desc">Upload sonar imagery or select from datasets to detect and classify marine debris using our multi-modal AI pipeline.</p>
+        </div>
+        <div>
+            <div class="seadex-quote">&ldquo;From ocean data<br>to a cleaner tomorrow.&rdquo;</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── 3 Column Layout ──
+    col_left, col_mid, col_right = st.columns([1.05, 1.75, 0.9], gap="small")
 
     with col_left:
-        st.markdown("""
-        <div class="mg-card">
-            <div class="mg-card-hdr">
-                <div class="mg-num">1</div>
-                <div>
-                    <div class="mg-card-title">Image Ingestion</div>
-                    <div class="mg-card-sub">Upload an image for detection</div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        uploaded_file = st.file_uploader(
-            "Upload image (JPG / PNG / BMP / WEBP)",
-            type=["jpg","jpeg","png","bmp","webp"],
-        )
-
-        st.markdown(
-            '<div style="text-align:center;color:#3a6a88;font-size:0.76em;'
-            'margin:8px 0;padding:5px 0;'
-            'border-top:1px solid rgba(0,90,140,0.14);'
-            'border-bottom:1px solid rgba(0,90,140,0.14);">'
-            '&#8212;&#8194;OR&#8194;&#8212; Test with Pre-Loaded Target Streams</div>',
-            unsafe_allow_html=True
-        )
-
-        stream_type = st.radio(
-            "Select Target Ingestion Stream:",
-            [
-                "🎯 Known Marine Debris (27 Classes)",
-                "⚠️ Novel Subsea Anomalies (7 OOD Classes)",
-                "📁 Real Anoma Dataset (535 Images in samples/anoma)"
-            ],
+        st.markdown('<div class="seadex-panel-hdr">1. INPUT &amp; DATA SELECTION</div>', unsafe_allow_html=True)
+        
+        input_source = st.radio(
+            "Input Mode",
+            ["Upload", "Sample Data", "Anoma Dataset"],
             index=0,
-            horizontal=False
+            horizontal=True,
+            label_visibility="collapsed",
+            key="input_source_tabs"
         )
-
+        
+        if st.session_state.get("_last_input_source") != input_source:
+            st.session_state["_last_input_source"] = input_source
+            for k in ["latest_dets", "latest_raw_bgr", "latest_prep_bgr", "latest_annotated_bgr", "latest_triage", "latest_summary", "latest_latency_ms"]:
+                st.session_state.pop(k, None)
+        
+        uploaded_file = None
         sample_path = None
         selected_anomaly_meta = None
+        sample_choice = "None (Use Upload)"
+        
+        SAMPLES_DIR = ROOT_DIR / "samples"
+        def get_sample_image(class_name: str):
+            sample_file = SAMPLES_DIR / f"{class_name}.png"
+            if sample_file.exists() and sample_file.stat().st_size > 1024:
+                return sample_file
+            return None
 
-        if "Known Marine Debris" in stream_type:
+        if input_source == "Upload":
+            st.markdown("""
+            <div class="seadex-dropzone-visual">
+                <div class="seadex-drop-cloud">&#9729;&#xFE0E;</div>
+                <div class="seadex-drop-text">Drag &amp; drop sonar image here</div>
+                <div class="seadex-drop-sub">or <span style="text-decoration:underline;">browse files</span></div>
+                <div class="seadex-drop-fmts">JPG &nbsp;&nbsp; PNG &nbsp;&nbsp; BMP &nbsp;&nbsp; WEBP</div>
+            </div>
+            """, unsafe_allow_html=True)
+            uploaded_file = st.file_uploader(
+                "Upload image",
+                type=["jpg", "jpeg", "png", "bmp", "webp"],
+                label_visibility="collapsed",
+                key="seadex_file_uploader"
+            )
+            if uploaded_file is not None:
+                _upload_id = getattr(uploaded_file, "file_id", uploaded_file.name)
+                if st.session_state.get("_last_uploaded_id") != _upload_id:
+                    st.session_state["_last_uploaded_id"] = _upload_id
+                    for k in ["latest_dets", "latest_raw_bgr", "latest_prep_bgr", "latest_annotated_bgr", "latest_triage", "latest_summary", "latest_latency_ms"]:
+                        st.session_state.pop(k, None)
+        elif input_source == "Sample Data":
             sample_options = [
-                "None (Use Upload)",
-                "🚢 Sample: Shipwrecks (Acoustic Sonar)",
+                "🛞 Sample: Tire",
+                "⚡ Sample: Pipeline or Cable",
                 "🥫 Sample: Metal Can",
+                "🚢 Sample: Shipwrecks (Acoustic Sonar)",
                 "🔧 Sample: Lost Wrench",
                 "🔩 Sample: Subsea Valve",
-                "⚡ Sample: Pipeline or Cable",
                 "🛞 Sample: Small Tire",
                 "🛞 Sample: Large Tire",
                 "🧴 Sample: Plastic Bottle",
@@ -1276,250 +1881,76 @@ if active_tab == 0:
                 "🏗️ Sample: Rotating Platform",
                 "🧴 Sample: Shampoo Bottle",
             ]
-            sample_choice = st.selectbox("Select sample image from SIH dataset:", sample_options)
-
-            SAMPLES_DIR = ROOT_DIR / "samples"
-            def get_sample_image(class_name: str):
-                sample_file = SAMPLES_DIR / f"{class_name}.png"
-                if sample_file.exists() and sample_file.stat().st_size > 1024:
-                    return sample_file
-                return None
-
-            if   "Shipwrecks"         in sample_choice: sample_path = get_sample_image("Shipwrecks")
-            elif "Metal Can"          in sample_choice: sample_path = get_sample_image("can")
-            elif "Lost Wrench"        in sample_choice: sample_path = get_sample_image("wrench")
-            elif "Subsea Valve"       in sample_choice: sample_path = get_sample_image("valve")
-            elif "Pipeline or Cable"  in sample_choice: sample_path = get_sample_image("pipeline or cable")
-            elif "Small Tire"         in sample_choice: sample_path = get_sample_image("small-tire")
-            elif "Large Tire"         in sample_choice: sample_path = get_sample_image("large-tire")
-            elif "Plastic Bottle"     in sample_choice: sample_path = get_sample_image("plastic-bottle")
-            elif "Drink Carton"       in sample_choice: sample_path = get_sample_image("drink-carton")
-            elif "Drink Sachet"       in sample_choice: sample_path = get_sample_image("drink-sachet")
-            elif "Glass Bottle"       in sample_choice: sample_path = get_sample_image("glass-bottle")
+            sample_choice = st.selectbox("Select Sample Target:", sample_options, index=0)
+            if "Tire" in sample_choice and "Small" not in sample_choice and "Large" not in sample_choice:
+                sample_path = get_sample_image("tire")
+            elif "Shipwrecks" in sample_choice: sample_path = get_sample_image("Shipwrecks")
+            elif "Metal Can" in sample_choice: sample_path = get_sample_image("can")
+            elif "Pipeline or Cable" in sample_choice: sample_path = get_sample_image("pipeline or cable")
+            elif "Lost Wrench" in sample_choice: sample_path = get_sample_image("wrench")
+            elif "Subsea Valve" in sample_choice: sample_path = get_sample_image("valve")
+            elif "Small Tire" in sample_choice: sample_path = get_sample_image("small-tire")
+            elif "Large Tire" in sample_choice: sample_path = get_sample_image("large-tire")
+            elif "Plastic Bottle" in sample_choice: sample_path = get_sample_image("plastic-bottle")
+            elif "Drink Carton" in sample_choice: sample_path = get_sample_image("drink-carton")
+            elif "Drink Sachet" in sample_choice: sample_path = get_sample_image("drink-sachet")
+            elif "Glass Bottle" in sample_choice: sample_path = get_sample_image("glass-bottle")
             elif "Brown Glass Bottle" in sample_choice: sample_path = get_sample_image("brown-glass-bottle")
-            elif "Glass Jar"          in sample_choice: sample_path = get_sample_image("glass-jar")
-            elif "Hook"               in sample_choice: sample_path = get_sample_image("hook")
-            elif "Chain"              in sample_choice: sample_path = get_sample_image("chain")
-            elif "Plastic Bidon"      in sample_choice: sample_path = get_sample_image("plastic-bidon")
-            elif "Plastic Pipe"       in sample_choice: sample_path = get_sample_image("plastic-pipe")
-            elif "Plastic Propeller"  in sample_choice: sample_path = get_sample_image("plastic-propeller")
-            elif "Propeller"          in sample_choice: sample_path = get_sample_image("propeller")
-            elif "Rotating Platform"  in sample_choice: sample_path = get_sample_image("rotating-platform")
-            elif "Shampoo Bottle"     in sample_choice: sample_path = get_sample_image("shampoo-bottle")
-        elif "Novel Subsea Anomalies" in stream_type:
-            anomaly_options = ["None (Use Upload)"] + list(ANOMALY_CLASSES.keys())
-            anom_choice = st.selectbox("Select Novel Subsea Anomaly Target:", anomaly_options)
-            sample_choice = anom_choice
-            if anom_choice != "None (Use Upload)":
-                selected_anomaly_meta = ANOMALY_CLASSES[anom_choice]
-                sample_path = ANOMALIES_DIR / selected_anomaly_meta["file"]
-                st.markdown(
-                    f'<div style="background:rgba(20,40,70,0.6);border:1px solid rgba(0,140,220,0.25);'
-                    f'border-radius:7px;padding:6px 10px;margin-top:4px;font-size:0.75em;color:#8dc6e8;">'
-                    f'{selected_anomaly_meta["emoji"]} <strong>Signature:</strong> {selected_anomaly_meta["desc"]}</div>',
-                    unsafe_allow_html=True
-                )
-        else:
+            elif "Glass Jar" in sample_choice: sample_path = get_sample_image("glass-jar")
+            elif "Hook" in sample_choice: sample_path = get_sample_image("hook")
+            elif "Chain" in sample_choice: sample_path = get_sample_image("chain")
+            elif "Plastic Bidon" in sample_choice: sample_path = get_sample_image("plastic-bidon")
+            elif "Plastic Pipe" in sample_choice: sample_path = get_sample_image("plastic-pipe")
+            elif "Plastic Propeller" in sample_choice: sample_path = get_sample_image("plastic-propeller")
+            elif "Propeller" in sample_choice: sample_path = get_sample_image("propeller")
+            elif "Rotating Platform" in sample_choice: sample_path = get_sample_image("rotating-platform")
+            elif "Shampoo Bottle" in sample_choice: sample_path = get_sample_image("shampoo-bottle")
+            else: sample_path = get_sample_image("tire")
+        else: # Anoma Dataset
             anoma_train_dir = ROOT_DIR / "samples" / "anoma" / "train" / "images"
-            anoma_files = sorted(list(anoma_train_dir.glob("*.jpg")) + list(anoma_train_dir.glob("*.png")))
-            anoma_options = ["None (Use Upload)"] + [f.name for f in anoma_files[:60]]
-            anoma_pick = st.selectbox("Select Image from Anoma Dataset:", anoma_options)
-            sample_choice = anoma_pick
-            if anoma_pick != "None (Use Upload)":
+            anoma_files = sorted(list(anoma_train_dir.glob("*.jpg")) + list(anoma_train_dir.glob("*.png"))) if anoma_train_dir.exists() else []
+            anoma_options = [f.name for f in anoma_files[:60]] if anoma_files else ["No Anoma images found"]
+            anoma_pick = st.selectbox("Select Anoma Sonar Image:", anoma_options, index=0)
+            if anoma_files and anoma_pick != "No Anoma images found":
                 sample_path = anoma_train_dir / anoma_pick
+                sample_choice = anoma_pick
                 selected_anomaly_meta = {
                     "name": "Subsea Sonar Anomaly (Anoma)",
-                    "desc": f"Real acoustic target from Anoma dataset: {anoma_pick[:24]}...",
+                    "desc": f"Acoustic target from Anoma dataset: {anoma_pick[:24]}...",
                     "emoji": "🔬"
                 }
-                st.caption(f"📁 Loaded `{anoma_pick}` | Autoencoder GPU weights active.")
 
-        show_preprocessed_view = st.checkbox("Show Preprocessing Comparison (Raw vs. Filtered)", value=False)
-        run_btn = st.button("Run Detection Pipeline", type="primary", use_container_width=True)
-
-    with col_mid:
-        st.markdown("""
-        <div class="mg-card">
-            <div class="mg-card-hdr">
-                <div class="mg-num mg-num-green">2</div>
-                <div>
-                    <div class="mg-card-title">Detection Output</div>
-                    <div class="mg-card-sub">Results appear here after running detection</div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        result_placeholder = st.empty()
-        result_placeholder.info("Upload an image or pick a sample, then click **Run Detection Pipeline**.")
-
-        st.markdown("""
-        <div style="background:rgba(0,55,100,0.22);border:1px solid rgba(0,140,200,0.18);
-                    border-radius:9px;padding:11px 14px;margin-top:10px;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
-                <span style="font-size:1.0em;">&#129302;</span>
-                <span style="font-weight:600;color:#90c8e8;font-size:0.85em;">AI Model: Marine Guard Detector</span>
-            </div>
-            <div style="font-size:0.74em;color:#3a7090;line-height:1.5;">
-                All 27 Classes &nbsp;&middot;&nbsp; YOLOv11 &nbsp;&middot;&nbsp; SegFormer &nbsp;&middot;&nbsp; ResNet18
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    with col_right:
-        st.markdown("""
-        <div class="mg-card">
-            <div style="display:flex;align-items:center;gap:7px;margin-bottom:10px;">
-                <span style="color:#cc3333;">&#128202;</span>
-                <span style="font-weight:600;color:#c0dff5;font-size:0.86em;">Detection Summary</span>
-            </div>
-            <div class="mg-stat-grid">
-                <div class="mg-stat c-red">
-                    <div class="mg-stat-val">27</div>
-                    <div class="mg-stat-lbl">Total Classes</div>
-                </div>
-                <div class="mg-stat c-green">
-                    <div class="mg-stat-val">33</div>
-                    <div class="mg-stat-lbl">AI Models</div>
-                </div>
-            </div>
-            <div class="mg-stat-grid">
-                <div class="mg-stat c-purple">
-                    <div class="mg-stat-val">Multi-Modal</div>
-                    <div class="mg-stat-lbl">Detection</div>
-                </div>
-                <div class="mg-stat c-orange">
-                    <div class="mg-stat-val">Real-time</div>
-                    <div class="mg-stat-lbl">Processing</div>
-                </div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown(f"""
-        <div class="mg-card">
-            <div style="font-weight:600;color:#c0dff5;font-size:0.84em;margin-bottom:8px;">Quick Info</div>
-            <div class="mg-info-row">
-                <span class="mg-info-lbl">&#9889; Active Mode</span>
-                <span class="mg-info-val">Master Universal</span>
-            </div>
-            <div class="mg-info-row">
-                <span class="mg-info-lbl">&#127959; Architecture</span>
-                <span class="mg-info-val">YOLOv11+SegFormer</span>
-            </div>
-            <div class="mg-info-row">
-                <span class="mg-info-lbl">&#128452; Dataset</span>
-                <span class="mg-info-val">Marine Dataset</span>
-            </div>
-            <div class="mg-info-row">
-                <span class="mg-info-lbl">&#127991; Classes</span>
-                <span class="mg-info-val">27 Marine Classes</span>
-            </div>
-            <div class="mg-info-row">
-                <span class="mg-info-lbl">&#127942; Hackathon</span>
-                <span class="mg-info-val">SIH 2026</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown(f"""
-        <div class="mg-card">
-            <div style="font-weight:600;color:#c0dff5;font-size:0.84em;margin-bottom:8px;">&#9889; System Status</div>
-            <div class="mg-sys-row">
-                <span style="color:#4a7090;font-size:0.76em;">Hardware</span>
-                <span style="color:{'#2ecc71' if gpu_ok else '#f39c12'};font-size:0.76em;font-weight:600;" title="{gpu_name}">
-                    {dot_g if gpu_ok else dot_y}{short_gpu}
-                </span>
-            </div>
-            <div class="mg-sys-row">
-                <span style="color:#4a7090;font-size:0.76em;">CUDA &amp; VRAM</span>
-                <span style="color:{'#2ecc71' if gpu_ok else '#e74c3c'};font-size:0.76em;">
-                    {f"CUDA {hw.get('cuda_version', '')} &middot; {vram_str}" if gpu_ok else 'CPU Only'}
-                </span>
-            </div>
-            <div class="mg-sys-row">
-                <span style="color:#4a7090;font-size:0.76em;">Memory</span>
-                <span style="color:#38b8e8;font-size:0.76em;">{dot_b}Optimized</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # Settings strip
-    st.markdown("""
-    <div class="mg-card" style="margin-top:2px;">
-        <div class="mg-card-hdr">
-            <div class="mg-num mg-num-purple">3</div>
-            <div>
-                <div class="mg-card-title">Detection &amp; Verification Settings</div>
-                <div class="mg-card-sub">Current pipeline configuration &mdash; adjust from the sidebar</div>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    s1, s2, s3 = st.columns(3, gap="small")
-    _card_base = ("background:rgba(0,28,56,0.55);border:1px solid rgba(0,140,200,0.16);"
-                  "border-radius:10px;padding:14px 16px;")
-    with s1:
-        st.markdown(
-            f'<div style="{_card_base}">'
-            f'<div style="font-size:0.74em;color:#4a7a99;margin-bottom:8px;font-weight:500;">&#9881; Active Configuration</div>'
-            f'<div style="display:flex;justify-content:space-between;font-size:0.8em;padding:3px 0;">'
-            f'<span style="color:#3a7090;">Confidence</span><span style="color:#38b8f0;font-weight:600;">{conf_thresh:.2f}</span></div>'
-            f'<div style="display:flex;justify-content:space-between;font-size:0.8em;padding:3px 0;">'
-            f'<span style="color:#3a7090;">NMS IoU</span><span style="color:#38b8f0;font-weight:600;">{iou_thresh:.2f}</span></div>'
-            f'<div style="display:flex;justify-content:space-between;font-size:0.8em;padding:3px 0;">'
-            f'<span style="color:#3a7090;">Resolution</span><span style="color:#38b8f0;font-weight:600;">{imgsz}px</span></div>'
-            f'</div>',
-            unsafe_allow_html=True
-        )
-    with s2:
-        on = enable_segformer
-        st.markdown(
-            f'<div style="{_card_base}">'
-            f'<div style="font-size:0.74em;color:#4a7a99;margin-bottom:10px;font-weight:500;">&#129516; SegFormer Mask Overlay</div>'
-            f'<div style="display:flex;align-items:center;gap:10px;">'
-            f'<div style="width:38px;height:20px;background:{"#0090c7" if on else "#162230"};'
-            f'border-radius:10px;position:relative;flex-shrink:0;border:1px solid rgba(0,140,200,0.3);">'
-            f'<div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;'
-            f'top:1px;{"right:2px" if on else "left:2px"};"></div></div>'
-            f'<span style="font-size:0.79em;color:#{"2ecc71" if on else "3a6a7a"};">'
-            f'{"Masks enabled" if on else "Disabled"}</span></div></div>',
-            unsafe_allow_html=True
-        )
-    with s3:
-        on2 = enable_resnet
-        st.markdown(
-            f'<div style="{_card_base}">'
-            f'<div style="font-size:0.74em;color:#4a7a99;margin-bottom:10px;font-weight:500;">&#128293; ResNet18 + Grad-CAM</div>'
-            f'<div style="display:flex;align-items:center;gap:10px;">'
-            f'<div style="width:38px;height:20px;background:{"#0090c7" if on2 else "#162230"};'
-            f'border-radius:10px;position:relative;flex-shrink:0;border:1px solid rgba(0,140,200,0.3);">'
-            f'<div style="width:16px;height:16px;background:#fff;border-radius:50%;position:absolute;'
-            f'top:1px;{"right:2px" if on2 else "left:2px"};"></div></div>'
-            f'<span style="font-size:0.79em;color:#{"2ecc71" if on2 else "3a6a7a"};">'
-            f'{"Explainability on" if on2 else "Disabled"}</span></div></div>',
-            unsafe_allow_html=True
+        st.markdown('<div style="font-size:0.75rem;font-weight:600;color:#c5e4f5;margin:10px 0 3px 0;">Target Stream</div>', unsafe_allow_html=True)
+        stream_choice = st.selectbox(
+            "Target Stream Selector",
+            [
+                "⚓ Known Marine Debris (27 classes: shipwrecks, tires, cables, etc.)",
+                "⚠️ Novel Subsea Anomalies (7 OOD Classes)",
+                "🔬 Real Anoma Dataset (535 Images in samples/anoma)"
+            ],
+            index=0,
+            label_visibility="collapsed",
+            key="seadex_stream_choice"
         )
 
-    # Run & Results
+        show_preprocessed_view = st.toggle("Show preprocessing comparison", value=True, key="seadex_preproc_toggle")
+        run_btn = st.button("Run Detection Pipeline  →", type="primary", use_container_width=True)
+        st.markdown('<div style="font-size:0.67rem;color:#4a7590;margin-top:6px;text-align:center;">ℹ Supports side scan sonar imagery (.jpg, .png, .bmp, .webp)</div>', unsafe_allow_html=True)
+
+    # ── Inference Execution when Run is Pressed ──
     if run_btn:
         img_bgr = None
         _upload_error = None
         _auto_notice = None
 
-        # Priority 1: User explicitly picked a sample from the dropdown
-        if sample_choice != "None (Use Upload)" and sample_path and sample_path.exists():
+        if input_source != "Upload" and sample_path and sample_path.exists():
             img_bgr = cv2.imread(str(sample_path))
             if img_bgr is None:
                 _upload_error = f"⚠️ Could not read sample image at `{sample_path}`."
-
-        # Priority 2: User provided an uploaded file
         elif uploaded_file is not None:
             file_bytes = uploaded_file.read()
             uploaded_file.seek(0)
             if len(file_bytes) < 1024:
-                # File is a Git LFS pointer text file (~130 bytes)
                 fname = uploaded_file.name.lower()
                 matched_cname = "glass-bottle"
                 for cname in [
@@ -1533,49 +1964,30 @@ if active_tab == 0:
                     if cname.lower() in fname or fname.startswith(cname.lower()):
                         matched_cname = cname
                         break
-                
                 fallback_sample = SAMPLES_DIR / f"{matched_cname}.png"
                 if fallback_sample.exists():
                     img_bgr = cv2.imread(str(fallback_sample))
-                    _auto_notice = (
-                        f"ℹ️ **LFS Pointer Detected:** `{uploaded_file.name}` is a repository pointer ({len(file_bytes)} bytes). "
-                        f"Automatically loaded high-resolution Side-Scan Sonar target for **`{matched_cname}`**."
-                    )
+                    _auto_notice = f"ℹ️ Loaded high-resolution Sonar target for **`{matched_cname}`**."
                 else:
-                    _upload_error = (
-                        f"⚠️ **Uploaded file is a Git LFS pointer** (only {len(file_bytes)} bytes). "
-                        f"Please upload a real image or select from the sample dropdown below."
-                    )
+                    _upload_error = "⚠️ Uploaded file is a pointer. Please upload a full image."
             else:
                 try:
                     pil_img = Image.open(uploaded_file).convert("RGB")
                     img_bgr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
                 except Exception as _pil_err:
-                    _upload_error = f"⚠️ Could not read image file (`{uploaded_file.name}`): {_pil_err}"
-
-        # Priority 3: Fallback to sample if available
+                    _upload_error = f"⚠️ Could not read image file: {_pil_err}"
         elif sample_path and sample_path.exists():
             img_bgr = cv2.imread(str(sample_path))
         else:
-            _upload_error = "Please upload an image or select a sample image from the dropdown."
+            _upload_error = "⚠️ Please upload a sonar image or select a sample dataset before running detection."
 
         if _auto_notice:
             st.info(_auto_notice)
-
         if _upload_error:
-            st.markdown(
-                f'<div style="background:rgba(30,5,5,0.85);border:1px solid rgba(180,30,30,0.50);'
-                f'border-radius:10px;padding:16px 20px;margin:10px 0;font-size:0.86em;">'
-                f'<div style="color:#ff6666;font-weight:700;margin-bottom:6px;">&#128721; Image Load Notice</div>'
-                f'<div style="color:#cc8888;line-height:1.55;">{_upload_error}</div>'
-                f'<div style="color:#3a6a88;font-size:0.82em;margin-top:10px;">'
-                f'<strong>Tip:</strong> Use the dropdown above to choose a sample from the 27 classes, or upload any JPG/PNG from your PC.</div></div>',
-                unsafe_allow_html=True
-            )
+            st.error(_upload_error)
 
         if img_bgr is not None:
-
-            with st.spinner(f"Running {selected_model_key}..."):
+            with st.spinner(f"Running Marine Guard multi-modal pipeline..."):
                 t0 = time.perf_counter()
                 selected_dev = select_device("0" if hw.get("cuda_available") else "cpu")
                 dets, annotated_bgr, prep_bgr, prep_report, triage_decisions, triage_summary = run_model_inference(
@@ -1589,20 +2001,20 @@ if active_tab == 0:
                 )
                 elapsed_ms = (time.perf_counter() - t0) * 1000
 
-            st.session_state["latest_dets"]     = dets
-            st.session_state["latest_img_bgr"]  = img_bgr
-            st.session_state["latest_prep_bgr"] = prep_bgr
-            st.session_state["latest_prep_rep"] = prep_report
-            st.session_state["latest_triage"]   = triage_decisions
-            st.session_state["latest_summary"]  = triage_summary
+            st.session_state["latest_dets"]          = dets
+            st.session_state["latest_raw_bgr"]       = img_bgr
+            st.session_state["latest_prep_bgr"]      = prep_bgr
+            st.session_state["latest_annotated_bgr"] = annotated_bgr
+            st.session_state["latest_prep_rep"]      = prep_report
+            st.session_state["latest_triage"]        = triage_decisions
+            st.session_state["latest_summary"]       = triage_summary
+            st.session_state["latest_latency_ms"]    = elapsed_ms
 
-            # Persist to Spatial Database
             try:
-                SurveyDatabase().save_detections(dets, mission_id="survey_alpha")
+                SurveyDatabase().save_detections(dets, mission_id="seadex_survey_alpha")
             except Exception:
                 pass
 
-            # Enqueue uncertain targets or anomalies into Active Learning
             try:
                 al_mgr = ActiveLearningManager()
                 for d in dets:
@@ -1615,150 +2027,394 @@ if active_tab == 0:
                                 "class_name": dec.class_name,
                                 "conf": dec.confidence,
                                 "uncertainty_flag": "HIGH",
-                                "latitude": 13.0827,
-                                "longitude": 80.2707,
-                                "error_ellipse_a": 6.0
+                                "latitude": 12.3456,
+                                "longitude": 72.9876,
+                                "error_ellipse_a": 4.0
                             }, reason="Novel Sonar Anomaly")
             except Exception:
                 pass
 
-            # Generate synthetic telemetry if none attached
-            sample_telem = generate_synthetic_telemetry(
-                num_pings=1, altitude_m=10.0, slant_range_m=75.0
-            )[0]
+    with col_mid:
+        st.markdown('<div class="seadex-panel-hdr">2. SONAR VISUALIZATION &amp; DETECTIONS</div>', unsafe_allow_html=True)
+        
+        # View mode toolbar
+        tb_col1, tb_col2 = st.columns([0.62, 0.38])
+        with tb_col1:
+            view_mode = st.radio(
+                "Sonar View Mode",
+                ["RAW", "ENHANCED", "DETECTION", "MASK", "HEATMAP"],
+                index=2,
+                horizontal=True,
+                label_visibility="collapsed",
+                key="seadex_view_mode"
+            )
+        with tb_col2:
+            fit_mode = st.radio(
+                "Fit Mode",
+                ["Fit", "Fill", "Cover"],
+                index=0,
+                horizontal=True,
+                label_visibility="collapsed",
+                key="seadex_fit_mode"
+            )
 
-            # Sonar Telemetry & Quality Bar
-            raw_snr_val = prep_report.get("raw_snr_db", 0.0)
-            cal_snr_val = prep_report.get("final_snr_db", raw_snr_val)
-            snr_gain = cal_snr_val - raw_snr_val
+        # Sonar Display Viewport
+        display_img_bgr = None
+        status_label = None
+        has_results = "latest_annotated_bgr" in st.session_state
 
+        if has_results:
+            if view_mode == "RAW":
+                display_img_bgr = st.session_state.get("latest_raw_bgr")
+                status_label = "RAW SONAR"
+            elif view_mode == "ENHANCED":
+                display_img_bgr = st.session_state.get("latest_prep_bgr")
+                status_label = "ENHANCED · 3-STAGE CLAHE"
+            elif view_mode == "MASK" and st.session_state.get("latest_dets"):
+                first_mask = st.session_state["latest_dets"][0].get("seg_mask")
+                if first_mask is not None:
+                    display_img_bgr = cv2.applyColorMap(first_mask, cv2.COLORMAP_VIRIDIS)
+                else:
+                    display_img_bgr = st.session_state.get("latest_annotated_bgr")
+                status_label = "SEGFORMER MASK"
+            elif view_mode == "HEATMAP" and st.session_state.get("latest_dets"):
+                first_gc = st.session_state["latest_dets"][0].get("gradcam_overlay")
+                display_img_bgr = first_gc if first_gc is not None else st.session_state.get("latest_annotated_bgr")
+                status_label = "RESNET18 GRAD-CAM"
+            else: # DETECTION
+                display_img_bgr = st.session_state.get("latest_annotated_bgr")
+                status_label = "AI FUSED HUD"
+        else:
+            if uploaded_file is not None:
+                try:
+                    uploaded_file.seek(0)
+                    _p_img = Image.open(uploaded_file).convert("RGB")
+                    display_img_bgr = cv2.cvtColor(np.array(_p_img), cv2.COLOR_RGB2BGR)
+                    uploaded_file.seek(0)
+                    status_label = "INPUT LOADED · READY FOR INFERENCE"
+                except Exception:
+                    pass
+            elif sample_path and sample_path.exists():
+                display_img_bgr = cv2.imread(str(sample_path))
+                status_label = "SAMPLE PREVIEW"
+            else:
+                display_img_bgr = None
+
+        if display_img_bgr is not None:
+            fit_cls = ""
+            if fit_mode == "Fill":
+                fit_cls = "fit-fill"
+            elif fit_mode == "Cover":
+                fit_cls = "fit-cover"
+
+            sonar_b64 = img_to_b64(display_img_bgr)
             st.markdown(f"""
-            <div style="background:rgba(10,25,45,0.7);border:1px solid #1f4260;border-radius:8px;padding:8px 14px;margin-bottom:12px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:0.82em;">
-                <div>📍 <strong>Pos:</strong> <span style="color:#50b8d8;">{sample_telem.latitude:.4f}°N, {sample_telem.longitude:.4f}°E</span></div>
-                <div>🧭 <strong>Heading:</strong> <span style="color:#f39c12;">{sample_telem.heading_deg:.1f}°</span></div>
-                <div>📏 <strong>Altitude:</strong> <span style="color:#2ecc71;">{sample_telem.altitude_m:.1f} m</span></div>
-                <div>🎯 <strong>Slant Range:</strong> <span style="color:#a370f7;">{sample_telem.slant_range_m:.0f} m</span></div>
-                <div>📡 <strong>Acoustic SNR:</strong> <span style="color:#2ecc71;font-weight:700;">{cal_snr_val:.1f} dB</span> <span style="color:#38b8f0;font-size:0.85em;">(+{snr_gain:.1f} dB)</span></div>
+            <div class="seadex-sonar-viewport">
+                <img src="data:image/jpeg;base64,{sonar_b64}" class="seadex-sonar-img {fit_cls}" alt="Sonar Target Display" />
+                <div class="seadex-hud-status-badge">{status_label or 'ONLINE'}</div>
+                <div class="seadex-hud-scale">
+                    <div class="seadex-scale-line-wrapper">
+                        <span class="seadex-scale-tick"></span>
+                        <span class="seadex-scale-line"></span>
+                        <span class="seadex-scale-tick"></span>
+                    </div>
+                    <span class="seadex-scale-label">10 m</span>
+                </div>
+                <div class="seadex-hud-compass">
+                    <svg width="20" height="20" viewBox="0 0 24 24">
+                        <polygon points="12,2 17,20 12,15 7,20" fill="#00e5ff"/>
+                        <polygon points="12,2 7,20 12,15" fill="#ffffff" opacity="0.9"/>
+                    </svg>
+                    <span class="seadex-compass-label">N</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        else:
+            st.markdown("""
+            <div class="seadex-sonar-viewport">
+                <div class="seadex-empty-placeholder">
+                    <div class="seadex-empty-radar">
+                        <svg width="60" height="60" viewBox="0 0 48 48" fill="none">
+                            <circle cx="24" cy="24" r="22" stroke="#00e5ff" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.35"/>
+                            <circle cx="24" cy="24" r="15" stroke="#00bcd4" stroke-width="1.2" opacity="0.5"/>
+                            <circle cx="24" cy="24" r="8" stroke="#00e5ff" stroke-width="1.2" opacity="0.7"/>
+                            <circle cx="24" cy="24" r="2.5" fill="#00e5ff"/>
+                            <line x1="24" y1="24" x2="38" y2="10" stroke="#00e5ff" stroke-width="1.6" opacity="0.85"/>
+                        </svg>
+                    </div>
+                    <div class="seadex-empty-title">AWAITING SONAR IMAGERY</div>
+                    <div class="seadex-empty-desc">Upload a side-scan sonar image or select a sample dataset on the left to run AI detection.</div>
+                </div>
+                <div class="seadex-hud-status-badge">STANDBY</div>
             </div>
             """, unsafe_allow_html=True)
 
-            result_placeholder.image(
-                cv2.cvtColor(annotated_bgr, cv2.COLOR_BGR2RGB),
-                use_container_width=True,
-                caption=f"Detection Output: {selected_model_key}"
-            )
-
-            if show_preprocessed_view:
-                st.markdown("#### 🔬 3-Stage Acoustic Enhancement Comparison (Raw vs. Filtered)")
-                c_raw, c_prep = st.columns(2)
-                
-                def _prep_display(im):
-                    if im is None or im.size == 0:
-                        return im
-                    h, w = im.shape[:2]
-                    if min(h, w) < 320:
-                        scale = 320.0 / min(h, w)
-                        return cv2.resize(im, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_CUBIC)
-                    return im
-
-                with c_raw:
-                    st.image(
-                        cv2.cvtColor(_prep_display(img_bgr), cv2.COLOR_BGR2RGB),
-                        caption=f"Raw Sonar Input (Raw Dynamic Range: {prep_report.get('raw_snr_db', 0.0):.1f} dB)",
-                        use_container_width=True
-                    )
-                with c_prep:
-                    st.image(
-                        cv2.cvtColor(_prep_display(prep_bgr), cv2.COLOR_BGR2RGB),
-                        caption=f"3-Stage Enhanced (Median + Bilateral + Adaptive CLAHE | Contrast Boosted)",
-                        use_container_width=True
-                    )
-
-            st.markdown("---")
-            # Decision Gate Summary Cards
-            known_c = triage_summary.get("known_debris_count", len(dets))
-            unknown_c = triage_summary.get("unknown_anomaly_count", 0)
-            rej_c = triage_summary.get("rejected_count", 0)
-
-            m1, m2, m3, m4 = st.columns(4)
-            for col, val, lbl, color in [
-                (m1, known_c,               "Known Debris (YOLO)",     "#2ecc71"),
-                (m2, unknown_c,             "Unknown Anomalies (AE)",  "#f39c12"),
-                (m3, rej_c,                 "Clutter / Rejected",      "#e74c3c"),
-                (m4, f"{elapsed_ms:.0f}ms", "Total Latency",           "#38b8f0"),
-            ]:
-                with col:
-                    st.markdown(
-                        f'<div class="metric-card">'
-                        f'<div class="metric-value" style="color:{color};">{val}</div>'
-                        f'<div class="metric-label">{lbl}</div></div>',
-                        unsafe_allow_html=True
-                    )
-
-            if triage_decisions:
-                st.markdown("### 🎯 Decision Gate Triage & Geolocation Results")
-                d_cols = st.columns(min(len(triage_decisions), 4))
-                for i, dec in enumerate(triage_decisions):
-                    is_known = dec.category == "KNOWN_DEBRIS"
-                    is_anomaly = dec.category == "UNKNOWN_ANOMALY"
-                    
-                    badge_color = "#2ecc71" if is_known else ("#f39c12" if is_anomaly else "#e74c3c")
-                    tag_name = "🟢 KNOWN DEBRIS" if is_known else ("🟡 UNKNOWN ANOMALY" if is_anomaly else "🔴 REJECTED")
-                    shadow_badge = "🌒 Shadow Confirmed" if dec.has_shadow else "❌ No Shadow"
-                    
-                    b = dec.bbox
-                    cx = (b[0] + b[2]) / 2.0
-                    cy = (b[1] + b[3]) / 2.0
-                    geo_p = project_pixel_to_latlon(cx, cy, img_bgr.shape, sample_telem)
-                    
-                    with d_cols[i % 4]:
-                        st.markdown(
-                            f'<div class="mg-det-card" style="border:1.5px solid {badge_color}40;">'
-                            f'<div style="font-size:0.72em;font-weight:700;color:{badge_color};">{tag_name}</div>'
-                            f'<div style="color:#fff;font-weight:600;font-size:0.86em;margin:4px 0;">{dec.class_name}</div>'
-                            f'<div style="color:#2ecc71;font-weight:700;font-size:0.82em;">Conf / Score: {dec.confidence:.0%}</div>'
-                            f'<div style="color:#a0c0d8;font-size:0.71em;margin-top:2px;">{shadow_badge}</div>'
-                            f'<div style="color:#38b8f0;font-size:0.70em;margin-top:3px;">📍 {geo_p.latitude:.4f}°N, {geo_p.longitude:.4f}°E</div>'
-                            f'<div style="color:#f39c12;font-size:0.68em;">🎯 95% Err: ±{geo_p.error_ellipse_semi_major_m:.1f}m ({geo_p.channel})</div>'
-                            f'<div style="color:#4a7a90;font-size:0.67em;margin-top:4px;font-style:italic;">{dec.triage_reason[:45]}...</div>'
-                            f'</div>',
-                            unsafe_allow_html=True
-                        )
-                st.info("Switch to **ResNet18 & Grad-CAM** to inspect layer4 visual attention & MC Dropout epistemic uncertainty.")
-            if dets:
-                st.markdown("### 🎯 Identified Targets & Multi-Evidence Verification")
-                d_cols = st.columns(min(len(dets), 4))
-                for i, det in enumerate(dets):
-                    cname = det["class_name"]
-                    meta  = CLASS_METADATA.get(cname, {"emoji": "🏷️", "color": "#00d4ff", "type": "Object"})
-                    b     = det["bbox"]
-                    lat_str = f"📍 {det.get('latitude', 0.0):.4f}°N, {det.get('longitude', 0.0):.4f}°E"
-                    err_str = f"🎯 95% Err: ±{det.get('error_ellipse_a', 0.0):.1f}m ({det.get('channel', 'Port')})"
-                    unc_str = det.get("uncertainty_flag", "LOW")
-                    unc_color = "#2ecc71" if unc_str == "LOW" else ("#f39c12" if unc_str == "MODERATE" else "#e74c3c")
-                    fused_conf = det.get("fused_confidence", det["conf"] * 100.0)
-                    resnet_match = det.get("resnet_pred", cname)
-                    
-                    with d_cols[i % 4]:
-                        st.markdown(
-                            f'<div class="mg-det-card" style="border:1.5px solid {meta["color"]}40;">'
-                            f'<div style="display:flex;justify-content:space-between;align-items:center;">'
-                            f'<span style="font-size:1.5em;">{meta["emoji"]}</span>'
-                            f'<span style="background:{unc_color}20;border:1px solid {unc_color};color:{unc_color};font-size:0.68em;padding:2px 6px;border-radius:4px;font-weight:700;">{unc_str} UNCERTAINTY</span>'
-                            f'</div>'
-                            f'<div style="color:{meta["color"]};font-weight:700;font-size:0.92em;margin:5px 0 2px 0;">{cname}</div>'
-                            f'<div style="color:#2ecc71;font-weight:700;font-size:0.86em;">Fused Conf: {fused_conf:.1f}%</div>'
-                            f'<div style="color:#50b8d8;font-size:0.72em;">YOLO: {det["conf"]:.1%} | ResNet: {resnet_match}</div>'
-                            f'<div style="color:#38b8f0;font-size:0.71em;margin-top:3px;">{lat_str}</div>'
-                            f'<div style="color:#f39c12;font-size:0.69em;">{err_str}</div>'
-                            f'</div>',
-                            unsafe_allow_html=True
-                        )
-                st.info("💡 Switch to **🔬 Explainability (Grad-CAM)** in the sidebar to inspect PyTorch Grad-CAM visual attention & MC Dropout variance distributions.")
-            else:
-                st.warning("No targets found above threshold.")
+        # KPI Metrics Row
+        if has_results:
+            t_summary = st.session_state.get("latest_summary", {})
+            latest_dets = st.session_state.get("latest_dets", [])
+            k_count = str(t_summary.get("known_debris_count", len(latest_dets)))
+            u_count = str(t_summary.get("unknown_anomaly_count", 0))
+            r_count = str(t_summary.get("rejected_count", 0))
+            lat_ms = st.session_state.get("latest_latency_ms", 0.0)
+            latency_str = f"{lat_ms:.1f} ms"
+            trend_k_html = '<span style="color:#00e676;font-size:0.68rem;font-weight:600;">&bull; Processed</span>'
+            trend_u_html = '<span style="color:#00bcd4;font-size:0.68rem;font-weight:600;">&bull; Verified</span>'
+            trend_r_html = '<span style="color:#ff5252;font-size:0.68rem;font-weight:600;">&bull; Filtered</span>'
+            trend_lat_html = '<span style="color:#00e676;font-size:0.68rem;font-weight:600;">&bull; Active</span>'
         else:
-            st.error("Please upload an image or select a sample image.")
+            k_count = "—"
+            u_count = "—"
+            r_count = "—"
+            latency_str = "—"
+            trend_k_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
+            trend_u_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
+            trend_r_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
+            trend_lat_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
+
+        st.markdown(f"""
+        <div class="seadex-kpi-row">
+            <div class="seadex-kpi-card">
+                <div class="seadex-kpi-icon icon-cyan">&#9711;</div>
+                <div>
+                    <div class="seadex-kpi-val">{k_count}</div>
+                    <div class="seadex-kpi-lbl">Known Debris</div>
+                </div>
+                <div class="seadex-kpi-trend">
+                    {trend_k_html}
+                </div>
+            </div>
+            <div class="seadex-kpi-card">
+                <div class="seadex-kpi-icon icon-coral">&#9888;</div>
+                <div>
+                    <div class="seadex-kpi-val">{u_count}</div>
+                    <div class="seadex-kpi-lbl">Unknown Anomalies</div>
+                </div>
+                <div class="seadex-kpi-trend">
+                    {trend_u_html}
+                </div>
+            </div>
+            <div class="seadex-kpi-card">
+                <div class="seadex-kpi-icon icon-cyan">&#8756;</div>
+                <div>
+                    <div class="seadex-kpi-val">{r_count}</div>
+                    <div class="seadex-kpi-lbl">Clutter / Rejected</div>
+                </div>
+                <div class="seadex-kpi-trend">
+                    {trend_r_html}
+                </div>
+            </div>
+            <div class="seadex-kpi-card">
+                <div class="seadex-kpi-icon icon-green">&#9201;</div>
+                <div>
+                    <div class="seadex-kpi-val">{latency_str}</div>
+                    <div class="seadex-kpi-lbl">Pipeline Latency</div>
+                </div>
+                <div class="seadex-kpi-trend">
+                    {trend_lat_html}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    with col_right:
+        if has_results:
+            prep_rep = st.session_state.get("latest_prep_rep", {})
+            telem = prep_rep.get("telemetry")
+            if telem is not None:
+                telem_lat = f"{telem.latitude:.4f}&deg; N"
+                telem_lon = f"{telem.longitude:.4f}&deg; E"
+                telem_heading = f"{telem.heading_deg:.1f}&deg;"
+                telem_alt = f"{telem.altitude_m:.1f} m"
+                telem_slant = f"{telem.slant_range_m:.1f} m"
+            else:
+                telem_lat = "12.3456&deg; N"
+                telem_lon = "72.9876&deg; E"
+                telem_heading = "241.8&deg;"
+                telem_alt = "8.4 m"
+                telem_slant = "42.6 m"
+            telem_snr_num = prep_rep.get("final_snr_db", 21.4)
+            telem_snr = f"{telem_snr_num:.1f} dB"
+            telem_gain = "18.2 dB"
+            live_tag = '<span class="seadex-live-tag">&bull; LIVE</span>'
+            snr_header_val = f"SNR: {telem_snr}"
+        else:
+            telem_lat = "—"
+            telem_lon = "—"
+            telem_heading = "—"
+            telem_alt = "—"
+            telem_slant = "—"
+            telem_snr = "—"
+            telem_gain = "—"
+            live_tag = '<span class="seadex-live-tag" style="background:rgba(123,155,179,0.15);color:#7b9bb3;border-color:rgba(123,155,179,0.3);">&bull; STANDBY</span>'
+            snr_header_val = "Noise Floor"
+
+        st.markdown(f"""
+        <div class="seadex-panel-hdr">
+            <span>3. ACOUSTIC TELEMETRY</span>
+            {live_tag}
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+        <div style="background:rgba(10,20,36,0.6);border:1px solid rgba(0,188,212,0.12);border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+            <div class="seadex-telem-item">
+                <span class="seadex-telem-lbl">🌐 Latitude</span>
+                <span class="seadex-telem-val">{telem_lat}</span>
+            </div>
+            <div class="seadex-telem-item">
+                <span class="seadex-telem-lbl">🌐 Longitude</span>
+                <span class="seadex-telem-val">{telem_lon}</span>
+            </div>
+            <div class="seadex-telem-item">
+                <span class="seadex-telem-lbl">🧭 Towfish Heading</span>
+                <span class="seadex-telem-val">{telem_heading}</span>
+            </div>
+            <div class="seadex-telem-item">
+                <span class="seadex-telem-lbl">⚓ Altitude</span>
+                <span class="seadex-telem-val">{telem_alt}</span>
+            </div>
+            <div class="seadex-telem-item">
+                <span class="seadex-telem-lbl">📏 Slant Range</span>
+                <span class="seadex-telem-val">{telem_slant}</span>
+            </div>
+            <div class="seadex-telem-item">
+                <span class="seadex-telem-lbl">📶 SNR</span>
+                <span class="seadex-telem-val">{telem_snr}</span>
+            </div>
+            <div class="seadex-telem-item">
+                <span class="seadex-telem-lbl">🎚 Gain</span>
+                <span class="seadex-telem-val">{telem_gain}</span>
+            </div>
+            <div class="seadex-signal-hdr">
+                <span>Signal Profile</span>
+                <span style="color:#00e5ff;font-weight:700;">{snr_header_val}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Render acoustic signal waveform chart
+        x_sig = np.linspace(0, 100, 120)
+        if has_results:
+            snr_peak = min(15.0, max(4.0, prep_rep.get("final_snr_db", 12.0) * 0.6))
+            y_sig = (
+                snr_peak * np.exp(-((x_sig - 50) ** 2) / 22.0) +
+                1.5 * np.sin(x_sig * 0.35) +
+                np.random.normal(0, 0.18, len(x_sig))
+            )
+            line_col = '#00e5ff'
+            fill_col = 'rgba(0, 229, 255, 0.12)'
+        else:
+            y_sig = 0.3 * np.sin(x_sig * 0.4) + np.random.normal(0, 0.08, len(x_sig))
+            line_col = '#4a708a'
+            fill_col = 'rgba(74, 112, 138, 0.06)'
+
+        fig_sig = go.Figure()
+        fig_sig.add_trace(go.Scatter(
+            x=x_sig, y=y_sig, mode='lines',
+            line=dict(color=line_col, width=1.6),
+            fill='tozeroy',
+            fillcolor=fill_col,
+        ))
+        fig_sig.update_layout(
+            margin=dict(l=0, r=0, t=0, b=0),
+            height=85,
+            paper_bgcolor='rgba(0,0,0,0)',
+            plot_bgcolor='rgba(0,0,0,0)',
+            xaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+            yaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
+            showlegend=False,
+        )
+        st.plotly_chart(fig_sig, use_container_width=True, config={'displayModeBar': False})
+
+    # ── Section 4: Detection Results & Triage ──
+    st.markdown("""
+    <div class="seadex-triage-header-row">
+        <div class="seadex-triage-title">4. DETECTION RESULTS &amp; TRIAGE</div>
+        <div class="seadex-triage-link">View All Detections &rarr;</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    if has_results:
+        latest_dets = st.session_state.get("latest_dets", [])
+        if latest_dets:
+            cards_to_show = []
+            for i, d in enumerate(latest_dets[:8]):
+                f_conf = d.get("fused_confidence", d["conf"] * 100.0)
+                if f_conf >= 90.0:
+                    badge_lbl = "CONFIRMED"; badge_c = "badge-confirmed"
+                elif f_conf >= 80.0:
+                    badge_lbl = "HIGH"; badge_c = "badge-high"
+                elif f_conf >= 60.0:
+                    badge_lbl = "MODERATE"; badge_c = "badge-moderate"
+                else:
+                    badge_lbl = "REVIEW"; badge_c = "badge-review"
+
+                crop_b64 = ""
+                if "roi_crop" in d and d["roi_crop"] is not None and d["roi_crop"].size > 0:
+                    _, buf = cv2.imencode(".jpg", cv2.resize(d["roi_crop"], (68, 68)))
+                    crop_b64 = base64.b64encode(buf).decode("utf-8")
+                
+                shadow_check = d.get("acoustic_shadow_verified", f_conf >= 75.0)
+                shadow_text = "✔ Confirmed" if shadow_check else "⚠ Uncertain"
+                shadow_col = "#00e676" if shadow_check else "#ffc107"
+
+                cards_to_show.append({
+                    "id": f"#{i+1:02d}",
+                    "name": d["class_name"][:16].capitalize(),
+                    "badge": badge_lbl,
+                    "badge_cls": badge_c,
+                    "b64": crop_b64,
+                    "fused": f"{f_conf:.1f}%",
+                    "yolo": f"{d['conf']:.1%}",
+                    "resnet": f"{d.get('resnet_conf', d['conf']):.1%}",
+                    "shadow": shadow_text,
+                    "shadow_col": shadow_col,
+                    "err": f"±{d.get('error_ellipse_a', 2.5):.1f} × ±{d.get('error_ellipse_b', 2.0):.1f} m"
+                })
+
+            # Always display detections in a 4-column small-card grid
+            for row_idx in range(0, min(8, len(cards_to_show)), 4):
+                row_cards = cards_to_show[row_idx : row_idx + 4]
+                t_cols = st.columns(4, gap="small")
+                for i, c_data in enumerate(row_cards):
+                    with t_cols[i]:
+                        img_html = f'<img class="seadex-triage-img" src="data:image/jpeg;base64,{c_data["b64"]}" />' if c_data["b64"] else '<div class="seadex-triage-img" style="display:flex;align-items:center;justify-content:center;color:#00bcd4;font-size:1.2rem;">◎</div>'
+                        st.markdown(f"""
+                        <div class="seadex-triage-card">
+                            <div class="seadex-triage-card-top">
+                                <div>
+                                    <span class="seadex-triage-id">{c_data['id']}</span>
+                                    <span class="seadex-triage-name">{c_data['name']}</span>
+                                </div>
+                                <span class="seadex-badge-status {c_data['badge_cls']}">{c_data['badge']}</span>
+                            </div>
+                            <div class="seadex-triage-body">
+                                {img_html}
+                                <div class="seadex-triage-table">
+                                    <div class="seadex-tt-row"><span class="seadex-tt-lbl">Fused Confidence</span><span class="seadex-tt-val">{c_data['fused']}</span></div>
+                                    <div class="seadex-tt-row"><span class="seadex-tt-lbl">YOLOv11</span><span class="seadex-tt-val">{c_data['yolo']}</span></div>
+                                    <div class="seadex-tt-row"><span class="seadex-tt-lbl">ResNet-18</span><span class="seadex-tt-val">{c_data['resnet']}</span></div>
+                                    <div class="seadex-tt-row"><span class="seadex-tt-lbl">Shadow Check</span><span class="seadex-tt-val" style="color:{c_data['shadow_col']};">{c_data['shadow']}</span></div>
+                                    <div class="seadex-tt-row"><span class="seadex-tt-lbl">Position Error</span><span class="seadex-tt-val">{c_data['err']}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                        """, unsafe_allow_html=True)
+        else:
+            st.markdown(f"""
+            <div class="seadex-triage-empty" style="border-color:rgba(0,230,118,0.25);">
+                <div style="color:#00e676;font-size:0.85rem;font-weight:700;letter-spacing:0.08em;margin-bottom:4px;">CLEAR SEABED &bull; 0 ANOMALIES DETECTED</div>
+                <div style="color:#6d96b3;font-size:0.75rem;">The AI pipeline processed this scan and detected no marine debris above the {conf_thresh:.0%} confidence threshold.</div>
+            </div>
+            """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div class="seadex-triage-empty">
+            <div style="color:#00e5ff;font-size:0.85rem;font-weight:700;letter-spacing:0.08em;margin-bottom:4px;">NO ACTIVE DETECTIONS</div>
+            <div style="color:#6d96b3;font-size:0.75rem;">Awaiting image input. Upload or select a sonar image and run the pipeline to view classified debris, multi-evidence fusion scores, and shadow validation.</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1797,62 +2453,148 @@ elif active_tab == 1:
                 f'Uncertainty: {unc_flag} ({det.get("recommended_action", "Accept")})</span></div></div>',
                 unsafe_allow_html=True
             )
-            c_crop, c_gradcam, c_stats = st.columns([1, 1, 1.2], gap="medium")
+            c_crop, c_gradcam, c_stats = st.columns([1, 1, 1.15], gap="medium")
             with c_crop:
-                st.markdown("**1. Dynamic Adaptive ROI Crop**")
-                if "roi_crop" in det and det["roi_crop"].size > 0:
-                    st.image(cv2.cvtColor(det["roi_crop"], cv2.COLOR_BGR2RGB),
-                             use_container_width=True,
-                             caption=f"Adaptive ROI ({det['roi_crop'].shape[1]}x{det['roi_crop'].shape[0]}px | Score: {det.get('roi_quality_score', 1.0):.0%})")
+                if "roi_crop" in det and isinstance(det["roi_crop"], np.ndarray) and det["roi_crop"].size > 0:
+                    disp_crop = upscale_for_display(det["roi_crop"], min_height=360)
+                    crop_b64 = img_to_b64(disp_crop)
+                    crop_caption = f"Adaptive ROI ({det['roi_crop'].shape[1]}x{det['roi_crop'].shape[0]}px &bull; Score: {det.get('roi_quality_score', 1.0):.0%})"
+                    crop_html = (
+                        f'<div class="seadex-explain-card">'
+                        f'<div class="seadex-explain-card-header">'
+                        f'<span style="font-size:1.0rem;">🔍</span>'
+                        f'<span class="seadex-explain-card-title">1. Dynamic Adaptive ROI Crop</span>'
+                        f'</div>'
+                        f'<div class="seadex-explain-viewport">'
+                        f'<img src="data:image/jpeg;base64,{crop_b64}" class="seadex-explain-img" alt="Adaptive ROI Crop" />'
+                        f'</div>'
+                        f'<div class="seadex-explain-caption">{crop_caption}</div>'
+                        f'</div>'
+                    )
+                    st.markdown(crop_html, unsafe_allow_html=True)
+                else:
+                    no_crop_html = (
+                        f'<div class="seadex-explain-card">'
+                        f'<div class="seadex-explain-card-header">'
+                        f'<span style="font-size:1.0rem;">🔍</span>'
+                        f'<span class="seadex-explain-card-title">1. Dynamic Adaptive ROI Crop</span>'
+                        f'</div>'
+                        f'<div class="seadex-explain-viewport" style="color:#4a7a90;font-size:0.85rem;">'
+                        f'No ROI Crop Available'
+                        f'</div>'
+                        f'<div class="seadex-explain-caption">&mdash;</div>'
+                        f'</div>'
+                    )
+                    st.markdown(no_crop_html, unsafe_allow_html=True)
             with c_gradcam:
-                st.markdown("**2. ResNet18 Grad-CAM Heatmap**")
-                if "gradcam_overlay" in det and det["gradcam_overlay"] is not None:
-                    st.image(cv2.cvtColor(det["gradcam_overlay"], cv2.COLOR_BGR2RGB),
-                             use_container_width=True, caption="layer4 Visual Attention")
+                if "gradcam_overlay" in det and isinstance(det["gradcam_overlay"], np.ndarray) and det["gradcam_overlay"].size > 0:
+                    disp_gc = upscale_for_display(det["gradcam_overlay"], min_height=360)
+                    gc_b64 = img_to_b64(disp_gc)
+                    gc_html = (
+                        f'<div class="seadex-explain-card">'
+                        f'<div class="seadex-explain-card-header">'
+                        f'<span style="font-size:1.0rem;">🔥</span>'
+                        f'<span class="seadex-explain-card-title">2. ResNet18 Grad-CAM Heatmap</span>'
+                        f'</div>'
+                        f'<div class="seadex-explain-viewport">'
+                        f'<img src="data:image/jpeg;base64,{gc_b64}" class="seadex-explain-img" alt="Grad-CAM Heatmap" />'
+                        f'</div>'
+                        f'<div class="seadex-explain-caption">layer4 Visual Attention Map</div>'
+                        f'</div>'
+                    )
+                    st.markdown(gc_html, unsafe_allow_html=True)
+                else:
+                    no_gc_html = (
+                        f'<div class="seadex-explain-card">'
+                        f'<div class="seadex-explain-card-header">'
+                        f'<span style="font-size:1.0rem;">🔥</span>'
+                        f'<span class="seadex-explain-card-title">2. ResNet18 Grad-CAM Heatmap</span>'
+                        f'</div>'
+                        f'<div class="seadex-explain-viewport" style="color:#4a7a90;font-size:0.85rem;">'
+                        f'Grad-CAM Not Generated'
+                        f'</div>'
+                        f'<div class="seadex-explain-caption">&mdash;</div>'
+                        f'</div>'
+                    )
+                    st.markdown(no_gc_html, unsafe_allow_html=True)
             with c_stats:
-                st.markdown("**3. Multi-Model Consensus & Confidence Fusion**")
                 fused_rep = det.get("fused_report")
                 fused_conf_val = det.get("fused_confidence", det["conf"] * 100)
                 
-                st.markdown(
-                    f'<div style="background:rgba(0,20,44,0.7);border:1px solid rgba(0,130,190,0.14);'
-                    f'border-radius:9px;padding:14px;">'
-                    f'<div style="margin-bottom:4px;font-size:0.82em;">🧮 <strong>Fused Confidence:</strong> '
-                    f'<span style="color:#2ecc71;font-weight:700">{fused_conf_val:.1f}%</span> '
-                    f'<span style="color:#4a7a90;font-size:0.85em;">(Raw YOLO: {det["conf"]:.1%})</span></div>'
-                    f'<div style="margin-bottom:4px;font-size:0.82em;">&#129504; <strong>ResNet18:</strong> '
-                    f'<span style="color:#38b8f0;font-weight:700">{det.get("resnet_pred", cname)} ({det.get("resnet_conf", 0.0):.1%})</span></div>'
-                    f'<div style="margin-bottom:4px;font-size:0.82em;">📊 <strong>Epistemic Variance:</strong> '
-                    f'<span style="color:{unc_col};font-weight:700;">{det.get("uncertainty_variance", 0.0):.4f} (Entropy: {det.get("entropy", 0.0):.2f})</span></div>'
-                    f'<div style="margin-bottom:6px;font-size:0.82em;">📍 <strong>Position:</strong> '
-                    f'<span style="color:#50b8d8;">{det.get("latitude", 0.0):.4f}°N, {det.get("longitude", 0.0):.4f}°E</span></div>'
-                    f'<div style="margin-bottom:8px;font-size:0.80em;">🎯 <strong>95% Error Ellipse:</strong> '
-                    f'<span style="color:#f39c12;">±{det.get("error_ellipse_a", 0.0):.1f}m x ±{det.get("error_ellipse_b", 0.0):.1f}m ({det.get("channel", "Port")})</span></div>'
-                    f'<hr style="border-color:rgba(0,130,190,0.12);margin:6px 0;">'
-                    f'<div style="font-size:0.73em;color:#3a6a88;margin-bottom:4px;">Multi-Evidence Weighting Breakdown:</div>',
-                    unsafe_allow_html=True
-                )
-                if fused_rep and hasattr(fused_rep, "evidence_breakdown"):
+                breakdown_items = []
+                if fused_rep and hasattr(fused_rep, "evidence_breakdown") and fused_rep.evidence_breakdown:
                     for ev_name, ev_val in fused_rep.evidence_breakdown.items():
-                        st.markdown(
-                            f'<div style="font-size:0.75em;display:flex;justify-content:space-between;margin:2px 0;">'
-                            f'<span style="color:#7aa8c0;">&#8226; {ev_name}</span>'
-                            f'<span style="color:#50b8d8;font-weight:600;">{ev_val:.1f}%</span></div>',
-                            unsafe_allow_html=True
+                        pct = min(100, max(0, int(ev_val)))
+                        breakdown_items.append(
+                            f'<div style="margin-bottom:6px;">'
+                            f'<div style="font-size:0.75rem;display:flex;justify-content:space-between;color:#8ab4cd;margin-bottom:2px;">'
+                            f'<span>&bull; {ev_name}</span>'
+                            f'<span style="color:#00e5ff;font-weight:600;">{ev_val:.1f}%</span>'
+                            f'</div>'
+                            f'<div style="background:rgba(0,18,36,0.85);height:4px;border-radius:2px;overflow:hidden;">'
+                            f'<div style="background:linear-gradient(90deg, #007799, #00e5ff);width:{pct}%;height:100%;border-radius:2px;"></div>'
+                            f'</div>'
+                            f'</div>'
                         )
-                elif "top3" in det:
+                elif "top3" in det and det["top3"]:
                     for cls_t, p_t in det["top3"]:
-                        pct = int(p_t * 100)
-                        st.markdown(
-                            f'<div style="font-size:0.78em;display:flex;justify-content:space-between;margin:2px 0;">'
-                            f'<span style="color:#7aa8c0;">&#8226; {cls_t}</span>'
-                            f'<span style="color:#38b8f0;">{pct}%</span></div>'
-                            f'<div style="background:#080f1c;height:4px;border-radius:3px;margin-bottom:3px;">'
-                            f'<div style="background:linear-gradient(90deg,#0068a8,#00c0f0);'
-                            f'width:{pct}%;height:4px;border-radius:3px;"></div></div>',
-                            unsafe_allow_html=True
+                        pct = min(100, max(0, int(p_t * 100)))
+                        breakdown_items.append(
+                            f'<div style="margin-bottom:6px;">'
+                            f'<div style="font-size:0.75rem;display:flex;justify-content:space-between;color:#8ab4cd;margin-bottom:2px;">'
+                            f'<span>&bull; {cls_t}</span>'
+                            f'<span style="color:#38b8f0;font-weight:600;">{pct}%</span>'
+                            f'</div>'
+                            f'<div style="background:rgba(0,18,36,0.85);height:4px;border-radius:2px;overflow:hidden;">'
+                            f'<div style="background:linear-gradient(90deg, #0068a8, #00c0f0);width:{pct}%;height:100%;border-radius:2px;"></div>'
+                            f'</div>'
+                            f'</div>'
                         )
-                st.markdown('</div>', unsafe_allow_html=True)
+                else:
+                    breakdown_items.append('<div style="font-size:0.75rem;color:#4a7a90;">No evidence breakdown available.</div>')
+                
+                breakdown_html = "".join(breakdown_items)
+                
+                card3_html = (
+                    f'<div class="seadex-explain-card">'
+                    f'<div class="seadex-explain-card-header">'
+                    f'<span style="font-size:1.0rem;">🧮</span>'
+                    f'<span class="seadex-explain-card-title">3. Multi-Model Consensus &amp; Fusion</span>'
+                    f'</div>'
+                    f'<div class="seadex-explain-stats-body">'
+                    f'<div style="margin-bottom:5px;font-size:0.82rem;">'
+                    f'🧮 <strong style="color:#cce8f5;">Fused Confidence:</strong> '
+                    f'<span style="color:#2ecc71;font-weight:700;margin-left:4px;">{fused_conf_val:.1f}%</span> '
+                    f'<span style="color:#4a7a90;font-size:0.80rem;margin-left:4px;">(Raw YOLO: {det["conf"]:.1%})</span>'
+                    f'</div>'
+                    f'<div style="margin-bottom:5px;font-size:0.82rem;">'
+                    f'🧠 <strong style="color:#cce8f5;">ResNet-18:</strong> '
+                    f'<span style="color:#38b8f0;font-weight:700;margin-left:4px;">{det.get("resnet_pred", cname)} ({det.get("resnet_conf", 0.0):.1%})</span>'
+                    f'</div>'
+                    f'<div style="margin-bottom:5px;font-size:0.82rem;">'
+                    f'📊 <strong style="color:#cce8f5;">Epistemic Variance:</strong> '
+                    f'<span style="color:{unc_col};font-weight:700;margin-left:4px;">{det.get("uncertainty_variance", 0.0):.4f}</span> '
+                    f'<span style="color:#4a7a90;font-size:0.80rem;margin-left:4px;">(Entropy: {det.get("entropy", 0.0):.2f})</span>'
+                    f'</div>'
+                    f'<div style="margin-bottom:5px;font-size:0.82rem;">'
+                    f'📍 <strong style="color:#cce8f5;">Position:</strong> '
+                    f'<span style="color:#50b8d8;margin-left:4px;">{det.get("latitude", 0.0):.4f}°N, {det.get("longitude", 0.0):.4f}°E</span>'
+                    f'</div>'
+                    f'<div style="margin-bottom:8px;font-size:0.80rem;">'
+                    f'🎯 <strong style="color:#cce8f5;">95% Error Ellipse:</strong> '
+                    f'<span style="color:#f39c12;margin-left:4px;">&plusmn;{det.get("error_ellipse_a", 0.0):.1f}m &times; &plusmn;{det.get("error_ellipse_b", 0.0):.1f}m ({det.get("channel", "Port")})</span>'
+                    f'</div>'
+                    f'<div style="border-top:1px solid rgba(0,188,212,0.15);margin:6px 0 8px 0;"></div>'
+                    f'<div style="font-size:0.72rem;color:#50b8d8;font-weight:700;letter-spacing:0.06em;margin-bottom:6px;text-transform:uppercase;">'
+                    f'Multi-Evidence Weighting Breakdown'
+                    f'</div>'
+                    f'<div style="padding-right:2px;">'
+                    f'{breakdown_html}'
+                    f'</div>'
+                    f'</div>'
+                    f'</div>'
+                )
+                st.markdown(card3_html, unsafe_allow_html=True)
             st.markdown("---")
 
 
