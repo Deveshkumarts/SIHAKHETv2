@@ -42,18 +42,32 @@ def compute_spatial_kde(
     return lat_grid, lon_grid, density_norm
 
 
+MAP_STYLE_PRESETS = {
+    "Satellite": "satellite-streets",
+    "Bathymetry": "carto-darkmatter",
+    "Grayscale": "carto-positron",
+}
+
+
 def build_gis_hotspot_figure(
     detections: List[Dict[str, any]],
     survey_track: Optional[List[Tuple[float, float]]] = None,
     center_lat: float = 13.0827,
     center_lon: float = 80.2707,
-    zoom: float = 14.5
+    zoom: float = 14.5,
+    map_style: str = "Satellite",
+    show_track: bool = True,
+    show_markers: bool = True,
+    show_heatmap: bool = True,
 ) -> go.Figure:
     """
     Creates an interactive GIS Plotly Map with:
       1. Survey track line (Towfish navigation trajectory)
       2. Debris density heatmap layer (KDE Hotspots)
       3. Detected target markers with 95% error ellipse information
+
+    map_style: one of MAP_STYLE_PRESETS keys ("Satellite" / "Bathymetry" / "Grayscale").
+    show_track / show_markers / show_heatmap: toggle individual layer visibility.
     """
     fig = go.Figure()
 
@@ -68,7 +82,8 @@ def build_gis_hotspot_figure(
             marker=dict(size=4, color="#00d4ff"),
             name="Towfish Survey Path",
             hoverinfo="text",
-            hovertext=[f"Track Point #{i+1}" for i in range(len(t_lats))]
+            hovertext=[f"Track Point #{i+1}" for i in range(len(t_lats))],
+            visible=True if show_track else "legendonly",
         ))
 
     # 2. Debris Density Heatmap (KDE)
@@ -98,7 +113,8 @@ def build_gis_hotspot_figure(
                 thickness=12,
                 x=0.98
             ),
-            name="KDE Hotspot Density"
+            name="KDE Hotspot Density",
+            visible=True if show_heatmap else "legendonly",
         ))
 
         # 3. Individual Debris Markers
@@ -137,7 +153,8 @@ def build_gis_hotspot_figure(
             textfont=dict(size=10, color="#ffffff"),
             hoverinfo="text",
             hovertext=hover_texts,
-            name="Debris Sightings"
+            name="Debris Sightings",
+            visible=True if show_markers else "legendonly",
         ))
 
         center_lat = float(np.mean(d_lats))
@@ -145,7 +162,7 @@ def build_gis_hotspot_figure(
 
     fig.update_layout(
         map=dict(
-            style="carto-darkmatter",
+            style=MAP_STYLE_PRESETS.get(map_style, "satellite-streets"),
             center=dict(lat=center_lat, lon=center_lon),
             zoom=zoom,
         ),
@@ -158,7 +175,7 @@ def build_gis_hotspot_figure(
             y=0.98,
             xanchor="left",
             x=0.02,
-            bgcolor="rgba(6, 12, 24, 0.8)",
+            bgcolor="rgba(6, 12, 24, 0.82)",
             bordercolor="#1f4260",
             borderwidth=1,
             font=dict(color="#ddd", size=10)

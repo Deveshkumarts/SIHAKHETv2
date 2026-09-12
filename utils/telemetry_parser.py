@@ -27,6 +27,7 @@ class TelemetryRecord:
     layback_m: float = 25.0                # Towfish cable layback distance behind vessel in meters
     pitch_deg: float = 0.0                 # Towfish pitch attitude angle
     roll_deg: float = 0.0                  # Towfish roll attitude angle
+    heave_m: float = 0.0                   # Towfish vertical heave displacement in meters
 
     def to_dict(self) -> Dict[str, Union[float, str]]:
         return asdict(self)

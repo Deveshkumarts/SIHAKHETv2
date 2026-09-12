@@ -34,7 +34,7 @@ sys.path.insert(0, str(ROOT_DIR))
 from utils.visualization import draw_bounding_box, get_class_color
 from utils.device_utils import get_device_info, select_device
 from utils.roi_utils import expand_and_clamp_bbox, roi_mask_to_full_image, get_adaptive_padding_ratio, validate_roi_quality
-from utils.geolocation import project_pixel_to_latlon, spatial_clustering_deduplication, GeolocationEstimate
+from utils.geolocation import project_pixel_to_latlon, spatial_clustering_deduplication, GeolocationEstimate, haversine_distance_m
 from utils.sonar_preprocess import (
     preprocess_universal_image,
     calibrate_and_preprocess_sonar,
@@ -44,14 +44,23 @@ from utils.sonar_preprocess import (
 )
 from utils.sonar_calibration import compute_snr_index, QualityMetrics
 from utils.telemetry_parser import generate_synthetic_telemetry, TelemetryValidator, TelemetryRecord
-from models.os_cfar import OSCFARDetector
+import importlib
+import models.os_cfar
+try:
+    from models.os_cfar import OSCFARDetector, SACFARDetector
+except ImportError:
+    importlib.reload(models.os_cfar)
+    from models.os_cfar import OSCFARDetector, SACFARDetector
+
+from models.clutter_segmentation import SeabedClutterSegmenter, REGIME_NAMES, ClutterSegmentationResult
+from utils.sonar_raw_ingestion import ingest_raw_sonar_file, generate_synthetic_xtf
 from models.autoencoder import SonarAnomalyDetector
 from utils.decision_gate import evaluate_decision_gate, TriageDecision, verify_acoustic_shadow
 from utils.confidence_calibration import TemperatureScaler, compute_calibration_metrics, generate_reliability_diagram
 from utils.morphological_filter import filter_detection_by_morphology, extract_morphological_features
 from utils.confidence_fusion import MultiEvidenceConfidenceFusion, FusedConfidenceReport
 from utils.postgis_db import PostGISAdapter
-from utils.gis_density import build_gis_hotspot_figure, export_detections_to_geojson, export_detections_to_csv
+from utils.gis_density import build_gis_hotspot_figure, export_detections_to_geojson, export_detections_to_csv, MAP_STYLE_PRESETS
 from utils.db_store import SurveyDatabase
 from utils.feedback_loop import ActiveLearningManager
 from resnet.classifier import ResNet18InferenceEngine, MASTER_CLASSES as RESNET_CLASSES
@@ -75,7 +84,12 @@ html, body, [class*="css"], .stApp {
     color: #e2f1f8 !important;
 }
 .stApp {
-    background: #060b13 !important;
+    background:
+        radial-gradient(ellipse 900px 560px at 88% -8%, rgba(0, 200, 220, 0.16) 0%, rgba(0, 200, 220, 0) 60%),
+        radial-gradient(ellipse 700px 500px at 8% 6%, rgba(0, 140, 200, 0.10) 0%, rgba(0, 140, 200, 0) 60%),
+        radial-gradient(ellipse 1200px 900px at 50% 115%, rgba(0, 90, 130, 0.14) 0%, rgba(0, 90, 130, 0) 65%),
+        linear-gradient(180deg, #071019 0%, #050c15 45%, #04080f 100%) !important;
+    background-attachment: fixed !important;
 }
 
 /* ── Main container max width ── */
@@ -307,12 +321,48 @@ div[data-testid="stMainBlockContainer"],
 
 /* ── Main Page Header (Operational View) ── */
 .seadex-header-wrapper {
+    position: relative;
+    overflow: hidden;
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 18px;
-    padding-bottom: 14px;
-    border-bottom: 1px solid rgba(0, 188, 212, 0.12);
+    margin: -0.5rem -1.25rem 18px -1.25rem;
+    padding: 26px 30px 22px 30px;
+    border-bottom: 1px solid rgba(0, 229, 255, 0.2);
+    background:
+        repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.05) 0px, rgba(255, 255, 255, 0.05) 2px, transparent 2px, transparent 46px),
+        radial-gradient(ellipse 640px 340px at 88% -20%, rgba(140, 230, 255, 0.32) 0%, rgba(140, 230, 255, 0) 68%),
+        radial-gradient(ellipse 520px 320px at 6% 120%, rgba(0, 150, 200, 0.28) 0%, rgba(0, 150, 200, 0) 70%),
+        linear-gradient(180deg, #0e3a54 0%, #0a2740 42%, #071726 100%);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.3);
+}
+.seadex-header-wrapper::after {
+    content: "";
+    position: absolute;
+    bottom: 14px;
+    right: 40px;
+    width: 108px;
+    height: 60px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'%3E%3Cg fill='%23ffffff' fill-opacity='0.28'%3E%3Crect x='10' y='55' width='120' height='9' rx='2'/%3E%3Cpath d='M10 55 L22 40 L118 40 L130 55 Z'/%3E%3Crect x='35' y='24' width='16' height='17'/%3E%3Crect x='58' y='30' width='13' height='11'/%3E%3Crect x='78' y='30' width='13' height='11'/%3E%3Crect x='98' y='6' width='2' height='24'/%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: contain;
+    pointer-events: none;
+    z-index: 0;
+}
+.seadex-header-wrapper::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='40' viewBox='0 0 400 40'%3E%3Cpath d='M0 20 Q 50 5 100 20 T 200 20 T 300 20 T 400 20' fill='none' stroke='%23ffffff' stroke-opacity='0.06' stroke-width='2'/%3E%3Cpath d='M0 30 Q 50 15 100 30 T 200 30 T 300 30 T 400 30' fill='none' stroke='%23ffffff' stroke-opacity='0.05' stroke-width='2'/%3E%3C/svg%3E");
+    background-repeat: repeat-x;
+    background-position: bottom;
+    background-size: 400px 40px;
+    pointer-events: none;
+    z-index: 0;
+}
+.seadex-header-wrapper > div {
+    position: relative;
+    z-index: 1;
 }
 .seadex-op-tag {
     display: inline-flex;
@@ -326,14 +376,20 @@ div[data-testid="stMainBlockContainer"],
     margin-bottom: 4px;
 }
 .seadex-page-title {
-    font-size: 1.55rem;
+    font-size: 1.85rem;
     font-weight: 800;
     color: #ffffff;
-    letter-spacing: 0.04em;
+    letter-spacing: 0.03em;
     margin: 0 0 4px 0;
 }
+.seadex-title-accent {
+    background: linear-gradient(120deg, #4dd8ec 0%, #35a9ff 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
 .seadex-page-desc {
-    font-size: 0.82rem;
+    font-size: 0.85rem;
     color: #7b9bb3;
     margin: 0;
 }
@@ -346,14 +402,31 @@ div[data-testid="stMainBlockContainer"],
 }
 
 /* ── Common Card Container ── */
-.seadex-panel {
-    background: #0a1322;
+.seadex-panel,
+.st-key-det_panel_input,
+.st-key-det_panel_sonar,
+.st-key-det_panel_telem,
+.st-key-det_panel_results {
+    background: linear-gradient(180deg, rgba(16, 30, 48, 0.62) 0%, rgba(9, 18, 31, 0.62) 100%);
     border: 1px solid rgba(0, 188, 212, 0.16);
-    border-radius: 10px;
+    border-radius: 14px;
     padding: 14px 16px;
     box-sizing: border-box;
     margin-bottom: 14px;
     height: 100%;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    backdrop-filter: blur(6px);
+}
+.st-key-det_panel_results { height: auto; }
+.st-key-det_panel_input,
+.st-key-det_panel_sonar,
+.st-key-det_panel_telem {
+    padding: 12px 12px !important;
+}
+.st-key-det_panel_telem .seadex-panel-hdr {
+    font-size: 0.76rem;
+    flex-wrap: wrap;
+    row-gap: 4px;
 }
 .seadex-panel-hdr {
     font-size: 0.84rem;
@@ -366,40 +439,66 @@ div[data-testid="stMainBlockContainer"],
     justify-content: space-between;
     align-items: center;
 }
-
-/* ── Pill Buttons for Radio Controls ── */
-div[data-testid="stHorizontalBlock"] div[role="radiogroup"],
-div[data-testid="stVerticalBlock"] div[data-testid="stHorizontalBlock"] div[role="radiogroup"] {
-    display: flex !important;
-    gap: 4px !important;
-    flex-wrap: nowrap !important;
+.seadex-step-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: rgba(0, 188, 212, 0.14);
+    border: 1px solid rgba(0, 229, 255, 0.5);
+    color: #4de3ff;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: none;
+    vertical-align: middle;
 }
 
-div[role="radiogroup"] label[data-baseweb="radio"] {
+/* ── Pill Buttons for Radio Controls (main content only — sidebar nav has its own style) ── */
+[data-testid="stMain"] [data-testid="stRadioGroup"] {
+    display: flex !important;
+    gap: 3px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+}
+
+[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"] {
     background: #09121f !important;
     border: 1px solid rgba(0, 188, 212, 0.22) !important;
     border-radius: 6px !important;
-    padding: 4px 10px !important;
+    padding: 3px 6px !important;
     margin: 0 !important;
-    font-size: 0.74rem !important;
+    font-size: 0.63rem !important;
     color: #7b9bb3 !important;
     cursor: pointer !important;
     transition: all 0.15s ease !important;
     white-space: nowrap !important;
+    flex-shrink: 0 !important;
+    width: auto !important;
+}
+[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"] p {
+    white-space: nowrap !important;
+    font-size: 0.63rem !important;
 }
 
-div[role="radiogroup"] label[data-baseweb="radio"]:hover {
+[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"]:hover {
     border-color: rgba(0, 229, 255, 0.45) !important;
     color: #c5e4f5 !important;
 }
 
-div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) {
+[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"][data-selected="true"],
+[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"]:has(input:checked) {
     background: #00bcd4 !important;
     border-color: #00e5ff !important;
     color: #060e18 !important;
     font-weight: 700 !important;
 }
-div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) p {
+[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"][data-selected="true"] p,
+[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"]:has(input:checked) p {
     color: #060e18 !important;
     font-weight: 700 !important;
 }
@@ -456,20 +555,63 @@ div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) p {
 
 /* ── Buttons & Toggles ── */
 [data-testid="stButton"] button[kind="primary"] {
-    background: linear-gradient(135deg, #008fa8 0%, #00c8d8 100%) !important;
+    background: linear-gradient(135deg, #c81e3a 0%, #e63950 100%) !important;
     border: none !important;
     border-radius: 8px !important;
     color: #ffffff !important;
     font-weight: 700 !important;
     font-size: 0.86rem !important;
     padding: 9px 18px !important;
-    box-shadow: 0 4px 14px rgba(0, 188, 212, 0.25) !important;
+    box-shadow: 0 4px 16px rgba(230, 57, 80, 0.35) !important;
     transition: all 0.2s ease !important;
 }
 [data-testid="stButton"] button[kind="primary"]:hover {
-    background: linear-gradient(135deg, #009cb8 0%, #00e5f5 100%) !important;
-    box-shadow: 0 6px 18px rgba(0, 229, 255, 0.35) !important;
+    background: linear-gradient(135deg, #d8233f 0%, #f2495e 100%) !important;
+    box-shadow: 0 6px 20px rgba(242, 73, 94, 0.45) !important;
     transform: translateY(-1px) !important;
+}
+
+/* ── Secondary / Download / Popover-trigger Buttons ── */
+[data-testid="stButton"] button[kind="secondary"],
+[data-testid="stDownloadButton"] button,
+[data-testid="stPopoverButton"] {
+    background: rgba(0, 188, 212, 0.08) !important;
+    border: 1px solid rgba(0, 188, 212, 0.35) !important;
+    border-radius: 8px !important;
+    color: #7fe3f7 !important;
+    font-weight: 600 !important;
+    font-size: 0.82rem !important;
+    padding: 9px 16px !important;
+    transition: all 0.2s ease !important;
+}
+[data-testid="stButton"] button[kind="secondary"]:hover,
+[data-testid="stDownloadButton"] button:hover,
+[data-testid="stPopoverButton"]:hover {
+    background: rgba(0, 188, 212, 0.16) !important;
+    border-color: rgba(0, 229, 255, 0.6) !important;
+    color: #d6f6ff !important;
+}
+[data-testid="stPopoverButton"] * { color: inherit !important; }
+[data-testid="stPopoverButton"][aria-expanded="true"] {
+    background: rgba(0, 229, 255, 0.18) !important;
+    border-color: rgba(0, 229, 255, 0.7) !important;
+    color: #d6f6ff !important;
+}
+[data-testid="stPopoverBody"] {
+    background: #0a1626 !important;
+    border: 1px solid rgba(0, 188, 212, 0.25) !important;
+}
+
+/* ── Modal Dialogs (e.g. Fullscreen Map) ── */
+[data-testid="stDialog"] div[role="dialog"] {
+    background: #071019 !important;
+    border: 1px solid rgba(0, 188, 212, 0.25) !important;
+}
+[data-testid="stDialog"] h1,
+[data-testid="stDialog"] p,
+[data-testid="stDialog"] span,
+[data-testid="stDialog"] label {
+    color: #e2f1f8 !important;
 }
 
 /* Toggle Switch */
@@ -946,12 +1088,14 @@ div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) p {
 
 /* ── Legacy Support for Tabs 1-7 in SEADEX Theme ── */
 .mg-card {
-    background: #0a1322 !important;
+    background: linear-gradient(180deg, rgba(16, 30, 48, 0.62) 0%, rgba(9, 18, 31, 0.62) 100%) !important;
     border: 1px solid rgba(0, 188, 212, 0.16) !important;
-    border-radius: 10px !important;
+    border-radius: 14px !important;
     padding: 14px 16px !important;
     margin-bottom: 14px !important;
     box-sizing: border-box !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.03) !important;
+    backdrop-filter: blur(6px) !important;
 }
 .mg-card-title {
     font-size: 0.94rem !important;
@@ -963,17 +1107,29 @@ div[role="radiogroup"] label[data-baseweb="radio"]:has(input:checked) p {
     color: #7b9bb3 !important;
 }
 .metric-card {
-    background: #08111d !important;
+    position: relative !important;
+    background: linear-gradient(180deg, rgba(16, 30, 48, 0.62) 0%, rgba(9, 18, 31, 0.62) 100%) !important;
     border: 1px solid rgba(0, 188, 212, 0.16) !important;
-    border-radius: 9px !important;
-    padding: 12px 10px !important;
+    border-radius: 12px !important;
+    padding: 14px 12px 12px 12px !important;
     text-align: center !important;
     margin: 4px 0 !important;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22) !important;
+}
+.metric-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 26px;
+    height: 26px;
+    border-radius: 7px;
+    font-size: 0.85rem;
+    margin-bottom: 6px;
 }
 .metric-value {
     font-size: 1.45rem !important;
     font-weight: 800 !important;
-    color: #00e676 !important;
+    color: #00e676;
 }
 .metric-label {
     font-size: 0.72rem !important;
@@ -1100,6 +1256,47 @@ _components.html("""
 })();
 </script>
 """, height=0, scrolling=False)
+
+# ─── Inline SVG Icon Set (Lucide-style line icons — no emoji) ──────────────────
+_ICON_PATHS: Dict[str, str] = {
+    "target": '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/>',
+    "activity": '<polyline points="2.5,13.5 8,13.5 10.5,7 14,19 16.5,13.5 21.5,13.5"/>',
+    "map-pin": '<path d="M19 10.5c0 5.5-7 11.5-7 11.5s-7-6-7-11.5a7 7 0 0 1 14 0Z"/><circle cx="12" cy="10.5" r="2.4"/>',
+    "globe": '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a13.5 13.5 0 0 1 0 18M12 3a13.5 13.5 0 0 0 0 18"/>',
+    "layers": '<path d="M12 2.5 2.5 8 12 13.5 21.5 8Z"/><path d="M2.5 13 12 18.5 21.5 13"/><path d="M2.5 18 12 23.5 21.5 18"/>',
+    "filter": '<path d="M3 4.5h18L14 13v6l-4 2.5v-8.4Z"/>',
+    "ruler": '<path d="m3.5 15.5 5-5 3 3 8-8 3 3-11 11Z"/><path d="m14.5 6.5 2 2M11.5 9.5l2 2M8.5 12.5l2 2"/>',
+    "maximize": '<path d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M21 16v4a1 1 0 0 1-1 1h-4M3 16v4a1 1 0 0 0 1 1h4"/>',
+    "plus": '<path d="M12 5v14M5 12h14"/>',
+    "minus": '<path d="M5 12h14"/>',
+    "locate": '<circle cx="12" cy="12" r="2.5"/><path d="M12 2v3M12 19v3M22 12h-3M5 12H2"/>',
+    "compass": '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5.2-5.2 2 2-5.2Z"/>',
+    "cloud-upload": '<path d="M7.5 18.5a4.5 4.5 0 0 1-1-8.87 5.5 5.5 0 0 1 10.7-2A4.5 4.5 0 0 1 17.5 18.5Z"/><path d="M12 12v7M9.5 14.5 12 12l2.5 2.5"/>',
+    "radio-tower": '<path d="M4.9 16.1C3 14.6 2 12.4 2 10a10 10 0 0 1 20 0c0 2.4-1 4.6-2.9 6.1M7.8 13.5A5 5 0 0 1 6 10a6 6 0 0 1 12 0 5 5 0 0 1-1.8 3.5"/><circle cx="12" cy="10" r="2"/><path d="m9 22 3-8 3 8"/>',
+    "anchor": '<circle cx="12" cy="5" r="2"/><path d="M12 7v14M5 12H2a10 10 0 0 0 20 0h-3M5 12a7 7 0 0 0 14 0"/>',
+    "download": '<path d="M12 3v13M6.5 11.5 12 17l5.5-5.5M4 20h16"/>',
+    "save": '<path d="M5 3.5h11L20 8v12.5H5Z"/><path d="M8 3.5v6h8v-6M8 21v-7h8v7"/>',
+    "map": '<path d="M9 4 3 6.5v13L9 17l6 3 6-2.5v-13L15 7Z"/><path d="M9 4v13M15 7v13"/>',
+    "alert-triangle": '<path d="M12 3.5 2 20.5h20Z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.5" r="0.6" fill="currentColor" stroke="none"/>',
+    "check-circle": '<circle cx="12" cy="12" r="9"/><path d="m7.5 12.5 3 3 6-6.5"/>',
+    "circle-dashed": '<circle cx="12" cy="12" r="9" stroke-dasharray="3.5 3.5"/>',
+    "gauge": '<path d="M4.5 18.5a9 9 0 1 1 15 0"/><path d="M12 13 15.5 8.5"/><circle cx="12" cy="13" r="1.4" fill="currentColor" stroke="none"/>',
+    "waves": '<path d="M2 8.5c1.5-1.7 3.5-1.7 5 0s3.5 1.7 5 0 3.5-1.7 5 0 3.5 1.7 5 0"/><path d="M2 15.5c1.5-1.7 3.5-1.7 5 0s3.5 1.7 5 0 3.5-1.7 5 0 3.5 1.7 5 0"/>',
+    "sliders": '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h13M21 18h-1"/><circle cx="15" cy="6" r="2"/><circle cx="7" cy="12" r="2"/><circle cx="19" cy="18" r="2"/>',
+    "clock": '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/>',
+    "cpu": '<rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/>',
+}
+
+
+def icon(name: str, size: int = 15, color: str = "currentColor", stroke_width: float = 2.0) -> str:
+    """Returns an inline Lucide-style SVG line icon (no emoji, no external assets)."""
+    body = _ICON_PATHS.get(name, _ICON_PATHS["circle-dashed"])
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 24 24" '
+        f'fill="none" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" '
+        f'stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0;">{body}</svg>'
+    )
+
 
 # ─── Model Registry ─────────────────────────────────────────────────────────
 SIH_27CLASS_WEIGHTS = (
@@ -1333,6 +1530,18 @@ def run_model_inference(
         "warnings": list(proc_snr.warnings)
     }
 
+    # ── Seabed Clutter Regime Segmentation & SA-CFAR ──
+    try:
+        sa_cfar = SACFARDetector()
+        _, sa_candidates, clutter_result = sa_cfar.detect_adaptive_targets(processed_img_bgr)
+        prep_report["clutter_result"] = clutter_result
+        prep_report["sa_candidates"] = sa_candidates
+    except Exception:
+        sa_candidates = []
+        clutter_result = None
+        prep_report["clutter_result"] = None
+        prep_report["sa_candidates"] = []
+
     selected_cfg = MODEL_REGISTRY[model_choice]
     yolo_model   = load_yolo_model(selected_cfg["weights"])
     class_filter = selected_cfg.get("class_filter")
@@ -1362,13 +1571,10 @@ def run_model_inference(
             ae_detector = SonarAnomalyDetector(device="cpu" if str(device) == "cpu" else "auto")
             ae_anomalies, _ = ae_detector.detect_anomalies(processed_img_bgr, min_anomaly_area=120, sensitivity=0.82)
             
-            cfar_detector = OSCFARDetector(scaling_factor=1.75)
-            _, cfar_candidates = cfar_detector.detect_targets(processed_img_bgr)
-            
             raw_decisions, _ = evaluate_decision_gate(
                 processed_img_bgr,
                 filtered_dets,
-                cfar_candidates,
+                sa_candidates,
                 ae_anomalies,
                 snr_db=prep_report.get("final_snr_db", 12.0),
                 yolo_conf_thresh=conf_thresh
@@ -1634,7 +1840,7 @@ with st.sidebar:
 
     def nav_icon_format(opt):
         icons = {
-            "Detection & Inspection": "⌂  Detection & Inspection",
+            "Detection & Inspection": "🎯  Detection & Inspection",
             "Explainability": "☷  Explainability",
             "Video Stream": "▶  Video Stream",
             "Model Registry": "⛃  Model Registry",
@@ -1794,7 +2000,7 @@ if active_tab == 0:
     <div class="seadex-header-wrapper">
         <div>
             <div class="seadex-op-tag">&bull; OPERATIONAL VIEW</div>
-            <h1 class="seadex-page-title">DETECTION &amp; INSPECTION</h1>
+            <h1 class="seadex-page-title">DETECTION &amp; <span class="seadex-title-accent">INSPECTION</span></h1>
             <p class="seadex-page-desc">Upload sonar imagery or select from datasets to detect and classify marine debris using our multi-modal AI pipeline.</p>
         </div>
         <div>
@@ -1807,11 +2013,13 @@ if active_tab == 0:
     col_left, col_mid, col_right = st.columns([1.05, 1.75, 0.9], gap="small")
 
     with col_left:
-        st.markdown('<div class="seadex-panel-hdr">1. INPUT &amp; DATA SELECTION</div>', unsafe_allow_html=True)
+        _panel_input = st.container(key="det_panel_input")
+        _panel_input.__enter__()
+        st.markdown('<div class="seadex-panel-hdr"><span><span class="seadex-step-badge">1</span>INPUT &amp; DATA SELECTION</span></div>', unsafe_allow_html=True)
         
         input_source = st.radio(
             "Input Mode",
-            ["Upload", "Sample Data", "Anoma Dataset"],
+            ["Upload", "Raw Sonar (.xtf)", "Sample Data", "Anoma Dataset"],
             index=0,
             horizontal=True,
             label_visibility="collapsed",
@@ -1824,6 +2032,8 @@ if active_tab == 0:
                 st.session_state.pop(k, None)
         
         uploaded_file = None
+        uploaded_raw_file = None
+        sample_xtf_choice = None
         sample_path = None
         selected_anomaly_meta = None
         sample_choice = "None (Use Upload)"
@@ -1856,6 +2066,30 @@ if active_tab == 0:
                     st.session_state["_last_uploaded_id"] = _upload_id
                     for k in ["latest_dets", "latest_raw_bgr", "latest_prep_bgr", "latest_annotated_bgr", "latest_triage", "latest_summary", "latest_latency_ms"]:
                         st.session_state.pop(k, None)
+        elif input_source == "Raw Sonar (.xtf)":
+            st.markdown("""
+            <div class="seadex-dropzone-visual">
+                <div class="seadex-drop-cloud">&#9881;&#xFE0E;</div>
+                <div class="seadex-drop-text">Upload Raw Sonar Log (.xtf / .jsf)</div>
+                <div class="seadex-drop-sub">or select pre-loaded mission below</div>
+                <div class="seadex-drop-fmts">TRITON XTF &nbsp;&nbsp; EDGETECH JSF</div>
+            </div>
+            """, unsafe_allow_html=True)
+            uploaded_raw_file = st.file_uploader(
+                "Upload raw sonar log",
+                type=["xtf", "jsf"],
+                label_visibility="collapsed",
+                key="seadex_raw_uploader"
+            )
+            sample_xtf_dir = ROOT_DIR / "samples" / "raw_xtf"
+            sample_xtf_dir.mkdir(parents=True, exist_ok=True)
+            sample_xtf_files = list(sample_xtf_dir.glob("*.xtf")) + list(sample_xtf_dir.glob("*.jsf"))
+            if not sample_xtf_files:
+                generate_synthetic_xtf(sample_xtf_dir / "survey_track_alpha.xtf")
+                sample_xtf_files = [sample_xtf_dir / "survey_track_alpha.xtf"]
+
+            raw_opts = (["Uploaded File"] if uploaded_raw_file is not None else []) + [f"Sample: {p.name}" for p in sample_xtf_files]
+            sample_xtf_choice = st.selectbox("Select Raw Sonar Mission:", raw_opts, index=0)
         elif input_source == "Sample Data":
             sample_options = [
                 "🛞 Sample: Tire",
@@ -1943,7 +2177,27 @@ if active_tab == 0:
         _upload_error = None
         _auto_notice = None
 
-        if input_source != "Upload" and sample_path and sample_path.exists():
+        inferred_telemetry = None
+
+        if input_source == "Raw Sonar (.xtf)":
+            try:
+                if uploaded_raw_file is not None and sample_xtf_choice == "Uploaded File":
+                    raw_bytes = uploaded_raw_file.read()
+                    uploaded_raw_file.seek(0)
+                    img_bgr, raw_telems, raw_meta = ingest_raw_sonar_file(raw_bytes, filename=uploaded_raw_file.name)
+                else:
+                    chosen_fname = (sample_xtf_choice or "survey_track_alpha.xtf").replace("Sample: ", "")
+                    chosen_path = ROOT_DIR / "samples" / "raw_xtf" / chosen_fname
+                    if not chosen_path.exists():
+                        generate_synthetic_xtf(chosen_path)
+                    img_bgr, raw_telems, raw_meta = ingest_raw_sonar_file(chosen_path)
+
+                if raw_telems:
+                    inferred_telemetry = raw_telems[len(raw_telems) // 2]
+                _auto_notice = f"⚓ Decoded {raw_meta.get('format', 'XTF')} binary log: {raw_meta.get('num_pings', 0)} pings, {raw_meta.get('samples_per_channel', 0)} samples/ch."
+            except Exception as _xtf_err:
+                _upload_error = f"⚠️ Could not decode raw sonar log: {_xtf_err}"
+        elif input_source != "Upload" and sample_path and sample_path.exists():
             img_bgr = cv2.imread(str(sample_path))
             if img_bgr is None:
                 _upload_error = f"⚠️ Could not read sample image at `{sample_path}`."
@@ -1998,6 +2252,7 @@ if active_tab == 0:
                     clahe_clip=clahe_clip, enable_segformer=enable_segformer,
                     enable_resnet=enable_resnet,
                     anomaly_meta=selected_anomaly_meta,
+                    telemetry=inferred_telemetry,
                 )
                 elapsed_ms = (time.perf_counter() - t0) * 1000
 
@@ -2034,15 +2289,19 @@ if active_tab == 0:
             except Exception:
                 pass
 
+    _panel_input.__exit__(None, None, None)
+
     with col_mid:
-        st.markdown('<div class="seadex-panel-hdr">2. SONAR VISUALIZATION &amp; DETECTIONS</div>', unsafe_allow_html=True)
+        _panel_sonar = st.container(key="det_panel_sonar")
+        _panel_sonar.__enter__()
+        st.markdown('<div class="seadex-panel-hdr"><span><span class="seadex-step-badge">2</span>SONAR VISUALIZATION &amp; DETECTIONS</span></div>', unsafe_allow_html=True)
         
         # View mode toolbar
-        tb_col1, tb_col2 = st.columns([0.62, 0.38])
+        tb_col1, tb_col2 = st.columns([0.6, 0.4], gap="small")
         with tb_col1:
             view_mode = st.radio(
                 "Sonar View Mode",
-                ["RAW", "ENHANCED", "DETECTION", "MASK", "HEATMAP"],
+                ["RAW", "ENHANCED", "DETECTION", "MASK", "HEATMAP", "CLUTTER"],
                 index=2,
                 horizontal=True,
                 label_visibility="collapsed",
@@ -2081,6 +2340,15 @@ if active_tab == 0:
                 first_gc = st.session_state["latest_dets"][0].get("gradcam_overlay")
                 display_img_bgr = first_gc if first_gc is not None else st.session_state.get("latest_annotated_bgr")
                 status_label = "RESNET18 GRAD-CAM"
+            elif view_mode == "CLUTTER":
+                prep_rep = st.session_state.get("latest_prep_rep", {})
+                clutter_res = prep_rep.get("clutter_result")
+                if clutter_res is not None:
+                    display_img_bgr = clutter_res.blended_view_bgr
+                    status_label = f"K-MEANS CLUTTER · {clutter_res.dominant_regime.upper()}"
+                else:
+                    display_img_bgr = st.session_state.get("latest_annotated_bgr")
+                    status_label = "CLUTTER MAP UNAVAILABLE"
             else: # DETECTION
                 display_img_bgr = st.session_state.get("latest_annotated_bgr")
                 status_label = "AI FUSED HUD"
@@ -2175,7 +2443,7 @@ if active_tab == 0:
         st.markdown(f"""
         <div class="seadex-kpi-row">
             <div class="seadex-kpi-card">
-                <div class="seadex-kpi-icon icon-cyan">&#9711;</div>
+                <div class="seadex-kpi-icon icon-cyan">{icon("check-circle", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{k_count}</div>
                     <div class="seadex-kpi-lbl">Known Debris</div>
@@ -2185,7 +2453,7 @@ if active_tab == 0:
                 </div>
             </div>
             <div class="seadex-kpi-card">
-                <div class="seadex-kpi-icon icon-coral">&#9888;</div>
+                <div class="seadex-kpi-icon icon-coral">{icon("alert-triangle", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{u_count}</div>
                     <div class="seadex-kpi-lbl">Unknown Anomalies</div>
@@ -2195,7 +2463,7 @@ if active_tab == 0:
                 </div>
             </div>
             <div class="seadex-kpi-card">
-                <div class="seadex-kpi-icon icon-cyan">&#8756;</div>
+                <div class="seadex-kpi-icon icon-cyan">{icon("filter", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{r_count}</div>
                     <div class="seadex-kpi-lbl">Clutter / Rejected</div>
@@ -2205,7 +2473,7 @@ if active_tab == 0:
                 </div>
             </div>
             <div class="seadex-kpi-card">
-                <div class="seadex-kpi-icon icon-green">&#9201;</div>
+                <div class="seadex-kpi-icon icon-green">{icon("clock", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{latency_str}</div>
                     <div class="seadex-kpi-lbl">Pipeline Latency</div>
@@ -2217,7 +2485,30 @@ if active_tab == 0:
         </div>
         """, unsafe_allow_html=True)
 
+        # Seabed Clutter Segmentation & SA-CFAR Breakdown
+        if has_results:
+            prep_rep = st.session_state.get("latest_prep_rep", {})
+            clutter_res = prep_rep.get("clutter_result")
+            if clutter_res is not None:
+                with st.expander("🌊 Seabed Clutter Segmentation & SA-CFAR Regimes", expanded=(view_mode == "CLUTTER")):
+                    cc1, cc2, cc3, cc4 = st.columns(4)
+                    reg_pcts = clutter_res.regime_percentages
+                    with cc1:
+                        st.markdown(f"<div style='font-size:0.75rem;color:#7b9bb3;'>Nadir Column</div><div style='color:#4a90e2;font-weight:700;font-size:1.0rem;'>{reg_pcts.get('Nadir Water Column', 0.0)}%</div>", unsafe_allow_html=True)
+                    with cc2:
+                        st.markdown(f"<div style='font-size:0.75rem;color:#7b9bb3;'>Smooth Sand</div><div style='color:#d4a373;font-weight:700;font-size:1.0rem;'>{reg_pcts.get('Smooth Sand / Silt', 0.0)}%</div>", unsafe_allow_html=True)
+                    with cc3:
+                        st.markdown(f"<div style='font-size:0.75rem;color:#7b9bb3;'>Rippled Seabed</div><div style='color:#00e5ff;font-weight:700;font-size:1.0rem;'>{reg_pcts.get('Rippled Seabed', 0.0)}%</div>", unsafe_allow_html=True)
+                    with cc4:
+                        st.markdown(f"<div style='font-size:0.75rem;color:#7b9bb3;'>Rocky Clutter</div><div style='color:#ff6b6b;font-weight:700;font-size:1.0rem;'>{reg_pcts.get('Rocky / High Clutter', 0.0)}%</div>", unsafe_allow_html=True)
+                    sa_cnt = len(prep_rep.get("sa_candidates", []))
+                    st.markdown(f"<div style='font-size:0.72rem;color:#90e0ef;margin-top:6px;border-top:1px solid rgba(0,188,212,0.12);padding-top:4px;'>Dominant: <strong>{clutter_res.dominant_regime}</strong> &nbsp;|&nbsp; SA-CFAR Adaptive Candidate ROIs: <strong>{sa_cnt}</strong> (Adaptive clutter thresholding active)</div>", unsafe_allow_html=True)
+
+    _panel_sonar.__exit__(None, None, None)
+
     with col_right:
+        _panel_telem = st.container(key="det_panel_telem")
+        _panel_telem.__enter__()
         if has_results:
             prep_rep = st.session_state.get("latest_prep_rep", {})
             telem = prep_rep.get("telemetry")
@@ -2251,7 +2542,7 @@ if active_tab == 0:
 
         st.markdown(f"""
         <div class="seadex-panel-hdr">
-            <span>3. ACOUSTIC TELEMETRY</span>
+            <span><span class="seadex-step-badge">3</span>ACOUSTIC TELEMETRY</span>
             {live_tag}
         </div>
         """, unsafe_allow_html=True)
@@ -2259,31 +2550,31 @@ if active_tab == 0:
         st.markdown(f"""
         <div style="background:rgba(10,20,36,0.6);border:1px solid rgba(0,188,212,0.12);border-radius:8px;padding:8px 12px;margin-bottom:10px;">
             <div class="seadex-telem-item">
-                <span class="seadex-telem-lbl">🌐 Latitude</span>
+                <span class="seadex-telem-lbl">{icon("map-pin", size=13)} Latitude</span>
                 <span class="seadex-telem-val">{telem_lat}</span>
             </div>
             <div class="seadex-telem-item">
-                <span class="seadex-telem-lbl">🌐 Longitude</span>
+                <span class="seadex-telem-lbl">{icon("map-pin", size=13)} Longitude</span>
                 <span class="seadex-telem-val">{telem_lon}</span>
             </div>
             <div class="seadex-telem-item">
-                <span class="seadex-telem-lbl">🧭 Towfish Heading</span>
+                <span class="seadex-telem-lbl">{icon("compass", size=13)} Towfish Heading</span>
                 <span class="seadex-telem-val">{telem_heading}</span>
             </div>
             <div class="seadex-telem-item">
-                <span class="seadex-telem-lbl">⚓ Altitude</span>
+                <span class="seadex-telem-lbl">{icon("anchor", size=13)} Altitude</span>
                 <span class="seadex-telem-val">{telem_alt}</span>
             </div>
             <div class="seadex-telem-item">
-                <span class="seadex-telem-lbl">📏 Slant Range</span>
+                <span class="seadex-telem-lbl">{icon("ruler", size=13)} Slant Range</span>
                 <span class="seadex-telem-val">{telem_slant}</span>
             </div>
             <div class="seadex-telem-item">
-                <span class="seadex-telem-lbl">📶 SNR</span>
+                <span class="seadex-telem-lbl">{icon("radio-tower", size=13)} SNR</span>
                 <span class="seadex-telem-val">{telem_snr}</span>
             </div>
             <div class="seadex-telem-item">
-                <span class="seadex-telem-lbl">🎚 Gain</span>
+                <span class="seadex-telem-lbl">{icon("sliders", size=13)} Gain</span>
                 <span class="seadex-telem-val">{telem_gain}</span>
             </div>
             <div class="seadex-signal-hdr">
@@ -2327,10 +2618,14 @@ if active_tab == 0:
         )
         st.plotly_chart(fig_sig, use_container_width=True, config={'displayModeBar': False})
 
+    _panel_telem.__exit__(None, None, None)
+
     # ── Section 4: Detection Results & Triage ──
+    _panel_results = st.container(key="det_panel_results")
+    _panel_results.__enter__()
     st.markdown("""
     <div class="seadex-triage-header-row">
-        <div class="seadex-triage-title">4. DETECTION RESULTS &amp; TRIAGE</div>
+        <div class="seadex-triage-title"><span class="seadex-step-badge">4</span>DETECTION RESULTS &amp; TRIAGE</div>
         <div class="seadex-triage-link">View All Detections &rarr;</div>
     </div>
     """, unsafe_allow_html=True)
@@ -2415,6 +2710,8 @@ if active_tab == 0:
             <div style="color:#6d96b3;font-size:0.75rem;">Awaiting image input. Upload or select a sonar image and run the pipeline to view classified debris, multi-evidence fusion scores, and shadow validation.</div>
         </div>
         """, unsafe_allow_html=True)
+
+    _panel_results.__exit__(None, None, None)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -3225,12 +3522,14 @@ elif active_tab == 5:
 # ═══════════════════════════════════════════════════════════════════════════
 elif active_tab == 6:
     st.markdown("""
-    <div class="mg-card" style="margin-bottom:16px;">
-        <div class="mg-card-title">&#127757; Acoustic Sonar GIS Mapping, Towfish Trajectory &amp; KDE Debris Hotspots</div>
-        <div class="mg-card-sub" style="margin-top:5px;line-height:1.5;">
-            Georeferenced acoustic seabed survey with <strong style="color:#50b8d8;">WGS-84 Ray Tracing</strong>,
-            <strong style="color:#f39c12;">2D Gaussian Kernel Density Estimation (KDE)</strong> hotspot contours,
-            and <strong style="color:#2ecc71;">95% Covariance Position Error Ellipses</strong>.
+    <div class="seadex-header-wrapper">
+        <div>
+            <div class="seadex-op-tag">&bull; OPERATIONAL VIEW</div>
+            <h1 class="seadex-page-title">GIS <span class="seadex-title-accent">HOTSPOTS</span></h1>
+            <p class="seadex-page-desc">Georeferenced acoustic seabed survey with AI-driven hotspot detection, KDE density estimation and towfish trajectory mapping.</p>
+        </div>
+        <div>
+            <div class="seadex-quote">&ldquo;From ocean data<br>to a cleaner tomorrow.&rdquo;</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -3256,40 +3555,132 @@ elif active_tab == 6:
 
     m_col1, m_col2, m_col3, m_col4 = st.columns(4)
     avg_err = float(np.mean([d.get("error_ellipse_a", 5.5) for d in all_dets])) if all_dets else 5.0
-    for col, val, lbl, color in [
-        (m_col1, len(all_dets),             "Mapped Debris Sightings", "#2ecc71"),
-        (m_col2, f"±{avg_err:.1f}m",        "Avg 95% Position Err",    "#f39c12"),
-        (m_col3, "6 Pings / 1.2km",         "Towfish Survey Track",    "#38b8f0"),
-        (m_col4, "WGS-84 / EPSG:4326",      "Geodetic Coordinate Ref", "#a370f7"),
+    for col, ic_name, val, lbl, color in [
+        (m_col1, "target",  len(all_dets),             "Mapped Debris Sightings", "#e6394f"),
+        (m_col2, "activity", f"&plusmn;{avg_err:.1f}m", "Avg 95% Position Err",    "#38b8f0"),
+        (m_col3, "map-pin", "6 Pings / 1.2km",         "Towfish Survey Track",    "#2ecc71"),
+        (m_col4, "globe",   "WGS-84 / EPSG:4326",      "Geodetic Coordinate Ref", "#38b8f0"),
     ]:
         with col:
             st.markdown(
                 f'<div class="metric-card">'
-                f'<div class="metric-value" style="color:{color};">{val}</div>'
+                f'<div class="metric-icon" style="background:rgba(255,255,255,0.06);color:{color};">{icon(ic_name, color=color)}</div>'
+                f'<div class="metric-value" style="color:{color};font-size:1.15rem;">{val}</div>'
                 f'<div class="metric-label">{lbl}</div></div>',
                 unsafe_allow_html=True
             )
 
-    st.markdown("#### 🗺️ Interactive Seabed Hotspot Map (Satellite / Bathymetry Layer)")
-    gis_fig = build_gis_hotspot_figure(all_dets, survey_track=track_coords)
-    st.plotly_chart(gis_fig, use_container_width=True)
+    # ── Map Panel Header + Live Toolbar (Layers / Filters / Measure / Fullscreen) ──
+    hdr_l, hdr_b1, hdr_b2, hdr_b3, hdr_b4 = st.columns([3.2, 0.85, 0.85, 0.85, 0.85])
+    with hdr_l:
+        st.markdown(
+            f'<div class="seadex-panel-hdr" style="margin-bottom:2px;"><span>{icon("map")} Interactive Seabed Hotspot Map</span></div>'
+            f'<div class="seadex-page-desc" style="margin-bottom:0;">Satellite / Bathymetry layer with debris density heatmap, survey track and detections.</div>',
+            unsafe_allow_html=True
+        )
+    with hdr_b1:
+        with st.popover("Layers", icon=":material/layers:", use_container_width=True):
+            st.markdown("**Basemap**")
+            map_style = st.radio("Basemap", list(MAP_STYLE_PRESETS.keys()), key="gis_map_style", label_visibility="collapsed")
+            st.markdown("**Overlays**")
+            show_track = st.checkbox("Towfish Survey Path", value=True, key="gis_show_track")
+            show_markers = st.checkbox("Debris Sightings", value=True, key="gis_show_markers")
+            show_heatmap = st.checkbox("KDE Heatmap", value=True, key="gis_show_heatmap")
+            st.checkbox("Bathymetry Contours", value=False, disabled=True, key="gis_show_contours",
+                        help="No bathymetry raster has been loaded for this survey yet.")
+    with hdr_b2:
+        with st.popover("Filters", icon=":material/tune:", use_container_width=True):
+            st.markdown("**Detection Filters**")
+            conf_min_pct = st.slider("Min. confidence", 0, 100, 0, key="gis_conf_min_pct")
+            classes_avail = sorted({d.get("class_name", "Target") for d in all_dets})
+            sel_classes = st.multiselect("Classes", classes_avail, default=classes_avail, key="gis_class_sel")
+    with hdr_b3:
+        with st.popover("Measure", icon=":material/straighten:", use_container_width=True):
+            st.markdown("**Distance Between Two Points**")
+            measure_pts = {"Survey Start": track_coords[0], "Survey End": track_coords[-1]}
+            for i, d in enumerate(all_dets):
+                if "latitude" in d and "longitude" in d:
+                    measure_pts[f'{d.get("class_name", "Target")} #{i+1}'] = (d["latitude"], d["longitude"])
+            pt_keys = list(measure_pts.keys())
+            pt_a = st.selectbox("Point A", pt_keys, index=0, key="gis_measure_a")
+            pt_b = st.selectbox("Point B", pt_keys, index=min(1, len(pt_keys) - 1), key="gis_measure_b")
+            la, loa = measure_pts[pt_a]
+            lb, lob = measure_pts[pt_b]
+            dist_m = haversine_distance_m(la, loa, lb, lob)
+            dist_str = f"{dist_m:.1f} m" if dist_m < 1000 else f"{dist_m / 1000:.2f} km"
+            st.metric("Great-circle Distance", dist_str)
+    with hdr_b4:
+        fullscreen_clicked = st.button("Fullscreen", icon=":material/fullscreen:", use_container_width=True, key="gis_fullscreen_btn")
+
+    # ── Apply Filters ──
+    conf_min_pct = st.session_state.get("gis_conf_min_pct", 0)
+    sel_classes = st.session_state.get("gis_class_sel", None)
+    filtered_dets = [
+        d for d in all_dets
+        if d.get("conf", 0.0) * 100.0 >= conf_min_pct
+        and (sel_classes is None or d.get("class_name", "Target") in sel_classes)
+    ]
+
+    map_kwargs = dict(
+        survey_track=track_coords,
+        map_style=st.session_state.get("gis_map_style", "Satellite"),
+        show_track=st.session_state.get("gis_show_track", True),
+        show_markers=st.session_state.get("gis_show_markers", True),
+        show_heatmap=st.session_state.get("gis_show_heatmap", True),
+        zoom=st.session_state.get("gis_zoom", 14.5),
+    )
+    gis_fig = build_gis_hotspot_figure(filtered_dets, **map_kwargs)
+    gis_fig.update_layout(uirevision=f"z{st.session_state.get('gis_zoom', 14.5)}")
+
+    map_col, ctrl_col = st.columns([9, 0.55], gap="small")
+    with map_col:
+        st.plotly_chart(gis_fig, use_container_width=True, config={"displayModeBar": False}, key="gis_plotly_chart")
+        if not filtered_dets and all_dets:
+            st.caption("No detections match the current filters — adjust confidence / class filters above.")
+    with ctrl_col:
+        st.markdown(f'<div style="text-align:center;color:#4de3ff;margin-bottom:6px;">{icon("compass", size=18)}</div>', unsafe_allow_html=True)
+        if st.button("", icon=":material/add:", key="gis_zoom_in", help="Zoom in", use_container_width=True):
+            st.session_state["gis_zoom"] = min(19.0, st.session_state.get("gis_zoom", 14.5) + 1.0)
+            st.rerun()
+        if st.button("", icon=":material/remove:", key="gis_zoom_out", help="Zoom out", use_container_width=True):
+            st.session_state["gis_zoom"] = max(3.0, st.session_state.get("gis_zoom", 14.5) - 1.0)
+            st.rerun()
+        if st.button("", icon=":material/my_location:", key="gis_recenter", help="Reset view", use_container_width=True):
+            st.session_state["gis_zoom"] = 14.5
+            st.rerun()
+
+    if fullscreen_clicked:
+        st.session_state["_gis_show_fullscreen"] = True
+
+    if st.session_state.get("_gis_show_fullscreen"):
+        @st.dialog("Interactive Seabed Hotspot Map", width="large")
+        def _gis_fullscreen_dialog():
+            big_fig = build_gis_hotspot_figure(filtered_dets, **map_kwargs)
+            big_fig.update_layout(height=680, uirevision="fullscreen")
+            st.plotly_chart(big_fig, use_container_width=True, config={"displayModeBar": True}, key="gis_plotly_chart_fullscreen")
+            if st.button("Close", key="gis_fullscreen_close"):
+                st.session_state["_gis_show_fullscreen"] = False
+                st.rerun()
+        _gis_fullscreen_dialog()
 
     # Export Bar
-    st.markdown("#### 💾 Maritime GIS Export")
+    st.markdown(f'<div class="seadex-panel-hdr" style="margin-top:14px;">{icon("save")} Maritime GIS Export</div>', unsafe_allow_html=True)
     c_geo, c_csv = st.columns(2)
     with c_geo:
-        geojson_data = export_detections_to_geojson(all_dets)
+        geojson_data = export_detections_to_geojson(filtered_dets)
         st.download_button(
-            label="📥 Export to GeoJSON (QGIS / ArcGIS)",
+            label="Export to GeoJSON (QGIS / ArcGIS)",
+            icon=":material/download:",
             data=geojson_data,
             file_name="akhet_sonar_detections.geojson",
             mime="application/geo+json",
             use_container_width=True
         )
     with c_csv:
-        csv_data = export_detections_to_csv(all_dets)
+        csv_data = export_detections_to_csv(filtered_dets)
         st.download_button(
-            label="📥 Export Survey CSV Report",
+            label="Export Survey CSV Report",
+            icon=":material/download:",
             data=csv_data,
             file_name="akhet_survey_report.csv",
             mime="text/csv",
