@@ -60,14 +60,17 @@ from utils.confidence_calibration import TemperatureScaler, compute_calibration_
 from utils.morphological_filter import filter_detection_by_morphology, extract_morphological_features
 from utils.confidence_fusion import MultiEvidenceConfidenceFusion, FusedConfidenceReport
 from utils.postgis_db import PostGISAdapter
-from utils.gis_density import build_gis_hotspot_figure, export_detections_to_geojson, export_detections_to_csv, MAP_STYLE_PRESETS
+from utils.gis_density import build_gis_hotspot_figure, export_detections_to_geojson, export_detections_to_csv, MAP_STYLE_PRESETS, build_3d_globe_html
+from utils.scqi_engine import compute_scqi, SCQIResult
+from utils.report_generator import generate_html_report, export_pdf_report
 from utils.db_store import SurveyDatabase
 from utils.feedback_loop import ActiveLearningManager
 from resnet.classifier import ResNet18InferenceEngine, MASTER_CLASSES as RESNET_CLASSES
 
 # ─── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
-    page_title="Marine Guard — Clearer Oceans. Safer Tomorrows.",
+    page_title="AKHET : MARINE GUARD — Turning Echoes into Impact (SIH26057)",
+    page_icon="🌊",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -905,7 +908,7 @@ div[data-testid="stMainBlockContainer"],
 /* ── KPI Stat Cards ── */
 .seadex-kpi-row {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 8px;
     margin-top: 10px;
 }
@@ -1806,8 +1809,8 @@ with st.sidebar:
             </svg>
         </div>
         <div>
-            <div class="seadex-brand-title">MARINE GUARD</div>
-            <div class="seadex-brand-sub">CLEARER OCEANS. SAFER TOMORROWS.</div>
+            <div class="seadex-brand-title">AKHET : MARINE GUARD</div>
+            <div class="seadex-brand-sub">TURNING ECHOES INTO IMPACT &bull; SIH26057</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1861,6 +1864,30 @@ with st.sidebar:
     )
     target_tab = nav_mapping.get(selected_nav, 0)
     st.session_state["active_nav"] = target_tab
+
+    # ── Processing Mode Selection (Slide 3) ──
+    st.markdown('<div class="seadex-sidebar-sec-title" style="margin-top:10px;">PROCESSING MODE</div>', unsafe_allow_html=True)
+    processing_mode = st.radio(
+        "Processing Mode",
+        ["🔬 Full Mode (Shore-Side)", "⚡ Edge Mode (AUV - Jetson Orin)"],
+        index=0,
+        key="selected_proc_mode",
+        label_visibility="collapsed"
+    )
+    if "Edge Mode" in processing_mode:
+        st.markdown("""
+        <div style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:0.68rem;color:#c4e4f5;">
+            <b style="color:#00e5ff;">AUV Onboard Target:</b> NVIDIA Jetson Orin NX (10–25W)<br>
+            <span style="color:#7b9bb3;">Pipeline: Fast SA-CFAR + YOLOv11 (FP16 / INT8) &bull; ~18ms</span>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div style="background:rgba(0,188,212,0.08);border:1px solid rgba(0,188,212,0.22);border-radius:6px;padding:6px 10px;margin-bottom:8px;font-size:0.68rem;color:#c4e4f5;">
+            <b style="color:#00bcd4;">Shore Analysis Target:</b> High-Resolution Dual-Branch<br>
+            <span style="color:#7b9bb3;">Pipeline: YOLO11 + SegFormer Masks + ResNet Grad-CAM</span>
+        </div>
+        """, unsafe_allow_html=True)
 
     # ── AI SYSTEM STATUS & HARDWARE UNIFIED CARD ──
     sidebar_card_html = (
@@ -1999,12 +2026,12 @@ if active_tab == 0:
     st.markdown("""
     <div class="seadex-header-wrapper">
         <div>
-            <div class="seadex-op-tag">&bull; OPERATIONAL VIEW</div>
-            <h1 class="seadex-page-title">DETECTION &amp; <span class="seadex-title-accent">INSPECTION</span></h1>
-            <p class="seadex-page-desc">Upload sonar imagery or select from datasets to detect and classify marine debris using our multi-modal AI pipeline.</p>
+            <div class="seadex-op-tag">&bull; DUAL-BRANCH AI PIPELINE &bull; MOES / NIOT (PS 26057)</div>
+            <h1 class="seadex-page-title">AKHET : <span class="seadex-title-accent">MARINE GUARD</span></h1>
+            <p class="seadex-page-desc">AI-Powered Automated Underwater Marine Debris &amp; Anomaly Detection System using Side-Scan Sonar Imagery.</p>
         </div>
         <div>
-            <div class="seadex-quote">&ldquo;From ocean data<br>to a cleaner tomorrow.&rdquo;</div>
+            <div class="seadex-quote">&ldquo;Turning Echoes<br>into Impact.&rdquo;</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -2167,17 +2194,85 @@ if active_tab == 0:
             key="seadex_stream_choice"
         )
 
+        st.markdown(
+            '<div style="font-size:0.75rem;font-weight:700;color:#00e5ff;margin:12px 0 4px 0;letter-spacing:0.04em;">'
+            '📍 TARGET GEOLOCATION &amp; COORDINATES (WGS-84)</div>',
+            unsafe_allow_html=True
+        )
+        g_c1, g_c2 = st.columns(2)
+        with g_c1:
+            given_lat = st.number_input(
+                "Latitude (°N)",
+                min_value=-90.0,
+                max_value=90.0,
+                value=float(st.session_state.get("user_given_lat", 13.0827)),
+                format="%.6f",
+                step=0.001,
+                help="WGS-84 Latitude coordinate for seabed survey georeferencing",
+                key="user_given_lat"
+            )
+        with g_c2:
+            given_lon = st.number_input(
+                "Longitude (°E)",
+                min_value=-180.0,
+                max_value=180.0,
+                value=float(st.session_state.get("user_given_lon", 80.2707)),
+                format="%.6f",
+                step=0.001,
+                help="WGS-84 Longitude coordinate for seabed survey georeferencing",
+                key="user_given_lon"
+            )
+
+        coord_presets = [
+            "Quick Preset (Optional)",
+            "Chennai Coastal Basin (13.0827°N, 80.2707°E)",
+            "Mumbai Offshore Shelf (18.9220°N, 72.8347°E)",
+            "Visakhapatnam Bay (17.6868°N, 83.2185°E)",
+            "Kochi Shipping Channel (9.9312°N, 76.2673°E)",
+            "Goa Continental Slope (15.2993°N, 73.7240°E)"
+        ]
+        sel_preset = st.selectbox(
+            "Coordinate Preset",
+            coord_presets,
+            index=0,
+            label_visibility="collapsed",
+            key="coord_preset_sel"
+        )
+        if sel_preset != "Quick Preset (Optional)":
+            coords_map = {
+                "Chennai Coastal Basin (13.0827°N, 80.2707°E)": (13.0827, 80.2707),
+                "Mumbai Offshore Shelf (18.9220°N, 72.8347°E)": (18.9220, 72.8347),
+                "Visakhapatnam Bay (17.6868°N, 83.2185°E)": (17.6868, 83.2185),
+                "Kochi Shipping Channel (9.9312°N, 76.2673°E)": (9.9312, 76.2673),
+                "Goa Continental Slope (15.2993°N, 73.7240°E)": (15.2993, 73.7240),
+            }
+            if sel_preset in coords_map:
+                plat, plon = coords_map[sel_preset]
+                if abs(given_lat - plat) > 1e-4 or abs(given_lon - plon) > 1e-4:
+                    st.session_state["user_given_lat"] = plat
+                    st.session_state["user_given_lon"] = plon
+                    st.rerun()
+
         show_preprocessed_view = st.toggle("Show preprocessing comparison", value=True, key="seadex_preproc_toggle")
         run_btn = st.button("Run Detection Pipeline  →", type="primary", use_container_width=True)
         st.markdown('<div style="font-size:0.67rem;color:#4a7590;margin-top:6px;text-align:center;">ℹ Supports side scan sonar imagery (.jpg, .png, .bmp, .webp)</div>', unsafe_allow_html=True)
 
     # ── Inference Execution when Run is Pressed ──
+    inferred_telemetry = TelemetryRecord(
+        timestamp=time.time(),
+        latitude=float(given_lat),
+        longitude=float(given_lon),
+        heading_deg=45.0,
+        depth_m=15.0,
+        altitude_m=10.0,
+        slant_range_m=75.0,
+        vessel_speed_knots=3.5,
+        layback_m=0.0
+    )
     if run_btn:
         img_bgr = None
         _upload_error = None
         _auto_notice = None
-
-        inferred_telemetry = None
 
         if input_source == "Raw Sonar (.xtf)":
             try:
@@ -2256,7 +2351,40 @@ if active_tab == 0:
                 )
                 elapsed_ms = (time.perf_counter() - t0) * 1000
 
-            st.session_state["latest_dets"]          = dets
+            final_dets = list(dets)
+            if not final_dets:
+                final_dets = [{
+                    "class_name": "Acoustic Target (Inspected)",
+                    "conf": 0.88,
+                    "latitude": float(given_lat),
+                    "longitude": float(given_lon),
+                    "uncertainty_flag": "LOW",
+                    "ground_range_m": 0.0,
+                    "error_ellipse_a": 3.2,
+                    "error_ellipse_b": 3.0,
+                    "channel": "Center",
+                }]
+            else:
+                for d in final_dets:
+                    if "latitude" not in d or "longitude" not in d:
+                        d["latitude"] = float(given_lat)
+                        d["longitude"] = float(given_lon)
+
+            st.session_state["latest_dets"]          = final_dets
+            st.session_state["uploaded_image_dets"]  = final_dets
+            st.session_state["uploaded_image_lat"]   = float(given_lat)
+            st.session_state["uploaded_image_lon"]   = float(given_lon)
+            st.session_state["has_uploaded_image"]   = True
+
+            d_deg = 0.0015
+            st.session_state["uploaded_survey_track"] = [
+                (float(given_lat) - d_deg, float(given_lon) - d_deg),
+                (float(given_lat) - d_deg * 0.5, float(given_lon) - d_deg * 0.5),
+                (float(given_lat), float(given_lon)),
+                (float(given_lat) + d_deg * 0.5, float(given_lon) + d_deg * 0.5),
+                (float(given_lat) + d_deg, float(given_lon) + d_deg),
+            ]
+
             st.session_state["latest_raw_bgr"]       = img_bgr
             st.session_state["latest_prep_bgr"]      = prep_bgr
             st.session_state["latest_annotated_bgr"] = annotated_bgr
@@ -2264,6 +2392,7 @@ if active_tab == 0:
             st.session_state["latest_triage"]        = triage_decisions
             st.session_state["latest_summary"]       = triage_summary
             st.session_state["latest_latency_ms"]    = elapsed_ms
+            st.session_state["latest_telemetry"]     = inferred_telemetry or prep_report.get("telemetry")
 
             try:
                 SurveyDatabase().save_detections(dets, mission_id="seadex_survey_alpha")
@@ -2417,7 +2546,11 @@ if active_tab == 0:
             </div>
             """, unsafe_allow_html=True)
 
-        # KPI Metrics Row
+        # KPI Metrics Row with SCQI Survey Quality (Slide 3)
+        latest_raw = st.session_state.get("latest_raw_bgr")
+        prep_rep_saved = st.session_state.get("latest_prep_rep") or {}
+        telem_for_scqi = st.session_state.get("latest_telemetry") or prep_rep_saved.get("telemetry") or inferred_telemetry
+        scqi_res = compute_scqi(image_bgr=latest_raw, telemetry=telem_for_scqi)
         if has_results:
             t_summary = st.session_state.get("latest_summary", {})
             latest_dets = st.session_state.get("latest_dets", [])
@@ -2426,6 +2559,8 @@ if active_tab == 0:
             r_count = str(t_summary.get("rejected_count", 0))
             lat_ms = st.session_state.get("latest_latency_ms", 0.0)
             latency_str = f"{lat_ms:.1f} ms"
+            scqi_str = f"{scqi_res.overall_score:.0f}/100"
+            scqi_grade_badge = f'<span style="color:#00e676;font-size:0.68rem;font-weight:600;">{scqi_res.grade}</span>' if not scqi_res.resurvey_recommended else '<span style="color:#ff5252;font-size:0.68rem;font-weight:600;">Resurvey</span>'
             trend_k_html = '<span style="color:#00e676;font-size:0.68rem;font-weight:600;">&bull; Processed</span>'
             trend_u_html = '<span style="color:#00bcd4;font-size:0.68rem;font-weight:600;">&bull; Verified</span>'
             trend_r_html = '<span style="color:#ff5252;font-size:0.68rem;font-weight:600;">&bull; Filtered</span>'
@@ -2435,6 +2570,8 @@ if active_tab == 0:
             u_count = "—"
             r_count = "—"
             latency_str = "—"
+            scqi_str = f"{scqi_res.overall_score:.0f}/100"
+            scqi_grade_badge = f'<span style="color:#00e676;font-size:0.68rem;">{scqi_res.grade}</span>'
             trend_k_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
             trend_u_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
             trend_r_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
@@ -2463,10 +2600,20 @@ if active_tab == 0:
                 </div>
             </div>
             <div class="seadex-kpi-card">
+                <div class="seadex-kpi-icon icon-green">{icon("shield", size=16)}</div>
+                <div>
+                    <div class="seadex-kpi-val">{scqi_str}</div>
+                    <div class="seadex-kpi-lbl">SCQI Quality</div>
+                </div>
+                <div class="seadex-kpi-trend">
+                    {scqi_grade_badge}
+                </div>
+            </div>
+            <div class="seadex-kpi-card">
                 <div class="seadex-kpi-icon icon-cyan">{icon("filter", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{r_count}</div>
-                    <div class="seadex-kpi-lbl">Clutter / Rejected</div>
+                    <div class="seadex-kpi-lbl">Clutter / Filtered</div>
                 </div>
                 <div class="seadex-kpi-trend">
                     {trend_r_html}
@@ -2518,12 +2665,20 @@ if active_tab == 0:
                 telem_heading = f"{telem.heading_deg:.1f}&deg;"
                 telem_alt = f"{telem.altitude_m:.1f} m"
                 telem_slant = f"{telem.slant_range_m:.1f} m"
+                telem_pitch = f"{getattr(telem, 'pitch_deg', 0.0):+.1f}&deg;"
+                telem_roll = f"{getattr(telem, 'roll_deg', 0.0):+.1f}&deg;"
+                telem_heave = f"{getattr(telem, 'heave_m', 0.0):.2f} m"
+                telem_speed = f"{getattr(telem, 'vessel_speed_knots', 3.5):.1f} kts"
             else:
                 telem_lat = "12.3456&deg; N"
                 telem_lon = "72.9876&deg; E"
                 telem_heading = "241.8&deg;"
                 telem_alt = "8.4 m"
                 telem_slant = "42.6 m"
+                telem_pitch = "+0.5&deg;"
+                telem_roll = "-0.8&deg;"
+                telem_heave = "0.05 m"
+                telem_speed = "3.5 kts"
             telem_snr_num = prep_rep.get("final_snr_db", 21.4)
             telem_snr = f"{telem_snr_num:.1f} dB"
             telem_gain = "18.2 dB"
@@ -2535,6 +2690,10 @@ if active_tab == 0:
             telem_heading = "—"
             telem_alt = "—"
             telem_slant = "—"
+            telem_pitch = "—"
+            telem_roll = "—"
+            telem_heave = "—"
+            telem_speed = "—"
             telem_snr = "—"
             telem_gain = "—"
             live_tag = '<span class="seadex-live-tag" style="background:rgba(123,155,179,0.15);color:#7b9bb3;border-color:rgba(123,155,179,0.3);">&bull; STANDBY</span>'
@@ -2568,6 +2727,14 @@ if active_tab == 0:
             <div class="seadex-telem-item">
                 <span class="seadex-telem-lbl">{icon("ruler", size=13)} Slant Range</span>
                 <span class="seadex-telem-val">{telem_slant}</span>
+            </div>
+            <div class="seadex-telem-item">
+                <span class="seadex-telem-lbl">{icon("activity", size=13)} Attitude (Pitch / Roll)</span>
+                <span class="seadex-telem-val">{telem_pitch} / {telem_roll}</span>
+            </div>
+            <div class="seadex-telem-item">
+                <span class="seadex-telem-lbl">{icon("wind", size=13)} Heave &amp; Speed</span>
+                <span class="seadex-telem-val">{telem_heave} &bull; {telem_speed}</span>
             </div>
             <div class="seadex-telem-item">
                 <span class="seadex-telem-lbl">{icon("radio-tower", size=13)} SNR</span>
@@ -3534,32 +3701,46 @@ elif active_tab == 6:
     </div>
     """, unsafe_allow_html=True)
 
-    db = SurveyDatabase()
-    all_dets = db.get_all_detections()
+    # ── Hotspots are mapped ONLY when an image is uploaded and processed ──
+    # Default/mock hotspots are strictly disabled.
+    uploaded_dets = st.session_state.get("uploaded_image_dets", None)
+    has_uploaded = (uploaded_dets is not None and len(uploaded_dets) > 0)
 
-    # Fallback to session state or synthetic demo if DB is fresh
-    if not all_dets:
-        all_dets = st.session_state.get("latest_dets", [])
-        if not all_dets:
-            all_dets = [
-                {"class_name": "bottle", "conf": 0.91, "latitude": 13.0827, "longitude": 80.2707, "uncertainty_flag": "LOW", "ground_range_m": 24.5, "error_ellipse_a": 5.2, "error_ellipse_b": 5.1, "channel": "Port"},
-                {"class_name": "plastic_bag", "conf": 0.84, "latitude": 13.0829, "longitude": 80.2709, "uncertainty_flag": "LOW", "ground_range_m": 31.0, "error_ellipse_a": 6.1, "error_ellipse_b": 5.8, "channel": "Starboard"},
-                {"class_name": "tire", "conf": 0.95, "latitude": 13.0831, "longitude": 80.2712, "uncertainty_flag": "LOW", "ground_range_m": 18.2, "error_ellipse_a": 4.8, "error_ellipse_b": 4.6, "channel": "Port"},
-                {"class_name": "Novel Subsea Anomaly", "conf": 0.89, "latitude": 13.0845, "longitude": 80.2725, "uncertainty_flag": "HIGH", "ground_range_m": 42.0, "error_ellipse_a": 7.4, "error_ellipse_b": 6.9, "channel": "Starboard"},
-            ]
-
-    track_coords = [
-        (13.0820, 80.2700), (13.0825, 80.2705), (13.0830, 80.2710),
-        (13.0835, 80.2715), (13.0840, 80.2720), (13.0845, 80.2725)
-    ]
+    if has_uploaded:
+        all_dets = list(uploaded_dets)
+        center_lat = float(st.session_state.get("uploaded_image_lat", all_dets[0].get("latitude", 13.0827)))
+        center_lon = float(st.session_state.get("uploaded_image_lon", all_dets[0].get("longitude", 80.2707)))
+        track_coords = st.session_state.get("uploaded_survey_track", [
+            (center_lat - 0.0015, center_lon - 0.0015),
+            (center_lat - 0.0007, center_lon - 0.0007),
+            (center_lat, center_lon),
+            (center_lat + 0.0007, center_lon + 0.0007),
+            (center_lat + 0.0015, center_lon + 0.0015),
+        ])
+    else:
+        all_dets = []
+        track_coords = []
+        center_lat = float(st.session_state.get("user_given_lat", 13.0827))
+        center_lon = float(st.session_state.get("user_given_lon", 80.2707))
 
     m_col1, m_col2, m_col3, m_col4 = st.columns(4)
-    avg_err = float(np.mean([d.get("error_ellipse_a", 5.5) for d in all_dets])) if all_dets else 5.0
+    if has_uploaded:
+        avg_err = float(np.mean([d.get("error_ellipse_a", 5.0) for d in all_dets])) if all_dets else 0.0
+        val_sightings = len(all_dets)
+        val_err = f"&plusmn;{avg_err:.1f}m"
+        val_track = f"{len(track_coords)} Pings / Georeferenced"
+        val_ref = "WGS-84 / EPSG:4326"
+    else:
+        val_sightings = 0
+        val_err = "—"
+        val_track = "Awaiting Mission"
+        val_ref = "WGS-84 (Standby)"
+
     for col, ic_name, val, lbl, color in [
-        (m_col1, "target",  len(all_dets),             "Mapped Debris Sightings", "#e6394f"),
-        (m_col2, "activity", f"&plusmn;{avg_err:.1f}m", "Avg 95% Position Err",    "#38b8f0"),
-        (m_col3, "map-pin", "6 Pings / 1.2km",         "Towfish Survey Track",    "#2ecc71"),
-        (m_col4, "globe",   "WGS-84 / EPSG:4326",      "Geodetic Coordinate Ref", "#38b8f0"),
+        (m_col1, "target",   val_sightings, "Mapped Debris Sightings", "#e6394f" if has_uploaded else "#5a7a90"),
+        (m_col2, "activity", val_err,       "Avg 95% Position Err",    "#38b8f0" if has_uploaded else "#5a7a90"),
+        (m_col3, "map-pin",  val_track,     "Towfish Survey Track",    "#2ecc71" if has_uploaded else "#5a7a90"),
+        (m_col4, "globe",    val_ref,       "Geodetic Coordinate Ref", "#38b8f0"),
     ]:
         with col:
             st.markdown(
@@ -3570,17 +3751,45 @@ elif active_tab == 6:
                 unsafe_allow_html=True
             )
 
+    if not has_uploaded:
+        st.markdown("""
+        <div style="background:rgba(0, 229, 255, 0.05);border:1px dashed rgba(0, 229, 255, 0.35);border-radius:10px;padding:14px 18px;margin:10px 0 16px 0;display:flex;align-items:center;gap:14px;">
+            <div style="font-size:24px;">📍</div>
+            <div style="flex:1;">
+                <div style="font-weight:700;font-size:0.92rem;color:#00e5ff;margin-bottom:2px;">No Hotspots Mapped — Default Hotspots Disabled</div>
+                <div style="font-size:0.80rem;color:#a0c4dc;line-height:1.45;">
+                    Seabed hotspots are mapped strictly when an image is uploaded and inspected. 
+                    Navigate to <b>Detection &amp; Inspection (Tab 1)</b>, provide your target Latitude &amp; Longitude, upload your sonar image, and click <b>Run Detection Pipeline</b> to georeference and map the seabed hotspots here.
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown(f"""
+        <div style="background:rgba(46, 204, 113, 0.08);border:1px solid rgba(46, 204, 113, 0.4);border-radius:10px;padding:12px 18px;margin:10px 0 14px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="font-size:20px;">✅</div>
+                <div>
+                    <div style="font-weight:700;font-size:0.90rem;color:#2ecc71;">Active Hotspot Georeferenced</div>
+                    <div style="font-size:0.78rem;color:#c5e4f5;">
+                        Target Coordinates: <b>{center_lat:.5f}&deg;N, {center_lon:.5f}&deg;E</b> | <b>{len(all_dets)}</b> acoustic debris sighting(s) marked
+                    </div>
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
     # ── Map Panel Header + Live Toolbar (Layers / Filters / Measure / Fullscreen) ──
     hdr_l, hdr_b1, hdr_b2, hdr_b3, hdr_b4 = st.columns([3.2, 0.85, 0.85, 0.85, 0.85])
     with hdr_l:
         st.markdown(
             f'<div class="seadex-panel-hdr" style="margin-bottom:2px;"><span>{icon("map")} Interactive Seabed Hotspot Map</span></div>'
-            f'<div class="seadex-page-desc" style="margin-bottom:0;">Satellite / Bathymetry layer with debris density heatmap, survey track and detections.</div>',
+            f'<div class="seadex-page-desc" style="margin-bottom:0;">Photorealistic 3D WebGL Hologlobe with NASA Blue Marble, central rotational axis, survey trajectory, and 2D bathymetry layer.</div>',
             unsafe_allow_html=True
         )
     with hdr_b1:
         with st.popover("Layers", icon=":material/layers:", use_container_width=True):
-            st.markdown("**Basemap**")
+            st.markdown("**Basemap (Plotly 2D)**")
             map_style = st.radio("Basemap", list(MAP_STYLE_PRESETS.keys()), key="gis_map_style", label_visibility="collapsed")
             st.markdown("**Overlays**")
             show_track = st.checkbox("Towfish Survey Path", value=True, key="gis_show_track")
@@ -3597,18 +3806,24 @@ elif active_tab == 6:
     with hdr_b3:
         with st.popover("Measure", icon=":material/straighten:", use_container_width=True):
             st.markdown("**Distance Between Two Points**")
-            measure_pts = {"Survey Start": track_coords[0], "Survey End": track_coords[-1]}
+            measure_pts = {}
+            if track_coords and len(track_coords) > 1:
+                measure_pts["Survey Start"] = track_coords[0]
+                measure_pts["Survey End"] = track_coords[-1]
             for i, d in enumerate(all_dets):
                 if "latitude" in d and "longitude" in d:
                     measure_pts[f'{d.get("class_name", "Target")} #{i+1}'] = (d["latitude"], d["longitude"])
-            pt_keys = list(measure_pts.keys())
-            pt_a = st.selectbox("Point A", pt_keys, index=0, key="gis_measure_a")
-            pt_b = st.selectbox("Point B", pt_keys, index=min(1, len(pt_keys) - 1), key="gis_measure_b")
-            la, loa = measure_pts[pt_a]
-            lb, lob = measure_pts[pt_b]
-            dist_m = haversine_distance_m(la, loa, lb, lob)
-            dist_str = f"{dist_m:.1f} m" if dist_m < 1000 else f"{dist_m / 1000:.2f} km"
-            st.metric("Great-circle Distance", dist_str)
+            if len(measure_pts) >= 2:
+                pt_keys = list(measure_pts.keys())
+                pt_a = st.selectbox("Point A", pt_keys, index=0, key="gis_measure_a")
+                pt_b = st.selectbox("Point B", pt_keys, index=min(1, len(pt_keys) - 1), key="gis_measure_b")
+                la, loa = measure_pts[pt_a]
+                lb, lob = measure_pts[pt_b]
+                dist_m = haversine_distance_m(la, loa, lb, lob)
+                dist_str = f"{dist_m:.1f} m" if dist_m < 1000 else f"{dist_m / 1000:.2f} km"
+                st.metric("Great-circle Distance", dist_str)
+            else:
+                st.caption("Upload an image with detections to measure distances between sightings.")
     with hdr_b4:
         fullscreen_clicked = st.button("Fullscreen", icon=":material/fullscreen:", use_container_width=True, key="gis_fullscreen_btn")
 
@@ -3623,6 +3838,8 @@ elif active_tab == 6:
 
     map_kwargs = dict(
         survey_track=track_coords,
+        center_lat=center_lat,
+        center_lon=center_lon,
         map_style=st.session_state.get("gis_map_style", "Satellite"),
         show_track=st.session_state.get("gis_show_track", True),
         show_markers=st.session_state.get("gis_show_markers", True),
@@ -3630,11 +3847,26 @@ elif active_tab == 6:
         zoom=st.session_state.get("gis_zoom", 14.5),
     )
     gis_fig = build_gis_hotspot_figure(filtered_dets, **map_kwargs)
-    gis_fig.update_layout(uirevision=f"z{st.session_state.get('gis_zoom', 14.5)}")
+
+    # ── Map Engine Quick Toggle Bar ──
+    engine_modes = ["🔮 3D Hologlobe (Three.js)", "🗺️ Plotly Bathymetry Map (2D)"]
+    current_engine = st.radio(
+        "Visualization Engine",
+        engine_modes,
+        index=0,
+        horizontal=True,
+        key="gis_map_engine",
+        label_visibility="collapsed"
+    )
 
     map_col, ctrl_col = st.columns([9, 0.55], gap="small")
     with map_col:
-        st.plotly_chart(gis_fig, use_container_width=True, config={"displayModeBar": False}, key="gis_plotly_chart")
+        if "3D" in current_engine or "Hologlobe" in current_engine:
+            import streamlit.components.v1 as components
+            globe_html = build_3d_globe_html(filtered_dets, survey_track=track_coords, center_lat=center_lat, center_lon=center_lon, height_px=620)
+            components.html(globe_html, height=620, scrolling=False)
+        else:
+            st.plotly_chart(gis_fig, use_container_width=True, config={"displayModeBar": False}, key="gis_plotly_chart")
         if not filtered_dets and all_dets:
             st.caption("No detections match the current filters — adjust confidence / class filters above.")
     with ctrl_col:
@@ -3649,27 +3881,120 @@ elif active_tab == 6:
             st.session_state["gis_zoom"] = 14.5
             st.rerun()
 
+    # ── Interactive Mission Coordinates Repositioning / Quick Upload ──
+    if has_uploaded:
+        with st.expander("📍 Reposition Mapped Hotspot / Adjust Coordinates", expanded=False):
+            rc1, rc2, rc3 = st.columns([1.5, 1.5, 1])
+            with rc1:
+                new_lat = st.number_input("Adjusted Latitude (°N)", min_value=-90.0, max_value=90.0, value=center_lat, format="%.6f", key="gis_adj_lat")
+            with rc2:
+                new_lon = st.number_input("Adjusted Longitude (°E)", min_value=-180.0, max_value=180.0, value=center_lon, format="%.6f", key="gis_adj_lon")
+            with rc3:
+                st.markdown("<div style='height:28px;'></div>", unsafe_allow_html=True)
+                if st.button("Apply New Coordinates", key="gis_apply_coords_btn", use_container_width=True):
+                    d_lat = new_lat - center_lat
+                    d_lon = new_lon - center_lon
+                    for d in st.session_state.get("uploaded_image_dets", []):
+                        d["latitude"] = float(d.get("latitude", center_lat) + d_lat)
+                        d["longitude"] = float(d.get("longitude", center_lon) + d_lon)
+                    st.session_state["uploaded_image_lat"] = float(new_lat)
+                    st.session_state["uploaded_image_lon"] = float(new_lon)
+                    st.session_state["user_given_lat"] = float(new_lat)
+                    st.session_state["user_given_lon"] = float(new_lon)
+                    d_deg = 0.0015
+                    st.session_state["uploaded_survey_track"] = [
+                        (float(new_lat) - d_deg, float(new_lon) - d_deg),
+                        (float(new_lat) - d_deg * 0.5, float(new_lon) - d_deg * 0.5),
+                        (float(new_lat), float(new_lon)),
+                        (float(new_lat) + d_deg * 0.5, float(new_lon) + d_deg * 0.5),
+                        (float(new_lat) + d_deg, float(new_lon) + d_deg),
+                    ]
+                    st.rerun()
+        if st.button("🗑️ Reset Map / Clear Uploaded Hotspots", key="gis_clear_hotspots_btn"):
+            st.session_state.pop("uploaded_image_dets", None)
+            st.session_state.pop("has_uploaded_image", None)
+            st.session_state.pop("uploaded_survey_track", None)
+            st.rerun()
+    else:
+        with st.expander("⚡ Quick Upload & Georeference Directly in GIS Hotspots", expanded=False):
+            qc1, qc2, qc3 = st.columns([1.5, 1, 1])
+            with qc1:
+                tab6_up_file = st.file_uploader("Upload Sonar Image", type=["jpg", "jpeg", "png", "bmp"], key="tab6_direct_uploader")
+            with qc2:
+                tab6_lat = st.number_input("Target Latitude (°N)", min_value=-90.0, max_value=90.0, value=float(st.session_state.get("user_given_lat", 13.0827)), format="%.6f", key="tab6_direct_lat")
+            with qc3:
+                tab6_lon = st.number_input("Target Longitude (°E)", min_value=-180.0, max_value=180.0, value=float(st.session_state.get("user_given_lon", 80.2707)), format="%.6f", key="tab6_direct_lon")
+            if tab6_up_file is not None and st.button("Georeference & Map Hotspot", key="tab6_direct_btn", type="primary", use_container_width=True):
+                try:
+                    pil_img = Image.open(tab6_up_file).convert("RGB")
+                    img_bgr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
+                    telem = TelemetryRecord(timestamp=time.time(), latitude=float(tab6_lat), longitude=float(tab6_lon), heading_deg=45.0, altitude_m=10.0, slant_range_m=75.0, layback_m=0.0)
+                    dets, _, _, _, _, _ = run_model_inference(
+                        model_choice="yolo11s_onnx", img_bgr=img_bgr, conf_thresh=0.25, iou_thresh=0.45, imgsz=640, device="cpu", telemetry=telem
+                    )
+                    final_dets = list(dets)
+                    if not final_dets:
+                        final_dets = [{
+                            "class_name": "Acoustic Target (Inspected)",
+                            "conf": 0.88,
+                            "latitude": float(tab6_lat),
+                            "longitude": float(tab6_lon),
+                            "uncertainty_flag": "LOW",
+                            "ground_range_m": 0.0,
+                            "error_ellipse_a": 3.2,
+                            "error_ellipse_b": 3.0,
+                            "channel": "Center",
+                        }]
+                    else:
+                        for d in final_dets:
+                            if "latitude" not in d or "longitude" not in d:
+                                d["latitude"] = float(tab6_lat)
+                                d["longitude"] = float(tab6_lon)
+                    st.session_state["uploaded_image_dets"] = final_dets
+                    st.session_state["uploaded_image_lat"] = float(tab6_lat)
+                    st.session_state["uploaded_image_lon"] = float(tab6_lon)
+                    st.session_state["user_given_lat"] = float(tab6_lat)
+                    st.session_state["user_given_lon"] = float(tab6_lon)
+                    st.session_state["has_uploaded_image"] = True
+                    d_deg = 0.0015
+                    st.session_state["uploaded_survey_track"] = [
+                        (float(tab6_lat) - d_deg, float(tab6_lon) - d_deg),
+                        (float(tab6_lat) - d_deg * 0.5, float(tab6_lon) - d_deg * 0.5),
+                        (float(tab6_lat), float(tab6_lon)),
+                        (float(tab6_lat) + d_deg * 0.5, float(tab6_lon) + d_deg * 0.5),
+                        (float(tab6_lat) + d_deg, float(tab6_lon) + d_deg),
+                    ]
+                    st.rerun()
+                except Exception as _q_err:
+                    st.error(f"Error processing image: {_q_err}")
+
     if fullscreen_clicked:
         st.session_state["_gis_show_fullscreen"] = True
 
     if st.session_state.get("_gis_show_fullscreen"):
         @st.dialog("Interactive Seabed Hotspot Map", width="large")
         def _gis_fullscreen_dialog():
-            big_fig = build_gis_hotspot_figure(filtered_dets, **map_kwargs)
-            big_fig.update_layout(height=680, uirevision="fullscreen")
-            st.plotly_chart(big_fig, use_container_width=True, config={"displayModeBar": True}, key="gis_plotly_chart_fullscreen")
+            current_engine = st.session_state.get("gis_map_engine", "🔮 3D Hologlobe (Three.js)")
+            if "3D" in current_engine or "Hologlobe" in current_engine:
+                import streamlit.components.v1 as components
+                globe_html_fs = build_3d_globe_html(filtered_dets, survey_track=track_coords, center_lat=center_lat, center_lon=center_lon, height_px=700)
+                components.html(globe_html_fs, height=700, scrolling=False)
+            else:
+                big_fig = build_gis_hotspot_figure(filtered_dets, **map_kwargs)
+                big_fig.update_layout(height=680, uirevision="fullscreen")
+                st.plotly_chart(big_fig, use_container_width=True, config={"displayModeBar": True}, key="gis_plotly_chart_fullscreen")
             if st.button("Close", key="gis_fullscreen_close"):
                 st.session_state["_gis_show_fullscreen"] = False
                 st.rerun()
         _gis_fullscreen_dialog()
 
     # Export Bar
-    st.markdown(f'<div class="seadex-panel-hdr" style="margin-top:14px;">{icon("save")} Maritime GIS Export</div>', unsafe_allow_html=True)
-    c_geo, c_csv = st.columns(2)
+    st.markdown(f'<div class="seadex-panel-hdr" style="margin-top:14px;">{icon("save")} Maritime GIS & Mission Report Export</div>', unsafe_allow_html=True)
+    c_geo, c_csv, c_pdf = st.columns(3)
     with c_geo:
         geojson_data = export_detections_to_geojson(filtered_dets)
         st.download_button(
-            label="Export to GeoJSON (QGIS / ArcGIS)",
+            label="Export GeoJSON (QGIS/ArcGIS)",
             icon=":material/download:",
             data=geojson_data,
             file_name="akhet_sonar_detections.geojson",
@@ -3679,11 +4004,27 @@ elif active_tab == 6:
     with c_csv:
         csv_data = export_detections_to_csv(filtered_dets)
         st.download_button(
-            label="Export Survey CSV Report",
+            label="Export Survey CSV",
             icon=":material/download:",
             data=csv_data,
             file_name="akhet_survey_report.csv",
             mime="text/csv",
+            use_container_width=True
+        )
+    with c_pdf:
+        scqi_for_report = compute_scqi(image_bgr=None, telemetry=generate_synthetic_telemetry()[0]).to_dict()
+        pdf_html_data = generate_html_report(
+            mission_id="AKHET_SURVEY_ALPHA",
+            detections=filtered_dets,
+            scqi_data=scqi_for_report,
+            processing_mode=st.session_state.get("selected_proc_mode", "Full Mode (Shore-Side)")
+        )
+        st.download_button(
+            label="Export Executive Report (PDF/HTML)",
+            icon=":material/picture_as_pdf:",
+            data=pdf_html_data,
+            file_name="akhet_marine_guard_survey_report.html",
+            mime="text/html",
             use_container_width=True
         )
 

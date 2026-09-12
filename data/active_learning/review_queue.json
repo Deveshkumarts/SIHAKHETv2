@@ -1,1 +1,58 @@
-[]
+[
+  {
+    "id": "sample_1789216055810",
+    "class_name": "Subsea Sonar Anomaly (Anoma)",
+    "confidence": 0.946,
+    "uncertainty_flag": "HIGH",
+    "uncertainty_variance": 0.0,
+    "latitude": 12.3456,
+    "longitude": 72.9876,
+    "error_ellipse_a": 4.0,
+    "crop_path": "",
+    "flag_reason": "Novel Sonar Anomaly",
+    "timestamp": 1789216055.8103347,
+    "status": "PENDING"
+  },
+  {
+    "id": "sample_1789216055812",
+    "class_name": "Subsea Sonar Anomaly (Anoma)",
+    "confidence": 0.935,
+    "uncertainty_flag": "HIGH",
+    "uncertainty_variance": 0.0,
+    "latitude": 12.3456,
+    "longitude": 72.9876,
+    "error_ellipse_a": 4.0,
+    "crop_path": "",
+    "flag_reason": "Novel Sonar Anomaly",
+    "timestamp": 1789216055.8123317,
+    "status": "PENDING"
+  },
+  {
+    "id": "sample_1789216055813",
+    "class_name": "Subsea Sonar Anomaly (Anoma)",
+    "confidence": 0.922,
+    "uncertainty_flag": "HIGH",
+    "uncertainty_variance": 0.0,
+    "latitude": 12.3456,
+    "longitude": 72.9876,
+    "error_ellipse_a": 4.0,
+    "crop_path": "",
+    "flag_reason": "Novel Sonar Anomaly",
+    "timestamp": 1789216055.8133268,
+    "status": "PENDING"
+  },
+  {
+    "id": "sample_1789216055815",
+    "class_name": "Subsea Sonar Anomaly (Anoma)",
+    "confidence": 0.92,
+    "uncertainty_flag": "HIGH",
+    "uncertainty_variance": 0.0,
+    "latitude": 12.3456,
+    "longitude": 72.9876,
+    "error_ellipse_a": 4.0,
+    "crop_path": "",
+    "flag_reason": "Novel Sonar Anomaly",
+    "timestamp": 1789216055.815352,
+    "status": "PENDING"
+  }
+]

@@ -17,3 +17,13 @@ onnxruntime>=1.16.0
 # Image & Data Augmentation utilities
 scipy>=1.10.0
 seaborn>=0.12.0
+
+# Web UI & REST API Services (SIH26057)
+streamlit>=1.30.0
+fastapi>=0.100.0
+uvicorn>=0.23.0
+plotly>=5.18.0
+
+# Geospatial & Hydrographic Survey (WGS-84 / IHO S-44)
+pyproj>=3.6.0
+shapely>=2.0.0

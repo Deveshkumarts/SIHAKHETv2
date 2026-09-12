@@ -8,9 +8,22 @@ Implements:
 
 import math
 from dataclasses import dataclass, asdict
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union, Any
 import numpy as np
 from utils.telemetry_parser import TelemetryRecord
+
+try:
+    import pyproj
+    GEOD = pyproj.Geod(ellps="WGS84")
+except ImportError:
+    GEOD = None
+
+try:
+    from shapely.geometry import Point, Polygon
+    import shapely.affinity
+    HAS_SHAPELY = True
+except ImportError:
+    HAS_SHAPELY = False
 
 
 @dataclass
@@ -79,6 +92,32 @@ def compute_error_ellipse_95(
     return a_95, b_95, orientation_deg
 
 
+def compute_error_ellipse_polygon(
+    center_lat: float,
+    center_lon: float,
+    semi_major_m: float,
+    semi_minor_m: float,
+    orientation_deg: float,
+    num_points: int = 32
+) -> Optional[Any]:
+    """
+    Constructs a Shapely 2D Polygon representing the 95% position confidence error ellipse.
+    Converts ground metric semi-axes to WGS-84 geodetic angular offsets.
+    """
+    if not HAS_SHAPELY:
+        return None
+    deg_lat = semi_major_m / 111320.0
+    deg_lon = semi_minor_m / (111320.0 * max(0.1, math.cos(math.radians(center_lat))))
+    theta = np.linspace(0, 2 * np.pi, num_points)
+    x = deg_lon * np.cos(theta)
+    y = deg_lat * np.sin(theta)
+    pts = np.column_stack([x, y])
+    poly = Polygon(pts)
+    poly = shapely.affinity.rotate(poly, -orientation_deg, origin=(0, 0))
+    poly = shapely.affinity.translate(poly, xoff=center_lon, yoff=center_lat)
+    return poly
+
+
 def project_pixel_to_latlon(
     u_col: float,
     v_row: float,
@@ -95,16 +134,19 @@ def project_pixel_to_latlon(
     mid_col = nadir_col if nadir_col is not None else (w_img / 2.0)
 
     # 1. Towfish Position (Vessel GPS compensated for cable layback behind vessel)
-    head_rad = math.radians(telemetry.heading_deg)
-    m_per_deg_lat = 111320.0
-    m_per_deg_lon = 111320.0 * math.cos(math.radians(telemetry.latitude))
-
-    # Towfish layback vector (opposite to vessel heading)
-    dx_layback = -telemetry.layback_m * math.sin(head_rad)
-    dy_layback = -telemetry.layback_m * math.cos(head_rad)
-
-    towfish_lat = telemetry.latitude + (dy_layback / m_per_deg_lat)
-    towfish_lon = telemetry.longitude + (dx_layback / m_per_deg_lon)
+    if GEOD is not None and telemetry.layback_m > 0:
+        layback_azimuth = (telemetry.heading_deg + 180.0) % 360.0
+        towfish_lon, towfish_lat, _ = GEOD.fwd(telemetry.longitude, telemetry.latitude, layback_azimuth, telemetry.layback_m)
+    elif telemetry.layback_m == 0:
+        towfish_lat, towfish_lon = telemetry.latitude, telemetry.longitude
+    else:
+        head_rad = math.radians(telemetry.heading_deg)
+        m_per_deg_lat = 111320.0
+        m_per_deg_lon = 111320.0 * math.cos(math.radians(telemetry.latitude))
+        dx_layback = -telemetry.layback_m * math.sin(head_rad)
+        dy_layback = -telemetry.layback_m * math.cos(head_rad)
+        towfish_lat = telemetry.latitude + (dy_layback / m_per_deg_lat)
+        towfish_lon = telemetry.longitude + (dx_layback / m_per_deg_lon)
 
     # 2. Cross-Track Ground Range Calculation
     is_starboard = (u_col >= mid_col)
@@ -122,13 +164,18 @@ def project_pixel_to_latlon(
     # 3. Across-Track Acoustic Normal Vector
     # Port beam is heading - 90 deg; Starboard beam is heading + 90 deg
     beam_bearing_deg = (telemetry.heading_deg + 90.0) if is_starboard else (telemetry.heading_deg - 90.0)
-    beam_rad = math.radians(beam_bearing_deg % 360.0)
 
-    dx_target = rg_m * math.sin(beam_rad)
-    dy_target = rg_m * math.cos(beam_rad)
-
-    target_lat = towfish_lat + (dy_target / m_per_deg_lat)
-    target_lon = towfish_lon + (dx_target / m_per_deg_lon)
+    if GEOD is not None and rg_m > 0:
+        # High-precision pyproj WGS-84 geodetic forward transform (IHO S-44 standard)
+        target_lon, target_lat, _ = GEOD.fwd(towfish_lon, towfish_lat, beam_bearing_deg % 360.0, rg_m)
+    else:
+        m_per_deg_lat = 111320.0
+        m_per_deg_lon = 111320.0 * math.cos(math.radians(towfish_lat))
+        beam_rad = math.radians(beam_bearing_deg % 360.0)
+        dx_target = rg_m * math.sin(beam_rad)
+        dy_target = rg_m * math.cos(beam_rad)
+        target_lat = towfish_lat + (dy_target / m_per_deg_lat)
+        target_lon = towfish_lon + (dx_target / m_per_deg_lon)
 
     # 4. 95% Position Error Ellipse
     a_95, b_95, phi_deg = compute_error_ellipse_95(
