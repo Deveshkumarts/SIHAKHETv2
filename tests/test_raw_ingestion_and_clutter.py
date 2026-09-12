@@ -35,6 +35,7 @@ from models.os_cfar import OSCFARDetector, SACFARDetector
 class TestRawIngestionAndClutter(unittest.TestCase):
 
     def setUp(self):
+        np.random.seed(42)
         self.test_dir = Path(tempfile.mkdtemp())
 
         # Synthesize acoustic test image (400 x 600)

@@ -221,6 +221,12 @@ class SeabedClutterSegmenter:
         # Spatial consistency filtering (remove salt-and-pepper clutter artifacts)
         regime_map = cv2.medianBlur(regime_map, 5)
 
+        # Physical acoustic constraint: Nadir water column is strictly restricted to central swath corridor
+        mid_col = w / 2.0
+        cols = np.arange(w, dtype=np.float32)
+        nadir_dist_2d = np.tile(np.abs(cols - mid_col) / max(1.0, mid_col), (h, 1))
+        regime_map[(regime_map == REGIME_NADIR) & (nadir_dist_2d > 0.25)] = REGIME_SMOOTH_SAND
+
         # Generate colorized overlay
         colored_overlay = np.zeros((h, w, 3), dtype=np.uint8)
         for r_id, color in REGIME_COLORS_BGR.items():

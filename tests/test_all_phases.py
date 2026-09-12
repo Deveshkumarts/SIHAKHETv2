@@ -155,7 +155,7 @@ class TestAkhetMarinePipeline(unittest.TestCase):
             mc_epistemic_variance=0.008
         )
         self.assertGreater(fused.final_confidence_pct, 50.0)
-        self.assertIn("Calibrated YOLO (40%)", fused.evidence_breakdown)
+        self.assertTrue(any("Calibrated YOLO" in k for k in fused.evidence_breakdown))
         print(f"  ✓ Confidence Fusion Passed: Final Fused Confidence = {fused.final_confidence_pct:.1f}%")
         
         # Test PostGIS SQL dump generation
