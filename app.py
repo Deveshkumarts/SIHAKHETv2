@@ -1,6 +1,6 @@
 """
 🌊 Akhet Marine & Sonar AI Platform (SIH 2026 - PS 26057)
-Modular Multi-Model Architecture with 3-Stage Preprocessing (Median -> Bilateral -> CLAHE),
+Modular Multi-Model Architecture with 4-Stage Preprocessing (Median -> Bilateral -> CLAHE -> Unsharp Mask),
 SegFormer Edge Segmentation, and ResNet-18 PyTorch Grad-CAM Explainability.
 """
 
@@ -2301,11 +2301,11 @@ ANOMALY_CLASSES = {
 def run_model_inference(
     model_choice, img_bgr, conf_thresh, iou_thresh, imgsz, device,
     enable_preprocessing=True, median_k=3, bilat_d=7, bilat_sigma=50.0,
-    clahe_clip=1.3, enable_segformer=False, enable_resnet=True,
+    clahe_clip=2.6, enable_segformer=False, enable_resnet=True,
     anomaly_meta=None,
     telemetry: Optional[TelemetryRecord] = None
 ):
-    # ── 3-Stage Universal Preprocessing (The 3 Original Filters) ──
+    # ── 4-Stage Universal Preprocessing (Median → Bilateral → CLAHE → Unsharp Mask) ──
     if enable_preprocessing:
         processed_img_bgr = preprocess_universal_image(
             img_bgr,
@@ -2769,7 +2769,7 @@ enable_preprocessing = st.session_state.get("enable_preprocessing", True)
 median_k = st.session_state.get("median_k", 3)
 bilat_d = st.session_state.get("bilat_d", 7)
 bilat_sigma = st.session_state.get("bilat_sigma", 50.0)
-clahe_clip = st.session_state.get("clahe_clip", 1.3)
+clahe_clip = st.session_state.get("clahe_clip", 2.6)
 conf_thresh = st.session_state.get("conf_thresh", model_info.get("default_conf", 0.25))
 iou_thresh = st.session_state.get("iou_thresh", 0.45)
 imgsz = st.session_state.get("imgsz", 640)
@@ -2798,16 +2798,25 @@ def img_to_b64(img_or_path, quality=92):
     return ""
 
 def upscale_for_display(img, min_height=360):
+    """
+    Display-only upscale — never touches detection/annotation coordinates
+    (call this on a fully-rendered image, after any boxes/masks are already
+    baked in as pixels). Scales by whichever side is smaller so tiny portrait
+    or landscape crops (e.g. small dataset thumbnails) both come out sharp,
+    using Lanczos4 (sharper detail retention than cubic on strong upscales).
+    No-op for images already at or above min_height.
+    """
     if img is None or not isinstance(img, np.ndarray) or img.size == 0:
         return img
     h, w = img.shape[:2]
     if h <= 0 or w <= 0:
         return img
-    if h < min_height:
-        scale = min_height / float(h)
-        new_w = max(1, int(w * scale))
-        new_h = min_height
-        return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_CUBIC)
+    short_side = min(h, w)
+    if short_side < min_height:
+        scale = min_height / float(short_side)
+        new_w = max(1, int(round(w * scale)))
+        new_h = max(1, int(round(h * scale)))
+        return cv2.resize(img, (new_w, new_h), interpolation=cv2.INTER_LANCZOS4)
     return img
 
 def get_seadex_b64(path_str):
@@ -3256,7 +3265,7 @@ if active_tab == 0:
                 status_label = "RAW SONAR"
             elif view_mode == "ENHANCED":
                 display_img_bgr = st.session_state.get("latest_prep_bgr")
-                status_label = "ENHANCED · 3-STAGE CLAHE"
+                status_label = "ENHANCED · 4-STAGE CLAHE+SHARPEN"
             elif view_mode == "MASK" and st.session_state.get("latest_dets"):
                 first_mask = st.session_state["latest_dets"][0].get("seg_mask")
                 if first_mask is not None:
@@ -3303,7 +3312,12 @@ if active_tab == 0:
             elif fit_mode == "Cover":
                 fit_cls = "fit-cover"
 
-            sonar_b64 = img_to_b64(display_img_bgr)
+            # Display-only Lanczos upscale — the raw pixel grid of small sample/dataset
+            # crops (often well under 200px) would otherwise be sent to the browser as-is
+            # and stretched by plain CSS scaling; this renders noticeably sharper without
+            # touching any detection/annotation coordinates (they're already baked into
+            # display_img_bgr's pixels by this point).
+            sonar_b64 = img_to_b64(upscale_for_display(display_img_bgr, min_height=480))
             st.markdown(f"""
             <div class="seadex-sonar-viewport">
                 <div class="seadex-sonar-border-beam"></div>
@@ -3969,7 +3983,7 @@ elif active_tab == 3:
 | **Validation mAP@50** | **94.09%** |
 | **Validation mAP@50-95** | **85.52%** |
 | **Inference Speed** | **3.8 ms / image** (~260 FPS on {active_gpu_display}) |
-| **Preprocessing** | 3-Stage: Median (k=3) → Bilateral (d=5, σ=35) → CLAHE (clip=2.0) |
+| **Preprocessing** | 4-Stage: Median (k=3) → Bilateral (d=7, σ=50) → CLAHE (clip=2.6) → Unsharp Mask |
 | **Explainability** | ResNet-18 Grad-CAM on layer4 with top-3 consensus |
     """)
 
