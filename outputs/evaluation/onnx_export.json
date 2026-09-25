@@ -1,0 +1,37 @@
+{
+  "opset": 17,
+  "torch": "2.13.0+cpu",
+  "config_hash": "dc22fa053344",
+  "models": {
+    "ae": {
+      "file": "weights\\onnx\\conv_ae.onnx",
+      "size_kb": 3493.7,
+      "max_abs_diff": 3.5762786865234375e-07,
+      "max_rel_diff_reconstruction_error": 1.4903565670465468e-07,
+      "parity_ok": true,
+      "seconds": 1.5
+    },
+    "lstm": {
+      "file": "weights\\onnx\\lstm_tracker.onnx",
+      "size_kb": 98.6,
+      "max_abs_diff": 2.384185791015625e-07,
+      "max_abs_diff_px": 2.384185791015625e-05,
+      "parity_ok": true,
+      "seconds": 0.4
+    },
+    "yolo": {
+      "file": "weights\\onnx\\yolo11n_seg.onnx",
+      "size_mb": 11.46,
+      "images_compared": 40,
+      "same_detection_count": "40/40",
+      "max_box_diff_px": 2.288818359375e-05,
+      "parity_ok": true,
+      "seconds": 8.4
+    }
+  },
+  "onnxruntime": "1.29.0",
+  "providers_available": [
+    "AzureExecutionProvider",
+    "CPUExecutionProvider"
+  ]
+}

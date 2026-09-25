@@ -28,3 +28,23 @@ data/test_*
 runs/detect/val-2/
 runs/detect/weights/
 
+
+# MarineGuard pipeline: regenerable / per-run artifacts
+# derived pseudo-mask dataset (python -m models.yolo11_seg.dataset)
+SIH_Dataset_27class_seg/
+outputs/runs/
+outputs/uploads/
+outputs/pipeline_logs/
+outputs/marineguard.db
+outputs/evaluation/yolo11_seg_val/
+# threshold / merge-gap sweep runs (final numbers live in pipeline_e2e_metrics.json)
+outputs/evaluation/e2e_*.json
+outputs/logs/
+# TensorRT engines are device-specific
+weights/trt/
+*.engine
+
+# duplicate checkpoints / augmentation previews from the YOLO training run (final weights live in weights/)
+outputs/training/yolo11n_seg_sih27/weights/
+outputs/training/yolo11n_seg_sih27/train_batch*.jpg
+outputs/training/yolo11n_seg_sih27/val_batch*.jpg

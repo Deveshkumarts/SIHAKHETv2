@@ -988,6 +988,89 @@ div[data-testid="stMetricLabel"] p {
 div[data-testid="stMetricValue"] {
     font-size: 1.75rem !important;
 }
+
+/* ═══ ALIGNMENT CLEAN-UP (last block on purpose: overrides the rules above) ═══
+   1. Pill navigation and the segmented toolbars must show NO radio circle. The rules above try to hide it with
+      `label > div:first-child`, but in this Streamlit version the label's first child is the hidden input wrapper,
+      so the circle stayed visible and overlapped the text. Hide the real circle element instead. */
+div[class*="st-key-top_elegostra_nav"] [data-testid="stRadioOption"] > div > div > div:first-child,
+div[class*="st-key-seadex_view_mode"] [data-testid="stRadioOption"] > div > div > div:first-child,
+div[class*="st-key-seadex_fit_mode"] [data-testid="stRadioOption"] > div > div > div:first-child {
+    display: none !important;
+}
+div[class*="st-key-top_elegostra_nav"] [data-testid="stRadioOption"] > div,
+div[class*="st-key-top_elegostra_nav"] [data-testid="stRadioOption"] > div > div,
+div[class*="st-key-seadex_view_mode"] [data-testid="stRadioOption"] > div,
+div[class*="st-key-seadex_view_mode"] [data-testid="stRadioOption"] > div > div,
+div[class*="st-key-seadex_fit_mode"] [data-testid="stRadioOption"] > div,
+div[class*="st-key-seadex_fit_mode"] [data-testid="stRadioOption"] > div > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+    width: auto !important;
+    justify-content: center !important;
+}
+/* 2. Segmented toolbars: content-sized pills, centred text. If the column is too narrow for one row (small
+      screens) the pills wrap onto a second row instead of overlapping or clipping. */
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"],
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] {
+    align-items: stretch !important;
+    flex-wrap: wrap !important;
+    justify-content: center !important;
+    overflow: visible !important;
+    gap: 2px !important;
+}
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label,
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 1 auto !important;
+    min-width: max-content !important;
+    padding: 5px 4px !important;
+    overflow: visible !important;
+}
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label p,
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label p {
+    font-size: 0.62rem !important;
+    letter-spacing: 0 !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+    overflow: visible !important;
+}
+/* 3. Panel header: title stays on ONE line; the status tag sits beside it, or drops to its own right-aligned row
+      when the column is too narrow (never splits the title or the tag itself). */
+.seadex-panel-hdr {
+    flex-wrap: wrap !important;
+    row-gap: 6px !important;
+    column-gap: 8px !important;
+}
+.seadex-panel-hdr > span:first-child {
+    display: inline-flex !important;
+    align-items: center !important;
+    white-space: nowrap !important;
+    flex: 0 1 auto !important;
+}
+.seadex-panel-hdr .seadex-step-badge {
+    flex: 0 0 auto !important;
+    line-height: 1.15 !important;
+}
+.seadex-live-tag {
+    display: inline-flex !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex: 0 0 auto !important;
+    margin-left: auto !important;
+    white-space: nowrap !important;
+    padding: 2px 8px !important;
+    font-size: 0.64rem !important;
+    line-height: 1.5 !important;
+    letter-spacing: 0.03em !important;
+}
+div[class*="st-key-det_panel_telem"] .seadex-panel-hdr {
+    font-size: 0.86rem !important;
+    letter-spacing: 0 !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -3040,7 +3123,7 @@ elif active_tab == 4:
     st.markdown(f"""
     <div class="elegostra-hero">
         <h1 class="elegostra-hero-title">Performance intelligence and<br>validation benchmarks</h1>
-        <p class="elegostra-hero-sub">Comprehensive evaluation metrics across 790 unseen test scans, measuring precision, recall, mIoU segmentation overlap, and calibration reliability.</p>
+        <p class="elegostra-hero-sub">Comprehensive evaluation across unseen test scans: detection accuracy, unknown-anomaly detection (autoencoder), acoustic-signature verification of objects, and calibration reliability.</p>
         <div class="elegostra-pill-row">
             <span class="elegostra-btn-dark">Validation Matrix</span>
             <span class="elegostra-btn-light">{active_eval_hw}</span>
@@ -3111,50 +3194,158 @@ elif active_tab == 4:
     with col_y3:
         render_eval_plot(EVAL_PLOTS_DIR / "yolo_latency.png", "YOLOv11 — Latency")
 
-    # ResNet-18
+    # ── Convolutional Autoencoder — unknown-anomaly verification ──
     st.markdown("---")
-    st.markdown("### ResNet-18 — Feature Verification & Classification")
-    rn = eval_data.get("ResNet18", {})
-    c1,c2,c3,c4 = st.columns(4)
-    with c1: st.markdown(metric_card("Accuracy",       f"{rn.get('Accuracy',0.9987)*100:.2f}",       "#2ecc71", "%"), unsafe_allow_html=True)
-    with c2: st.markdown(metric_card("Top-3 Accuracy", f"{rn.get('Top3_Accuracy',1.0)*100:.2f}",     "#f39c12", "%"), unsafe_allow_html=True)
-    with c3: st.markdown(metric_card("F1 (Weighted)",  f"{rn.get('F1_Weighted',0.9987)*100:.2f}",    "#2563EB", "%"), unsafe_allow_html=True)
-    with c4: st.markdown(metric_card("F1 (Macro)",     f"{rn.get('F1_Macro',0.9983)*100:.2f}",       "#a370f7", "%"), unsafe_allow_html=True)
-    c5,c6,c7,c8 = st.columns(4)
-    with c5: st.markdown(metric_card("Precision (W)",      f"{rn.get('Precision_W',0.9988)*100:.2f}",    "#e67e22", "%"), unsafe_allow_html=True)
-    with c6: st.markdown(metric_card("Recall (W)",         f"{rn.get('Recall_W',0.9987)*100:.2f}",       "#16a085", "%"), unsafe_allow_html=True)
-    with c7: st.markdown(metric_card("ROC-AUC (Macro)",    f"{rn.get('ROC_AUC_Macro',1.0)*100:.2f}",    "#e74c3c", "%"), unsafe_allow_html=True)
-    with c8: st.markdown(metric_card("ROC-AUC (Weighted)", f"{rn.get('ROC_AUC_Weighted',1.0)*100:.2f}", "#c0392b", "%"), unsafe_allow_html=True)
-    col_r1, col_r2, col_r3 = st.columns([1, 1.4, 1])
-    with col_r1:
-        render_eval_plot(EVAL_PLOTS_DIR / "resnet_overall_metrics.png", "ResNet-18 — All Metrics")
-    with col_r2:
-        render_eval_plot(EVAL_PLOTS_DIR / "resnet_confusion_matrix.png", "ResNet-18 — Confusion Matrix (27x27)")
-    with col_r3:
-        render_eval_plot(EVAL_PLOTS_DIR / "resnet_per_class_prf1.png", "ResNet-18 — Per-Class P/R/F1")
+    st.markdown("### Convolutional Autoencoder — Unknown-Anomaly Verification")
+    _ae_path = ROOT_DIR / "outputs" / "evaluation" / "autoencoder_metrics.json"
+    _ae_err_path = ROOT_DIR / "outputs" / "evaluation" / "autoencoder_errors.npz"
+    if not _ae_path.exists():
+        st.warning("Autoencoder not evaluated yet. Run `python -m models.autoencoder.train`.")
+    else:
+        _ae = json.loads(_ae_path.read_text(encoding="utf-8"))
+        _r, _s = _ae["test_real"], _ae["test_synthetic"]
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: st.markdown(metric_card("ROC-AUC (real)",  f"{_r['roc_auc']*100:.2f}",  "#2563EB", "%"), unsafe_allow_html=True)
+        with c2: st.markdown(metric_card("PR-AUC (real)",   f"{_r['pr_auc']*100:.2f}",   "#a370f7", "%"), unsafe_allow_html=True)
+        with c3: st.markdown(metric_card("Precision",       f"{_r['precision']*100:.2f}", "#2ecc71", "%"), unsafe_allow_html=True)
+        with c4: st.markdown(metric_card("Recall",          f"{_r['recall']*100:.2f}",    "#f39c12", "%"), unsafe_allow_html=True)
+        c5, c6, c7, c8 = st.columns(4)
+        with c5: st.markdown(metric_card("F1-Score",            f"{_r['f1']*100:.2f}",                   "#16a085", "%"), unsafe_allow_html=True)
+        with c6: st.markdown(metric_card("False-Positive Rate", f"{_r['false_positive_rate']*100:.2f}", "#e74c3c", "%"), unsafe_allow_html=True)
+        with c7: st.markdown(metric_card("False-Negative Rate", f"{_r['false_negative_rate']*100:.2f}", "#c0392b", "%"), unsafe_allow_html=True)
+        with c8: st.markdown(metric_card("Threshold (validation)", f"{_ae['threshold']:.5f}",           "#e67e22"),      unsafe_allow_html=True)
+        c9, c10, c11, c12 = st.columns(4)
+        with c9:  st.markdown(metric_card("MSE normal → anomaly", f"{_r['mse_normal']:.4f} → {_r['mse_anomaly']:.4f}", "#2e86c1"), unsafe_allow_html=True)
+        with c10: st.markdown(metric_card("MAE normal → anomaly", f"{_r['mae_normal']:.3f} → {_r['mae_anomaly']:.3f}", "#27ae60"), unsafe_allow_html=True)
+        with c11: st.markdown(metric_card("SSIM normal → anomaly", f"{_r['ssim_normal']:.3f} → {_r['ssim_anomaly']:.3f}", "#8e44ad"), unsafe_allow_html=True)
+        with c12: st.markdown(metric_card("Real anomalies tested", f"{_r['n_anomaly']}", "#2980b9"), unsafe_allow_html=True)
 
-    # SegFormer
+        if _ae_err_path.exists():
+            from sklearn.metrics import roc_curve as _roc_curve
+            _e = np.load(_ae_err_path)
+            col_h, col_roc = st.columns(2)
+            with col_h:
+                _hist = go.Figure()
+                for _name, _key, _col in (("Normal seabed", "normal", "#38b8f0"), ("Real anomalies", "real", "#e6394f"),
+                                          ("Synthetic anomalies", "synthetic", "#f39c12")):
+                    _hist.add_trace(go.Histogram(x=np.log10(np.maximum(_e[_key], 1e-6)), name=_name, opacity=0.6,
+                                                 marker_color=_col, nbinsx=40, histnorm="probability"))
+                _hist.add_vline(x=float(np.log10(float(_e["threshold"]))), line_dash="dash", line_color="#ffffff",
+                                annotation_text="validated threshold")
+                _hist.update_layout(barmode="overlay", title="Reconstruction error (held-out test)", height=340,
+                                    xaxis_title="log10(MSE)", yaxis_title="share of patches",
+                                    margin=dict(l=10, r=10, t=40, b=10), paper_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(_hist, use_container_width=True)
+            with col_roc:
+                _y = np.r_[np.zeros(len(_e["normal"])), np.ones(len(_e["real"]))]
+                _fpr, _tpr, _ = _roc_curve(_y, np.r_[_e["normal"], _e["real"]])
+                _roc = go.Figure()
+                _roc.add_trace(go.Scatter(x=_fpr, y=_tpr, mode="lines", name=f"AUC {_r['roc_auc']:.3f}", line=dict(color="#2563EB", width=3)))
+                _roc.add_trace(go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="chance", line=dict(color="#888", dash="dot")))
+                _roc.update_layout(title="ROC — real anomalies vs normal seabed", height=340, xaxis_title="false-positive rate",
+                                   yaxis_title="true-positive rate", margin=dict(l=10, r=10, t=40, b=10), paper_bgcolor="rgba(0,0,0,0)")
+                st.plotly_chart(_roc, use_container_width=True)
+        st.info(
+            "Trained only on normal seabed patches (no debris labels). The threshold was selected on validation data, never on "
+            f"these test frames. Only {_r['n_anomaly']} real anomalies are available for testing, so treat the figures as indicative. "
+            f"Synthetic anomalies (secondary benchmark) are much harder for it: ROC-AUC {_s['roc_auc']:.2f}, recall {_s['recall']*100:.0f}%."
+        )
+
+    # ── Acoustic Signature Analysis (acoustic impedance) — verification & confirmation ──
     st.markdown("---")
-    st.markdown("### SegFormer-B0 — Edge & Boundary Segmentation")
-    sg = eval_data.get("SegFormer", {})
-    c1,c2,c3 = st.columns(3)
-    with c1: st.markdown(metric_card("mIoU",           f"{sg.get('mIoU',0.635)*100:.2f}",          "#2e86c1", "%"),   unsafe_allow_html=True)
-    with c2: st.markdown(metric_card("Dice Score",     f"{sg.get('Dice_Score',0.7687)*100:.2f}",    "#27ae60", "%"),   unsafe_allow_html=True)
-    with c3: st.markdown(metric_card("Pixel Accuracy", f"{sg.get('Pixel_Accuracy',0.7128)*100:.2f}","#8e44ad", "%"),   unsafe_allow_html=True)
-    c4,c5,c6 = st.columns(3)
-    with c4: st.markdown(metric_card("Boundary F1",   f"{sg.get('Boundary_F1',0.2098)*100:.2f}",   "#f39c12", "%"),    unsafe_allow_html=True)
-    with c5: st.markdown(metric_card("FG Confidence", f"{sg.get('FG_Confidence',0.578)*100:.2f}",  "#16a085", "%"),    unsafe_allow_html=True)
-    with c6: st.markdown(metric_card("SegFormer FPS", f"{sg.get('FPS',232.4):.1f}",                "#e74c3c", " FPS"), unsafe_allow_html=True)
-    col_s1, col_s2 = st.columns(2)
-    with col_s1:
-        render_eval_plot(EVAL_PLOTS_DIR / "segformer_overall_metrics.png", "SegFormer-B0 — All Segmentation Metrics")
-    with col_s2:
-        render_eval_plot(EVAL_PLOTS_DIR / "segformer_score_distributions.png", "SegFormer-B0 — IoU & Dice Distributions")
-
-    st.info(
-        "SegFormer metrics are computed against approximate pseudo-masks derived from bounding boxes "
-        "(SIH dataset has no pixel-level GT annotations). Boundary F1 is naturally lower for box-derived masks."
+    st.markdown("### Acoustic Signature Analysis — Impedance-Contrast Verification")
+    st.markdown(
+        '<div class="mg-card"><div class="mg-card-title">How objects are verified and confirmed</div>'
+        '<div class="mg-card-sub" style="margin-top:4px;line-height:1.55;">'
+        'A hard, high-impedance object reflects sound strongly (reflection coefficient R = (Z₂ − Z₁) / (Z₂ + Z₁)) and casts an '
+        'acoustic shadow. For every detected object we measure a <strong style="color:#50b8d8;">relative impedance-contrast index</strong> '
+        '(same algebraic form as R, applied to backscatter amplitude), highlight-to-shadow ratio, shadow depth and length, edge '
+        'sharpness and texture, then check whether that signature is <strong style="color:#2ecc71;">consistent with the class the detector '
+        'claimed</strong>. Uncalibrated 8-bit imagery cannot give absolute impedance, so these are relative, image-derived quantities. '
+        'Verification flags objects for review; it never rejects one on its own.</div></div>',
+        unsafe_allow_html=True,
     )
+    _sg_path = ROOT_DIR / "outputs" / "evaluation" / "signature_metrics.json"
+    if not _sg_path.exists():
+        st.warning("Signature verifier not trained yet. Run `python scripts/extract_signatures.py` then `python scripts/train_signature.py`.")
+    else:
+        _sg = json.loads(_sg_path.read_text(encoding="utf-8"))
+        _so, _va, _ec, _ab = _sg["signature_only_classification"], _sg["verification_auroc"], _sg["detector_error_catching"], _sg["ablation"]
+        c1, c2, c3, c4 = st.columns(4)
+        with c1: st.markdown(metric_card("Verification AUROC", f"{_va['test']*100:.2f}",       "#2563EB", "%"), unsafe_allow_html=True)
+        with c2: st.markdown(metric_card("Class from signature (top-1)", f"{_so['top1']*100:.2f}", "#2ecc71", "%"), unsafe_allow_html=True)
+        with c3: st.markdown(metric_card("Class from signature (top-3)", f"{_so['top3']*100:.2f}", "#f39c12", "%"), unsafe_allow_html=True)
+        with c4: st.markdown(metric_card("Acoustic-only AUROC",  f"{_ab['acoustic_only']['verification_auroc']*100:.2f}", "#a370f7", "%"), unsafe_allow_html=True)
+        _t = _ec["test"]
+        c5, c6, c7, c8, c9 = st.columns(5)
+        with c5: st.markdown(metric_card("Detector errors flagged", f"{(_t['errors_flagged'] or 0)*100:.1f}", "#e67e22", "%"), unsafe_allow_html=True)
+        with c6: st.markdown(metric_card("Correct calls wrongly flagged", f"{_t['correct_calls_flagged']*100:.1f}", "#e74c3c", "%"), unsafe_allow_html=True)
+        with c7: st.markdown(metric_card("Confirmed (of correct calls)", f"{_t['confirmed_share_of_correct']*100:.1f}", "#16a085", "%"), unsafe_allow_html=True)
+        with c8: st.markdown(metric_card("Confirmed (of wrong calls)", f"{(_t['confirmed_share_of_wrong'] or 0)*100:.1f}", "#c0392b", "%"), unsafe_allow_html=True)
+        with c9: st.markdown(metric_card("Precision of CONFIRMED", f"{(_t['precision_of_confirmed'] or 0)*100:.1f}", "#2563EB", "%"), unsafe_allow_html=True)
+
+        col_a, col_b = st.columns(2)
+        with col_a:
+            _pc = _sg["per_class_auc"]
+            _pcs = sorted(_pc.items(), key=lambda kv: kv[1]["auc"])
+            _fig_pc = go.Figure(go.Bar(x=[v["auc"] for _, v in _pcs], y=[k for k, _ in _pcs], orientation="h",
+                                       marker_color=["#e6394f" if v["auc"] < 0.85 else "#38b8f0" for _, v in _pcs]))
+            _fig_pc.update_layout(title="Verification AUROC per class", height=560, xaxis=dict(range=[0.5, 1.0], title="AUROC"),
+                                  margin=dict(l=10, r=10, t=40, b=10), paper_bgcolor="rgba(0,0,0,0)")
+            st.plotly_chart(_fig_pc, use_container_width=True)
+        with col_b:
+            _labs = [("All features", "all_features"), ("Acoustic only", "acoustic_only"), ("Geometry only", "geometry_only")]
+            _fig_ab = go.Figure()
+            _fig_ab.add_trace(go.Bar(name="Verification AUROC", x=[l for l, _ in _labs], y=[_ab[k]["verification_auroc"] for _, k in _labs], marker_color="#2563EB"))
+            _fig_ab.add_trace(go.Bar(name="Top-1 class accuracy", x=[l for l, _ in _labs], y=[_ab[k]["top1"] for _, k in _labs], marker_color="#2ecc71"))
+            _fig_ab.update_layout(barmode="group", title="How much is genuinely acoustic? (feature ablation)", height=270,
+                                  yaxis=dict(range=[0, 1]), margin=dict(l=10, r=10, t=40, b=10), paper_bgcolor="rgba(0,0,0,0)")
+            st.plotly_chart(_fig_ab, use_container_width=True)
+            _fam = _sg["material_family_check"]["median_impedance_contrast_idx"]
+            _fig_f = go.Figure(go.Bar(x=list(_fam.keys()), y=list(_fam.values()),
+                                      marker_color=["#f39c12", "#38b8f0", "#2ecc71", "#a370f7", "#e6394f"]))
+            _fig_f.update_layout(title="Median impedance-contrast index by material family", height=270,
+                                 margin=dict(l=10, r=10, t=40, b=10), paper_bgcolor="rgba(0,0,0,0)")
+            st.plotly_chart(_fig_f, use_container_width=True)
+        st.info(
+            "Read this honestly: metal is NOT brighter than plastic or glass in this dataset (see the family chart), so the index does "
+            "not identify a material by itself. Rubber (tires) is the clear exception. The signature is a moderate secondary check: "
+            f"it flags about {(_t['errors_flagged'] or 0)*100:.0f}% of the detector's class errors (against {_t['correct_calls_flagged']*100:.0f}% of correct calls) and "
+            f"a CONFIRMED verdict is right {(_t['precision_of_confirmed'] or 0)*100:.0f}% of the time (the detector alone: {_t['base_detector_accuracy']*100:.0f}%). "
+            "Object geometry contributes too, which the ablation chart separates from the acoustic part. "
+            "Validated on 27-class object chips only; material families were assigned from class names."
+        )
+
+        # live verification of whatever was just detected on the Detection page
+        st.markdown("#### Verify the latest detections")
+        _latest = st.session_state.get("latest_dets") or []
+        _raw = st.session_state.get("latest_raw_bgr")
+        if not _latest or _raw is None:
+            st.caption("Run a detection on the Detection & Inspection page, then return here to see each object's acoustic signature and verdict.")
+        else:
+            from backend.pipeline.signature_verifier import SignatureVerifier as _SV
+            from backend.pipeline.acoustic_signature import extract_signature as _extract_sig
+            _ver = _SV(ROOT_DIR / "weights" / "signature_model.json")
+            _wf = st.session_state.get("input_source_tabs") == "Raw Sonar (.xtf)"
+            _rows = []
+            for _d in _latest:
+                _f = _extract_sig(_raw, _d["bbox"], waterfall=_wf)
+                if _f is None or not _ver.available:
+                    continue
+                _v = _ver.verify(_f, _d.get("class_name"), validated_domain=not _wf)
+                _rows.append({"class": _d.get("class_name"), "detector conf": round(float(_d.get("conf", 0)), 3),
+                              "verdict": _v["verdict"], "claimed rank": _v.get("claimed_rank"), "claimed vs best": _v.get("claimed_vs_best"),
+                              "P(claimed | signature)": _v.get("claimed_probability"),
+                              "impedance-contrast idx": round(_f["impedance_contrast_idx"], 3), "contrast dB": round(_f["contrast_db"], 2),
+                              "shadow depth": round(_f["shadow_depth"], 3), "highlight/shadow": round(_f["highlight_shadow_ratio"], 2),
+                              "signature suggests": ", ".join(f"{c['class']} ({c['p']:.2f})" for c in _v["nearest_classes"])})
+            if _rows:
+                import pandas as _pd
+                st.dataframe(_pd.DataFrame(_rows), use_container_width=True, hide_index=True)
+                if _wf:
+                    st.caption("Raw waterfall input: signature values are shown, but verdicts are N/A because the verifier was validated on object chips only.")
+            else:
+                st.caption("No verifiable detections in the latest run.")
 
     # Confidence Calibration & Reliability Diagram
     st.markdown("---")
@@ -3476,10 +3667,9 @@ elif active_tab == 6:
                 except Exception as _q_err:
                     st.error(f"Error processing image: {_q_err}")
 
+    # Open the dialog only on the run where the button was pressed. (A persistent flag
+    # reopened it on every later rerun after Esc/X dismissal, blocking the whole page.)
     if fullscreen_clicked:
-        st.session_state["_gis_show_fullscreen"] = True
-
-    if st.session_state.get("_gis_show_fullscreen"):
         @st.dialog("Interactive Seabed Hotspot Map", width="large")
         def _gis_fullscreen_dialog():
             current_engine = st.session_state.get("gis_map_engine", " 3D Hologlobe (Three.js)")
@@ -3492,7 +3682,6 @@ elif active_tab == 6:
                 big_fig.update_layout(height=680, uirevision="fullscreen")
                 st.plotly_chart(big_fig, use_container_width=True, config={"displayModeBar": True}, key="gis_plotly_chart_fullscreen")
             if st.button("Close", key="gis_fullscreen_close"):
-                st.session_state["_gis_show_fullscreen"] = False
                 st.rerun()
         _gis_fullscreen_dialog()
 

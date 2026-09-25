@@ -1,0 +1,313 @@
+{
+  "weights": "weights\\yolo11n_seg_sih27.pt",
+  "split": "test",
+  "imgsz": 256,
+  "device": "cpu",
+  "dataset": {
+    "source": "SIH_Dataset_27class",
+    "label_type": "PSEUDO-MASKS derived from boxes (no ground-truth masks exist in the source data)",
+    "leakage_before": {
+      "survey_groups": 12,
+      "groups_spanning_multiple_splits": 10,
+      "leaking": {
+        "Shipwrecks_DM_Wilson": {
+          "train": 18,
+          "val": 1,
+          "test": 3
+        },
+        "Shipwrecks_DR_Hanna": {
+          "train": 1,
+          "val": 1,
+          "test": 3
+        },
+        "Shipwrecks_EB_Allen": {
+          "train": 22,
+          "test": 2
+        },
+        "Shipwrecks_Egyptian": {
+          "train": 9,
+          "val": 1,
+          "test": 5
+        },
+        "Shipwrecks_Grecian": {
+          "train": 3,
+          "val": 1,
+          "test": 1
+        },
+        "Shipwrecks_Heart_Failure": {
+          "train": 9,
+          "val": 3
+        },
+        "Shipwrecks_Isaac_M_Scott": {
+          "train": 5,
+          "val": 1
+        },
+        "Shipwrecks_Montana": {
+          "train": 6,
+          "val": 2
+        },
+        "Shipwrecks_Oscar_T_Flint": {
+          "train": 20,
+          "val": 1,
+          "test": 1
+        },
+        "Shipwrecks_WP_Rend": {
+          "train": 8,
+          "val": 3
+        }
+      }
+    },
+    "shipwreck_groups_leaking_after": {},
+    "shipwreck_survey_split": {
+      "Shipwrecks_Oscar_T_Flint": "test",
+      "Shipwrecks_Montana": "val",
+      "Shipwrecks_Grecian": "val",
+      "Shipwrecks_Isaac_M_Scott": "val",
+      "Shipwrecks_EB_Allen": "train",
+      "Shipwrecks_Heart_Failure": "train",
+      "Shipwrecks_WP_Rend": "train",
+      "Shipwrecks_DM_Wilson": "train",
+      "Shipwrecks_Egyptian": "train",
+      "Shipwrecks_Pewabic": "train",
+      "Shipwrecks_Near_Shore": "train",
+      "Shipwrecks_DR_Hanna": "train"
+    },
+    "non_shipwreck_split": "original split kept; object crops carry no survey id",
+    "instances": 7447,
+    "grabcut_masks": 1650,
+    "ellipse_fallback_masks": 5797,
+    "images_per_split": {
+      "train": 5935,
+      "val": 739,
+      "test": 773
+    },
+    "mean_mask_to_box_area_ratio": 0.705,
+    "class_names": {
+      "0": "Shipwrecks",
+      "1": "bottle",
+      "2": "brown-glass-bottle",
+      "3": "can",
+      "4": "chain",
+      "5": "drink-carton",
+      "6": "drink-sachet",
+      "7": "glass-bottle",
+      "8": "glass-jar",
+      "9": "hook",
+      "10": "large-tire",
+      "11": "metal-bottle",
+      "12": "metal-box",
+      "13": "pipeline or cable",
+      "14": "plastic-bidon",
+      "15": "plastic-bottle",
+      "16": "plastic-pipe",
+      "17": "plastic-propeller",
+      "18": "potion-glass-bottle",
+      "19": "propeller",
+      "20": "rotating-platform",
+      "21": "shampoo-bottle",
+      "22": "small-tire",
+      "23": "standing-bottle",
+      "24": "tire",
+      "25": "valve",
+      "26": "wrench"
+    }
+  },
+  "box": {
+    "precision": 0.9035048370076079,
+    "recall": 0.9211925317316341,
+    "f1": 0.9122629565799036,
+    "map50": 0.9491558064763812,
+    "map50_95": 0.8952248581946096
+  },
+  "mask": {
+    "precision": 0.889102440148927,
+    "recall": 0.9087112465731348,
+    "f1": 0.8987999064486518,
+    "map50": 0.9328679072274382,
+    "map50_95": 0.8616875555352884
+  },
+  "mask_iou": {
+    "n_images": 773,
+    "n_gt_instances": 773,
+    "n_matched": 741,
+    "mean_mask_iou": 0.8797907107804319,
+    "frac_mask_iou_ge_0.5": 0.9865047233468286,
+    "reference": "pseudo-masks (no ground-truth masks exist)"
+  },
+  "latency": {
+    "n_images": 100,
+    "mean_ms": 20.626727000162646,
+    "p50_ms": 20.163099999990663,
+    "p95_ms": 25.843340000574244,
+    "fps": 48.48078902639836,
+    "batch": 1
+  },
+  "model": {
+    "size_mb": 5.96,
+    "parameters": 2839833
+  },
+  "memory": {
+    "process_rss_delta_mb": 255.3,
+    "gpu_peak_mb": null,
+    "gpu_note": "CPU evaluation - no GPU utilisation to report"
+  },
+  "per_class": {
+    "Shipwrecks": {
+      "ap50": 0.995,
+      "ap50_95": 0.9949999999999999,
+      "mask_ap50": 0.995,
+      "mask_ap50_95": 0.9808749999999999
+    },
+    "bottle": {
+      "ap50": 0.995,
+      "ap50_95": 0.9857764581124073,
+      "mask_ap50": 0.995,
+      "mask_ap50_95": 0.9903609706774519
+    },
+    "brown-glass-bottle": {
+      "ap50": 0.6603834071423444,
+      "ap50_95": 0.5773629372944169,
+      "mask_ap50": 0.5840100851440846,
+      "mask_ap50_95": 0.511879133590535
+    },
+    "can": {
+      "ap50": 0.9570699084312093,
+      "ap50_95": 0.9184734383242026,
+      "mask_ap50": 0.955771764913592,
+      "mask_ap50_95": 0.907048088746342
+    },
+    "chain": {
+      "ap50": 0.995,
+      "ap50_95": 0.9949999999999999,
+      "mask_ap50": 0.995,
+      "mask_ap50_95": 0.9949999999999999
+    },
+    "drink-carton": {
+      "ap50": 0.9374638717542724,
+      "ap50_95": 0.8666157601388879,
+      "mask_ap50": 0.9282226113914148,
+      "mask_ap50_95": 0.804261604543299
+    },
+    "drink-sachet": {
+      "ap50": 0.9480517377359482,
+      "ap50_95": 0.869351819230786,
+      "mask_ap50": 0.942271753014787,
+      "mask_ap50_95": 0.8376941865424247
+    },
+    "glass-bottle": {
+      "ap50": 0.9824977538185086,
+      "ap50_95": 0.9145048633469667,
+      "mask_ap50": 0.9733000490075961,
+      "mask_ap50_95": 0.8882649249688527
+    },
+    "glass-jar": {
+      "ap50": 0.929027685492802,
+      "ap50_95": 0.8910893675653986,
+      "mask_ap50": 0.9303893876204615,
+      "mask_ap50_95": 0.8502557372430909
+    },
+    "hook": {
+      "ap50": 0.9445454545454546,
+      "ap50_95": 0.914039498432602,
+      "mask_ap50": 0.9445454545454546,
+      "mask_ap50_95": 0.9093596656217349
+    },
+    "large-tire": {
+      "ap50": 0.8929074259074258,
+      "ap50_95": 0.8216649842221271,
+      "mask_ap50": 0.8929074259074258,
+      "mask_ap50_95": 0.7558111816754673
+    },
+    "metal-bottle": {
+      "ap50": 0.7737679493478996,
+      "ap50_95": 0.7388987940835744,
+      "mask_ap50": 0.7737679493478996,
+      "mask_ap50_95": 0.7176741917219298
+    },
+    "metal-box": {
+      "ap50": 0.9606969309462916,
+      "ap50_95": 0.8717475467839918,
+      "mask_ap50": 0.9606969309462916,
+      "mask_ap50_95": 0.8391958426484003
+    },
+    "plastic-bidon": {
+      "ap50": 0.995,
+      "ap50_95": 0.9778095238095238,
+      "mask_ap50": 0.995,
+      "mask_ap50_95": 0.9478571428571427
+    },
+    "plastic-bottle": {
+      "ap50": 0.977478699483746,
+      "ap50_95": 0.834713307999946,
+      "mask_ap50": 0.977478699483746,
+      "mask_ap50_95": 0.7859191389124918
+    },
+    "plastic-pipe": {
+      "ap50": 0.9715636363636363,
+      "ap50_95": 0.8063644183106214,
+      "mask_ap50": 0.9191600508751743,
+      "mask_ap50_95": 0.6961528800894381
+    },
+    "plastic-propeller": {
+      "ap50": 0.995,
+      "ap50_95": 0.910546019198193,
+      "mask_ap50": 0.9341304347826085,
+      "mask_ap50_95": 0.836965062111801
+    },
+    "potion-glass-bottle": {
+      "ap50": 0.8302505965704587,
+      "ap50_95": 0.7826639902775925,
+      "mask_ap50": 0.8302505965704587,
+      "mask_ap50_95": 0.7432563931731574
+    },
+    "propeller": {
+      "ap50": 0.995,
+      "ap50_95": 0.9867333333333332,
+      "mask_ap50": 0.995,
+      "mask_ap50_95": 0.9949999999999999
+    },
+    "rotating-platform": {
+      "ap50": 0.995,
+      "ap50_95": 0.9949999999999999,
+      "mask_ap50": 0.995,
+      "mask_ap50_95": 0.9949999999999999
+    },
+    "shampoo-bottle": {
+      "ap50": 0.9875,
+      "ap50_95": 0.9583999999999999,
+      "mask_ap50": 0.9875,
+      "mask_ap50_95": 0.9121
+    },
+    "small-tire": {
+      "ap50": 0.9850000000000002,
+      "ap50_95": 0.82533641025641,
+      "mask_ap50": 0.8043641025641024,
+      "mask_ap50_95": 0.7820519658119658
+    },
+    "standing-bottle": {
+      "ap50": 0.995,
+      "ap50_95": 0.977,
+      "mask_ap50": 0.995,
+      "mask_ap50_95": 0.9036428571428571
+    },
+    "tire": {
+      "ap50": 0.9898459108459108,
+      "ap50_95": 0.966460938048438,
+      "mask_ap50": 0.9898459108459108,
+      "mask_ap50_95": 0.9618475715163214
+    },
+    "valve": {
+      "ap50": 0.995,
+      "ap50_95": 0.9746666666666666,
+      "mask_ap50": 0.9659523809523811,
+      "mask_ap50_95": 0.965952380952381
+    },
+    "wrench": {
+      "ap50": 0.995,
+      "ap50_95": 0.9206262376237625,
+      "mask_ap50": 0.995,
+      "mask_ap50_95": 0.8904505233704147
+    }
+  },
+  "caveat": "Mask metrics are computed against pseudo-masks derived from boxes; box metrics use real annotations."
+}

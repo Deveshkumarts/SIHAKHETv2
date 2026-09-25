@@ -27,3 +27,12 @@ plotly>=5.18.0
 # Geospatial & Hydrographic Survey (WGS-84 / IHO S-44)
 pyproj>=3.6.0
 shapely>=2.0.0
+
+# MarineGuard v2 pipeline (YOLO11-Seg + Conv-AE + LSTM)
+scikit-learn>=1.3.0        # ROC-AUC / PR-AUC, fusion model
+scikit-image>=0.21.0       # SSIM for the autoencoder evaluation
+onnx>=1.15.0               # model export (edge deployment)
+onnxruntime>=1.16.0        # ONNX / TensorRT execution provider
+httpx>=0.24.0              # FastAPI TestClient (tests)
+pytest>=7.4.0
+# psycopg2-binary>=2.9     # OPTIONAL: PostgreSQL/PostGIS backend (falls back to SQLite when absent)

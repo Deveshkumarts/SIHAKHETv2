@@ -76,6 +76,13 @@ class SCQIRequest(BaseModel):
     heave_m: float = Field(0.05, description="Towfish heave in meters")
 
 
+# ── New YOLO11-Seg + Conv-AE + LSTM pipeline endpoints (additive; every route above/below is unchanged) ──
+from backend.api.router import router as pipeline_router  # noqa: E402
+
+app.include_router(pipeline_router)                                  # /upload /process /detect /track /results /metrics /export
+app.include_router(pipeline_router, prefix="/api/v1", include_in_schema=False)   # same handlers under /api/v1
+
+
 @app.get("/health")
 def health_check():
     return {

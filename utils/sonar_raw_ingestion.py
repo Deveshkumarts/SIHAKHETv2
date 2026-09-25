@@ -8,6 +8,7 @@ Provides direct binary parsers for:
   5. Synthetic XTF Generator for offline mission testing and simulation
 """
 
+import datetime
 import io
 import math
 import struct
@@ -23,11 +24,23 @@ from utils.telemetry_parser import TelemetryRecord, TelemetryValidator
 # ─────────────────────────────────────────────────────────────────────────────
 # TRITON XTF BINARY CONSTANTS & STRUCTS
 # ─────────────────────────────────────────────────────────────────────────────
+# Fixed start time for synthetic files so generated surveys are reproducible (2026-09-12 14:00:00 UTC)
+BASE_EPOCH = datetime.datetime(2026, 9, 12, 14, 0, 0, tzinfo=datetime.timezone.utc).timestamp()
 XTF_MAGIC_FILE_HEADER = 0x7B         # 123 decimal
 XTF_MAGIC_PACKET_HEADER = 0xFACE     # 64206 decimal
 XTF_HEADER_SONAR = 0                 # Sidescan ping packet type
 XTF_HEADER_NOTES = 1
 XTF_HEADER_ATTITUDE = 3
+
+
+def _xtf_epoch(year, month, day, hour, minute, second, hsecond):
+    """UTC epoch seconds from an XTF ping header time (hsecond = 1/100 s); None if the fields are not a valid time."""
+    try:
+        import datetime as _dt
+        return _dt.datetime(int(year), int(month), int(day), int(hour), int(minute), int(second),
+                            int(hsecond) * 10000, tzinfo=_dt.timezone.utc).timestamp()
+    except (ValueError, OverflowError):
+        return None
 
 
 class XTFReader:
@@ -183,9 +196,11 @@ class XTFReader:
         if lat == 0.0 and lon == 0.0:
             lat, lon = 13.0827, 80.2707
 
+        ts = _xtf_epoch(year, month, day, hour, minute, second, hsecond)
         ping_meta = {
             "ping_number": ping_num,
-            "timestamp": time.time(),
+            "timestamp": ts if ts is not None else time.time(),
+            "timestamp_source": "xtf_ping_header" if ts is not None else "parse_time_fallback",
             "latitude": lat,
             "longitude": lon,
             "heading": float(heading) if 0 <= heading <= 360 else 45.0,
@@ -353,7 +368,8 @@ def generate_synthetic_xtf(
     samples_per_channel: int = 384,
     base_lat: float = 13.0827,
     base_lon: float = 80.2707,
-    inject_target: bool = True
+    inject_target: bool = True,
+    seed: int = 0,
 ) -> Path:
     """
     Creates a Triton XTF file with valid headers, attitude records,
@@ -362,6 +378,7 @@ def generate_synthetic_xtf(
     out_file = Path(output_path).resolve()
     out_file.parent.mkdir(parents=True, exist_ok=True)
 
+    rng = np.random.default_rng(seed)          # deterministic sample data
     with open(out_file, "wb") as f:
         # 1. 1024-byte File Header
         hdr = bytearray(1024)
@@ -389,15 +406,20 @@ def generate_synthetic_xtf(
             f.write(pkt_hdr)
 
             ping_hdr = bytearray(242)
-            cur_time = time.time() + p_idx * 0.25
-            lat = base_lat + (p_idx * 0.00004)
-            lon = base_lon + (p_idx * 0.00004)
+            cur_time = BASE_EPOCH + p_idx * 0.25
+            # Advance along a 45 deg track at the declared 3.8 kt (1 kt = 0.5144 m/s, 0.25 s per ping) so the
+            # navigation is physically consistent with the speed written into every ping header.
+            _step_m = 3.8 * 0.5144 * 0.25 * p_idx
+            lat = base_lat + (_step_m * math.cos(math.radians(45.0))) / 111320.0
+            lon = base_lon + (_step_m * math.sin(math.radians(45.0))) / (111320.0 * math.cos(math.radians(base_lat)))
             heading = 45.0 + math.sin(p_idx * 0.1) * 2.0
             pitch = math.sin(p_idx * 0.2) * 1.5
             roll = math.cos(p_idx * 0.2) * 2.0
             heave = math.sin(p_idx * 0.15) * 0.4
 
-            struct.pack_into("<HBBBBBB", ping_hdr, 0, 2026, 9, 12, 14, 0, p_idx % 60, 0)
+            _t = datetime.datetime.fromtimestamp(cur_time, datetime.timezone.utc)
+            struct.pack_into("<HBBBBBB", ping_hdr, 0, _t.year, _t.month, _t.day, _t.hour, _t.minute, _t.second,
+                             int(_t.microsecond / 10000))
             struct.pack_into("<HII", ping_hdr, 8, 255, int(cur_time), p_idx + 1)
             struct.pack_into("<f", ping_hdr, 18, 25.0)
             struct.pack_into("<fffff", ping_hdr, 26, heading, pitch, roll, heave, heading)
@@ -406,20 +428,20 @@ def generate_synthetic_xtf(
             struct.pack_into("<dd", ping_hdr, 78, lon, lat)
             f.write(ping_hdr)
 
-            port_data = np.random.normal(85, 14, samples_per_channel).clip(20, 210).astype(np.uint8)
-            stbd_data = np.random.normal(85, 14, samples_per_channel).clip(20, 210).astype(np.uint8)
+            port_data = rng.normal(85, 14, samples_per_channel).clip(20, 210).astype(np.uint8)
+            stbd_data = rng.normal(85, 14, samples_per_channel).clip(20, 210).astype(np.uint8)
 
             nadir_len = int(samples_per_channel * 0.12)
-            port_data[:nadir_len] = np.random.normal(12, 4, nadir_len).clip(2, 25).astype(np.uint8)
-            stbd_data[:nadir_len] = np.random.normal(12, 4, nadir_len).clip(2, 25).astype(np.uint8)
+            port_data[:nadir_len] = rng.normal(12, 4, nadir_len).clip(2, 25).astype(np.uint8)
+            stbd_data[:nadir_len] = rng.normal(12, 4, nadir_len).clip(2, 25).astype(np.uint8)
 
             ripple_modulation = (np.sin(np.arange(samples_per_channel) * 0.35) * 16.0).astype(np.int16)
             port_data[nadir_len:] = np.clip(port_data[nadir_len:].astype(np.int16) + ripple_modulation[nadir_len:], 0, 255).astype(np.uint8)
 
             if inject_target and 50 <= p_idx <= 70:
                 t_pos = int(samples_per_channel * 0.45)
-                stbd_data[t_pos:t_pos + 12] = np.random.randint(230, 255, 12, dtype=np.uint8)
-                stbd_data[t_pos + 12:t_pos + 38] = np.random.randint(4, 18, 26, dtype=np.uint8)
+                stbd_data[t_pos:t_pos + 12] = rng.integers(230, 255, 12, dtype=np.uint8)
+                stbd_data[t_pos + 12:t_pos + 38] = rng.integers(4, 18, 26, dtype=np.uint8)
 
             ch0_hdr = bytearray(64)
             struct.pack_into("<HHffff", ch0_hdr, 0, 0, 1, 75.0, 74.0, 0.0, 0.05)

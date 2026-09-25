@@ -1,0 +1,200 @@
+{
+  "signature_only_classification": {
+    "top1": 0.45278137128072443,
+    "top3": 0.7011642949547219,
+    "family_accuracy": 0.592496765847348,
+    "majority_class_baseline": 0.10219922380336352,
+    "chance_top1": 0.037037037037037035,
+    "n_test_objects": 773
+  },
+  "verification_auroc": {
+    "test": 0.9360181681558551,
+    "val": 0.9291384143806957,
+    "meaning": "P(claimed class | signature): true class vs a random wrong class (0.5 = no information)"
+  },
+  "ablation": {
+    "all_features": {
+      "n_features": 12,
+      "top1": 0.45278137128072443,
+      "top3": 0.7011642949547219,
+      "verification_auroc": 0.9360181681558551
+    },
+    "acoustic_only": {
+      "n_features": 9,
+      "top1": 0.35058214747736094,
+      "top3": 0.6351875808538163,
+      "verification_auroc": 0.9117498899634996
+    },
+    "geometry_only": {
+      "n_features": 3,
+      "top1": 0.18758085381630013,
+      "top3": 0.3829236739974127,
+      "verification_auroc": 0.7920427293068621
+    }
+  },
+  "per_class_auc": {
+    "Shipwrecks": {
+      "n": 22,
+      "auc": 0.9999394746398741
+    },
+    "shampoo-bottle": {
+      "n": 11,
+      "auc": 0.9996420901932713
+    },
+    "large-tire": {
+      "n": 21,
+      "auc": 0.9986068895643364
+    },
+    "small-tire": {
+      "n": 24,
+      "auc": 0.9917111704494882
+    },
+    "propeller": {
+      "n": 15,
+      "auc": 0.9876868953386104
+    },
+    "plastic-propeller": {
+      "n": 23,
+      "auc": 0.9870724637681159
+    },
+    "rotating-platform": {
+      "n": 20,
+      "auc": 0.9849933598937584
+    },
+    "valve": {
+      "n": 42,
+      "auc": 0.9681779688619634
+    },
+    "hook": {
+      "n": 14,
+      "auc": 0.9650856389986824
+    },
+    "plastic-pipe": {
+      "n": 22,
+      "auc": 0.9333615785013921
+    },
+    "drink-sachet": {
+      "n": 23,
+      "auc": 0.9247536231884058
+    },
+    "chain": {
+      "n": 24,
+      "auc": 0.9196150422785937
+    },
+    "plastic-bidon": {
+      "n": 21,
+      "auc": 0.9091312056737589
+    },
+    "wrench": {
+      "n": 24,
+      "auc": 0.9000333778371161
+    },
+    "bottle": {
+      "n": 46,
+      "auc": 0.8999760779857665
+    },
+    "metal-bottle": {
+      "n": 23,
+      "auc": 0.8823188405797102
+    },
+    "tire": {
+      "n": 34,
+      "auc": 0.8752288466130701
+    },
+    "plastic-bottle": {
+      "n": 44,
+      "auc": 0.8697156752712308
+    },
+    "glass-bottle": {
+      "n": 48,
+      "auc": 0.8676149425287357
+    },
+    "metal-box": {
+      "n": 19,
+      "auc": 0.8508306575457211
+    },
+    "glass-jar": {
+      "n": 44,
+      "auc": 0.8380720788128195
+    },
+    "potion-glass-bottle": {
+      "n": 23,
+      "auc": 0.8254492753623188
+    },
+    "drink-carton": {
+      "n": 79,
+      "auc": 0.8206690256447671
+    },
+    "can": {
+      "n": 79,
+      "auc": 0.8072812169408675
+    },
+    "brown-glass-bottle": {
+      "n": 21,
+      "auc": 0.7366388044579534
+    }
+  },
+  "detector_error_catching": {
+    "detector": "YOLO11-Seg (real predictions on the test split)",
+    "n_calls": 822,
+    "detector_accuracy": 0.9038929440389294,
+    "n_detector_errors": 79,
+    "policy": {
+      "mismatch_if_rank_ge": 3,
+      "and_p_lt": 0.03,
+      "confirm_min_ratio": 1.0,
+      "chosen_on": "validation: mismatch flags most errors at <=10% of correct calls; confirm ratio maximises Youden J",
+      "val": {
+        "errors_flagged": 0.19791666666666666,
+        "correct_flagged": 0.08501440922190202,
+        "confirm_youden_j": 0.29442843419788667
+      }
+    },
+    "test": {
+      "errors_flagged": 0.189873417721519,
+      "correct_calls_flagged": 0.06460296096904442,
+      "confirmed_share_of_correct": 0.46567967698519513,
+      "confirmed_share_of_wrong": 0.17721518987341772,
+      "precision_of_confirmed": 0.9611111111111111,
+      "base_detector_accuracy": 0.9038929440389294
+    }
+  },
+  "material_family_check": {
+    "note": "families assigned by me from class names (no material labels exist)",
+    "median_impedance_contrast_idx": {
+      "metal": 0.08446427585372,
+      "glass": 0.09180310920646101,
+      "plastic": 0.09869553384507579,
+      "rubber": 0.15640106657525057,
+      "structure": 0.00425134231928209
+    }
+  },
+  "feature_importance": {
+    "impedance_contrast_idx": 0.9910846574532693,
+    "contrast_db": 0.6513769588809079,
+    "peak_db": 2.326708088970471,
+    "shadow_depth": 0.9654554970557678,
+    "highlight_shadow_ratio": 1.7893180200968926,
+    "shadow_length_rel": 0.2520285094938476,
+    "edge_sharpness": 1.030106016199399,
+    "texture_cv": 2.0875951724858766,
+    "entropy": 1.325089030679972,
+    "log_area": 1.4716707560714757,
+    "elongation": 1.7968736463398032,
+    "fill_ratio": 0.5660175627340222
+  },
+  "features": [
+    "impedance_contrast_idx",
+    "contrast_db",
+    "peak_db",
+    "shadow_depth",
+    "highlight_shadow_ratio",
+    "shadow_length_rel",
+    "edge_sharpness",
+    "texture_cv",
+    "entropy",
+    "log_area",
+    "elongation",
+    "fill_ratio"
+  ]
+}

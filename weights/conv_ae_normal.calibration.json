@@ -1,0 +1,325 @@
+{
+  "threshold": 0.010013983812576264,
+  "score_sharpness": 3.0,
+  "patch_size": 64,
+  "latent_dim": 128,
+  "normal_error_mean": 0.0035842685028910637,
+  "normal_error_p95": 0.01372592430561781,
+  "trained_on": "normal seabed patches only (real Anoma sonar)",
+  "provenance": {
+    "train_frames": 402,
+    "val_frames": 55,
+    "test_frames": 55,
+    "unlabelled_split_unused": "samples/anoma/text has images but no labels"
+  },
+  "train_patches": 9229,
+  "epochs_run": 40,
+  "wall_seconds": 3.0,
+  "recalibrated_only": true,
+  "config_hash": "912ab47483c2",
+  "history": [
+    {
+      "epoch": 1,
+      "train_mse": 0.042475058561234756,
+      "val_normal_mse": 0.019207501783967018
+    },
+    {
+      "epoch": 2,
+      "train_mse": 0.013638082271493686,
+      "val_normal_mse": 0.010135659947991371
+    },
+    {
+      "epoch": 3,
+      "train_mse": 0.009185990254576453,
+      "val_normal_mse": 0.008513467386364937
+    },
+    {
+      "epoch": 4,
+      "train_mse": 0.00803502715983991,
+      "val_normal_mse": 0.008484832011163235
+    },
+    {
+      "epoch": 5,
+      "train_mse": 0.007779484116625187,
+      "val_normal_mse": 0.008127841167151928
+    },
+    {
+      "epoch": 6,
+      "train_mse": 0.007231733144647135,
+      "val_normal_mse": 0.007443503942340612
+    },
+    {
+      "epoch": 7,
+      "train_mse": 0.006676232768913941,
+      "val_normal_mse": 0.006796472705900669
+    },
+    {
+      "epoch": 8,
+      "train_mse": 0.0062044459798862,
+      "val_normal_mse": 0.006537607405334711
+    },
+    {
+      "epoch": 9,
+      "train_mse": 0.006024346810315797,
+      "val_normal_mse": 0.006430084351450205
+    },
+    {
+      "epoch": 10,
+      "train_mse": 0.005668036690802641,
+      "val_normal_mse": 0.005693159066140652
+    },
+    {
+      "epoch": 11,
+      "train_mse": 0.005479709729291914,
+      "val_normal_mse": 0.005434310529381037
+    },
+    {
+      "epoch": 12,
+      "train_mse": 0.005347299283481985,
+      "val_normal_mse": 0.006769111379981041
+    },
+    {
+      "epoch": 13,
+      "train_mse": 0.005950376853186979,
+      "val_normal_mse": 0.005789612419903278
+    },
+    {
+      "epoch": 14,
+      "train_mse": 0.005573375784292589,
+      "val_normal_mse": 0.005337136797606945
+    },
+    {
+      "epoch": 15,
+      "train_mse": 0.005146124930292455,
+      "val_normal_mse": 0.00528215616941452
+    },
+    {
+      "epoch": 16,
+      "train_mse": 0.005036295597581864,
+      "val_normal_mse": 0.005508657079190016
+    },
+    {
+      "epoch": 17,
+      "train_mse": 0.005204333009185997,
+      "val_normal_mse": 0.005285646300762892
+    },
+    {
+      "epoch": 18,
+      "train_mse": 0.004823241520280285,
+      "val_normal_mse": 0.00489562563598156
+    },
+    {
+      "epoch": 19,
+      "train_mse": 0.004804223680904871,
+      "val_normal_mse": 0.005695918574929237
+    },
+    {
+      "epoch": 20,
+      "train_mse": 0.004808666594350715,
+      "val_normal_mse": 0.00497587351128459
+    },
+    {
+      "epoch": 21,
+      "train_mse": 0.004749121806501651,
+      "val_normal_mse": 0.004635959398001432
+    },
+    {
+      "epoch": 22,
+      "train_mse": 0.00451825960297192,
+      "val_normal_mse": 0.004584659356623888
+    },
+    {
+      "epoch": 23,
+      "train_mse": 0.004380737180377683,
+      "val_normal_mse": 0.004630946088582277
+    },
+    {
+      "epoch": 24,
+      "train_mse": 0.00449900444713459,
+      "val_normal_mse": 0.004734779242426157
+    },
+    {
+      "epoch": 25,
+      "train_mse": 0.004578987550830412,
+      "val_normal_mse": 0.004554723855108023
+    },
+    {
+      "epoch": 26,
+      "train_mse": 0.004416193522860859,
+      "val_normal_mse": 0.004641557112336159
+    },
+    {
+      "epoch": 27,
+      "train_mse": 0.004663670094664996,
+      "val_normal_mse": 0.004209727980196476
+    },
+    {
+      "epoch": 28,
+      "train_mse": 0.004167838843238839,
+      "val_normal_mse": 0.004059141036123037
+    },
+    {
+      "epoch": 29,
+      "train_mse": 0.0041311798542164775,
+      "val_normal_mse": 0.004313603043556213
+    },
+    {
+      "epoch": 30,
+      "train_mse": 0.004228415964269176,
+      "val_normal_mse": 0.00406702421605587
+    },
+    {
+      "epoch": 31,
+      "train_mse": 0.0041064577313045785,
+      "val_normal_mse": 0.004065403249114752
+    },
+    {
+      "epoch": 32,
+      "train_mse": 0.004015438620318751,
+      "val_normal_mse": 0.0039038285613059998
+    },
+    {
+      "epoch": 33,
+      "train_mse": 0.003982906077920532,
+      "val_normal_mse": 0.004208611790090799
+    },
+    {
+      "epoch": 34,
+      "train_mse": 0.0040331783459544735,
+      "val_normal_mse": 0.0037971693091094494
+    },
+    {
+      "epoch": 35,
+      "train_mse": 0.003977493561706611,
+      "val_normal_mse": 0.004743719939142466
+    },
+    {
+      "epoch": 36,
+      "train_mse": 0.0041957795973158775,
+      "val_normal_mse": 0.0038079842925071716
+    },
+    {
+      "epoch": 37,
+      "train_mse": 0.0038871403138677697,
+      "val_normal_mse": 0.003676685970276594
+    },
+    {
+      "epoch": 38,
+      "train_mse": 0.0038663727615901714,
+      "val_normal_mse": 0.004199541173875332
+    },
+    {
+      "epoch": 39,
+      "train_mse": 0.003995892710447705,
+      "val_normal_mse": 0.0036757667548954487
+    },
+    {
+      "epoch": 40,
+      "train_mse": 0.0036875234155117763,
+      "val_normal_mse": 0.0035842685028910637
+    }
+  ],
+  "report": {
+    "threshold_selected_on": "validation (Anoma valid half A), REAL anomalies only",
+    "threshold": 0.010013983812576264,
+    "max_fpr_constraint": 0.1,
+    "validation": {
+      "n_normal": 614,
+      "n_anomaly": 107,
+      "threshold": 0.010013983812576264,
+      "roc_auc": 0.8150933057322901,
+      "pr_auc": 0.38822647266559995,
+      "precision": 0.4019607843137255,
+      "recall": 0.38317757009345793,
+      "f1": 0.39234449760765544,
+      "false_positive_rate": 0.0993485342019544,
+      "false_negative_rate": 0.616822429906542,
+      "tp": 41,
+      "fp": 61,
+      "fn": 66,
+      "tn": 553
+    },
+    "validation_synthetic": {
+      "n_normal": 614,
+      "n_anomaly": 200,
+      "threshold": 0.010013983812576264,
+      "roc_auc": 0.6286644951140066,
+      "pr_auc": 0.31289934025062655,
+      "precision": 0.27380952380952384,
+      "recall": 0.115,
+      "f1": 0.16197183098591553,
+      "false_positive_rate": 0.0993485342019544,
+      "false_negative_rate": 0.885,
+      "tp": 23,
+      "fp": 61,
+      "fn": 177,
+      "tn": 553
+    },
+    "test_real": {
+      "n_normal": 628,
+      "n_anomaly": 65,
+      "threshold": 0.010013983812576264,
+      "roc_auc": 0.9021803037726606,
+      "pr_auc": 0.5503308933287202,
+      "precision": 0.4430379746835443,
+      "recall": 0.5384615384615384,
+      "f1": 0.48611111111111105,
+      "false_positive_rate": 0.07006369426751592,
+      "false_negative_rate": 0.46153846153846156,
+      "tp": 35,
+      "fp": 44,
+      "fn": 30,
+      "tn": 584,
+      "mse_normal": 0.003541612299159169,
+      "mse_anomaly": 0.013013673014938831,
+      "mae_normal": 0.038790907710790634,
+      "mae_anomaly": 0.08021257817745209,
+      "ssim_normal": 0.561979095120439,
+      "ssim_anomaly": 0.42723603595560805
+    },
+    "test_synthetic": {
+      "n_normal": 628,
+      "n_anomaly": 200,
+      "threshold": 0.010013983812576264,
+      "roc_auc": 0.6141321656050955,
+      "pr_auc": 0.2911727989756724,
+      "precision": 0.2542372881355932,
+      "recall": 0.075,
+      "f1": 0.11583011583011582,
+      "false_positive_rate": 0.07006369426751592,
+      "false_negative_rate": 0.925,
+      "tp": 15,
+      "fp": 44,
+      "fn": 185,
+      "tn": 584,
+      "mse_normal": 0.003541612299159169,
+      "mse_anomaly": 0.004397510085254908,
+      "mae_normal": 0.038790907710790634,
+      "mae_anomaly": 0.044718969613313675,
+      "ssim_normal": 0.561979095120439,
+      "ssim_anomaly": 0.520944215244048
+    },
+    "test_real+synthetic": {
+      "n_normal": 628,
+      "n_anomaly": 265,
+      "threshold": 0.010013983812576264,
+      "roc_auc": 0.6847854825141209,
+      "pr_auc": 0.479777696247057,
+      "precision": 0.5319148936170213,
+      "recall": 0.18867924528301888,
+      "f1": 0.27855153203342625,
+      "false_positive_rate": 0.07006369426751592,
+      "false_negative_rate": 0.8113207547169812,
+      "tp": 50,
+      "fp": 44,
+      "fn": 215,
+      "tn": 584,
+      "mse_normal": 0.003541612299159169,
+      "mse_anomaly": 0.0065109082497656345,
+      "mae_normal": 0.038790907710790634,
+      "mae_anomaly": 0.05342495068907738,
+      "ssim_normal": 0.561979095120439,
+      "ssim_anomaly": 0.49795919065783617
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "args": {
+    "data": "SIH_Dataset_27class_seg",
+    "model": "yolo11n-seg.pt",
+    "epochs": 15,
+    "imgsz": 256,
+    "batch": 32,
+    "device": "cpu",
+    "workers": 3,
+    "patience": 6,
+    "cache": "ram",
+    "fraction": 1.0,
+    "name": "yolo11n_seg_sih27"
+  },
+  "wall_seconds": 6004.8,
+  "label_type": "pseudo-masks",
+  "weights": "D:\\Projects\\SIH\\weights\\yolo11n_seg_sih27.pt",
+  "config_hash": "18bfcaeee251"
+}

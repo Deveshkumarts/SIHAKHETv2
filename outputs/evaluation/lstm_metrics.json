@@ -1,0 +1,49 @@
+{
+  "lstm": {
+    "predictor_used": "lstm",
+    "forecast": {
+      "n_windows": 17550,
+      "mae_px_step1": 1.0993462800979614,
+      "rmse_px_step1": 1.3937259912490845,
+      "mae_px_horizon": 1.8071454763412476,
+      "rmse_px_horizon": 2.440746784210205,
+      "trajectory_ade_px": 2.8414533138275146,
+      "trajectory_fde_px": 4.065984725952148
+    },
+    "tracking": {
+      "n_gt_tracks": 803,
+      "id_switches": 44,
+      "id_switches_per_track": 0.0547945205479452,
+      "track_continuity": 0.9934383991587242,
+      "fragmentations": 33,
+      "tracking_success_rate": 0.9613947696139477,
+      "false_track_rate": 0.07514450867052024,
+      "latency_ms_per_frame": 6.436389587473968,
+      "fps": 155.36660520769703
+    }
+  },
+  "constant_velocity_baseline": {
+    "predictor_used": "constant_velocity",
+    "forecast": {
+      "n_windows": 17550,
+      "mae_px_step1": 1.8181962966918945,
+      "rmse_px_step1": 2.398146390914917,
+      "mae_px_horizon": 3.4309444427490234,
+      "rmse_px_horizon": 5.424884796142578,
+      "trajectory_ade_px": 5.404528617858887,
+      "trajectory_fde_px": 8.044852256774902
+    },
+    "tracking": {
+      "n_gt_tracks": 803,
+      "id_switches": 71,
+      "id_switches_per_track": 0.08841843088418432,
+      "track_continuity": 0.9845670251672048,
+      "fragmentations": 61,
+      "tracking_success_rate": 0.9290161892901619,
+      "false_track_rate": 0.06164383561643835,
+      "latency_ms_per_frame": 0.5852763500142828,
+      "fps": 1708.5945809626453
+    }
+  },
+  "data": "simulated held-out scenes (200); no real labelled tracks exist in this repo"
+}

@@ -1,0 +1,146 @@
+# =============================================================================
+# MarineGuard pipeline configuration  (single source of truth -> reproducible runs)
+#
+# RAW XTF/SSS -> QC -> Calibration -> Median/Bilateral/CLAHE -> SNR -> SA-CFAR
+#   -> [YOLO11-Seg | Conv-AE] -> Decision Fusion -> LSTM tracking
+#   -> Geolocation + SCQI -> GIS/KDE -> PostGIS -> API/Dashboard -> exports
+#
+# The config hash is stored with every run and every detection record.
+# =============================================================================
+pipeline:
+  name: marineguard
+  version: "2.0.0"
+  seed: 0
+
+logging:
+  dir: outputs/pipeline_logs           # one JSONL file per run: stage, seconds, summary
+  level: INFO
+
+paths:
+  runs_dir: outputs/runs
+  weights_dir: weights
+
+ingestion:
+  supported: [".xtf", ".jsf", ".png", ".jpg", ".jpeg", ".bmp", ".webp"]
+  max_upload_mb: 512
+
+quality_control:                       # gate BEFORE any processing; failures are reported, not hidden
+  max_zero_ratio: 0.60                 # fraction of exactly-zero samples (ping dropout / dead channel)
+  max_saturation_ratio: 0.25
+  min_dynamic_range_db: 6.0
+  min_altitude_m: 2.0                  # towfish too low -> shadows too short
+  max_altitude_m: 40.0
+  max_pitch_roll_deg: 12.0
+  abort_on_fail: false                 # true -> stop the run; false -> continue with warnings
+
+calibration:
+  enable: true
+  apply_to_images: false               # plain images/crops are not raw waterfalls -> skip waterfall corrections
+  altitude_m: 10.0
+  slant_range_m: 75.0
+  enable_tvg: true
+  enable_wcr: true                     # water-column removal
+  enable_src: true                     # slant-range correction
+  enable_beam_correction: true
+
+preprocessing:                         # exactly: median -> bilateral -> CLAHE (no extra sharpening)
+  median_ksize: 3
+  bilateral_d: 7
+  bilateral_sigma: 50.0
+  clahe_clip: 2.0
+  sharpen_amount: 0.0
+
+snr:
+  tile_size: 64                        # per-tile SNR map used for reliability weighting
+  min_tile_snr_db: 3.0
+
+sa_cfar:
+  guard_size: 4
+  ref_size: 14
+  min_target_area: 15
+  max_target_area: 10000
+  merge_gap_px: 20                     # CFAR fragments closer than this are one object. Trade-off measured on Anoma (docs/PIPELINE.md)
+  candidate_pad_px: 8                  # ROI padding handed to the AI branches
+
+yolo_seg:
+  weights: weights/yolo11n_seg_sih27.pt
+  imgsz: 256                           # the resolution the model was TRAINED and evaluated at (640 here was a config error)
+  conf: 0.25
+  iou: 0.45
+  device: auto                         # cpu | cuda:0 | auto
+  half: false
+  min_mask_area_px: 6
+  input: calibrated                    # calibrated (un-enhanced) image = what the model was trained on. "enhanced" scored 56% vs 94% correct
+
+autoencoder:
+  weights: weights/conv_ae_normal.pt
+  calibration: weights/conv_ae_normal.calibration.json   # threshold chosen on VALIDATION data
+  patch_size: 64
+  input: calibrated                    # AE was trained on raw crops; calibrated ROIs scored better than enhanced ones
+  context_px: 0                        # 0 = tight box+pad ROI. 256 px context was tested and scored WORSE end-to-end (see docs)
+  latent_dim: 128
+  device: auto
+
+fusion:
+  # weights of the evidence terms (renormalised over the evidence that is present)
+  w_cfar: 0.25
+  w_yolo: 0.40
+  w_anomaly: 0.25
+  w_snr: 0.10
+  w_shadow: 0.20                       # acoustic-shadow consistency (strongest physical cue for real objects)
+  known_min_yolo_conf: 0.35
+  unknown_min_anomaly_score: 0.5       # score is normalised so 0.5 == validation threshold
+  noise_max_fused: 0.45                # selected on Anoma validation half A (tight ROI, merge gap 20)
+  learned_model: ""                    # logistic fusion (scripts/train_fusion.py) gave NO held-out gain -> off; set path to enable
+  # an object is NEVER rejected solely because its anomaly score is low
+
+signature:                             # acoustic-signature verification (impedance-contrast proxy), non-vetoing
+  model: weights/signature_model.json
+  enable: true
+
+tracking:
+  weights: weights/lstm_tracker.pt
+  seq_len: 8
+  horizon: 5
+  max_age: 5
+  min_hits: 3                          # detections before a track is reported as confirmed
+  match_dist_px: 60.0
+  device: cpu
+
+framing:                               # detection stages run per along-track frame; tracking links them
+  frame_pings: 384
+  stride_pings: 192
+  min_frame_pings: 64
+
+geolocation:
+  gps_accuracy_m: 2.5
+  dedup_distance_m: 4.5
+
+scqi:
+  resurvey_threshold: 55.0
+
+gis:
+  kde_bandwidth_deg: 0.0005
+  kde_grid: 60
+  hotspot_percentile: 90
+  scqi_cell_deg: 0.0004
+
+database:
+  backend: auto                        # auto | postgis | sqlite
+  postgres_dsn_env: MARINEGUARD_PG_DSN # e.g. postgresql://user:pass@host:5432/marineguard
+  sqlite_path: outputs/marineguard.db
+  srid: 4326
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  cors_origins: ["*"]
+
+export:
+  backend: pytorch                     # pytorch | onnx  (onnx = ONNX Runtime; TensorRT provider used when installed)
+  onnx_dir: weights/onnx
+  opset: 17
+  tensorrt:
+    precision: fp16                    # fp16 | int8
+    workspace_mb: 2048
+    target: jetson_orin_nx
