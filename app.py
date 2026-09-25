@@ -1,5 +1,5 @@
 """
-🌊 Akhet Marine & Sonar AI Platform (SIH 2026 - PS 26057)
+ Akhet Marine & Sonar AI Platform (SIH 2026 - PS 26057)
 Modular Multi-Model Architecture with 3-Stage Preprocessing (Median -> Bilateral -> CLAHE),
 SegFormer Edge Segmentation, and ResNet-18 PyTorch Grad-CAM Explainability.
 """
@@ -70,7 +70,7 @@ from resnet.classifier import ResNet18InferenceEngine, MASTER_CLASSES as RESNET_
 # ─── Page Config ───────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="AKHET : MARINE GUARD — Turning Echoes into Impact (SIH26057)",
-    page_icon="🌊",
+    page_icon=None,
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -78,1976 +78,1212 @@ st.set_page_config(
 # ─── CSS ───────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   DEEP-SEA PALETTE & DESIGN SYSTEM TOKENS
-   Mood: Deep Ocean Tactical Research Console (NIOT / AUV Mission Control)
-   ═══════════════════════════════════════════════════════════════════════════ */
 :root {
-    --abyss-base: #05141F;
-    --abyss-depth: #071C2B;
-    --abyss-surface: #0A2436;
-    --midwater-panel: rgba(15, 61, 92, 0.48);
-    --midwater-card: rgba(10, 36, 54, 0.65);
-    --midwater-border: rgba(25, 227, 194, 0.20);
-    --midwater-border-hover: rgba(47, 230, 209, 0.45);
-    --biolum-primary: #19E3C2;
-    --biolum-cyan: #2FE6D1;
-    --biolum-glow: rgba(25, 227, 194, 0.35);
-    --signal-amber: #FF7A45;
-    --signal-yellow: #FFC107;
-    --signal-green: #00E676;
-    --signal-red: #FF5252;
-    --foam-white: #E8F4F8;
-    --muted-seabed: #6E8A96;
-    --muted-teal: #8EA6B4;
-    --font-heading: 'Space Grotesk', -apple-system, sans-serif;
-    --font-body: 'Inter', -apple-system, sans-serif;
-    --font-mono: 'JetBrains Mono', 'Consolas', monospace;
+    --bg-canvas: #F4F5F7;
+    --bg-card: #FFFFFF;
+    --bg-subtle: #F8FAFC;
+    --text-primary: #0F1115;
+    --text-secondary: #475569;
+    --text-muted: #64748B;
+    --accent-black: #18181B;
+    --border-light: #E4E4E7;
+    --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
 }
 
-/* ═══════════════════════════════════════════════════════════════════════════
-   TACTICAL & BIOLUMINESCENT KEYFRAME ANIMATIONS (UI/UX Pro Max & 21st.dev)
-   ═══════════════════════════════════════════════════════════════════════════ */
-@keyframes sonarScan {
-    0% { transform: translateY(-100%); opacity: 0; }
-    25% { opacity: 0.85; }
-    75% { opacity: 0.85; }
-    100% { transform: translateY(100%); opacity: 0; }
-}
-
-@keyframes radarSweep {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-@keyframes sonarPingEcho {
-    0% {
-        transform: translate(-50%, -50%) scale(0.15);
-        opacity: 0.95;
-        border-color: rgba(25, 227, 194, 0.85);
-        box-shadow: 0 0 10px rgba(25, 227, 194, 0.7);
-    }
-    40% {
-        opacity: 0.65;
-    }
-    100% {
-        transform: translate(-50%, -50%) scale(2.8);
-        opacity: 0;
-        border-color: rgba(25, 227, 194, 0);
-        box-shadow: 0 0 32px rgba(25, 227, 194, 0);
-    }
-}
-
-/* 21st.dev Border Beam Animation */
-@keyframes borderBeamMove {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-
-/* Tactical Azimuth Graticule Dial */
-@keyframes azimuthRotate {
-    0% { transform: translate(-50%, -50%) rotate(0deg); }
-    100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-@keyframes azimuthRotateReverse {
-    0% { transform: translate(-50%, -50%) rotate(360deg); }
-    100% { transform: translate(-50%, -50%) rotate(0deg); }
-}
-
-/* Target Acquisition Crosshair */
-@keyframes crosshairPulse {
-    0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
-    50% { transform: translate(-50%, -50%) scale(1.15); opacity: 1.0; filter: drop-shadow(0 0 6px #19E3C2); }
-}
-
-/* Hydrophone Frequency Spectrum Equalizer */
-@keyframes hydrophonePulse {
-    0% { transform: scaleY(0.28); opacity: 0.4; }
-    50% { transform: scaleY(1.05); opacity: 1.0; filter: drop-shadow(0 0 4px #19E3C2); }
-    100% { transform: scaleY(0.38); opacity: 0.5; }
-}
-
-@keyframes waveContourDrift {
-    0% { transform: translateY(0px) scaleY(1); opacity: 0.75; }
-    50% { transform: translateY(-2px) scaleY(1.22); opacity: 1; filter: drop-shadow(0 0 5px #19E3C2); }
-    100% { transform: translateY(1px) scaleY(0.92); opacity: 0.75; }
-}
-
-/* Floating Brand Diamond */
-@keyframes diamondGlowFloat {
-    0%, 100% { transform: translateY(0px); filter: drop-shadow(0 0 6px rgba(25, 227, 194, 0.45)); }
-    50% { transform: translateY(-2.5px); filter: drop-shadow(0 0 16px rgba(25, 227, 194, 0.88)); }
-}
-
-/* KPI Stat Cards Top Beam Glider */
-@keyframes kpiTopBeam {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(200%); }
-}
-
-/* Grad-CAM Thermal Aura Sweep */
-@keyframes thermalSweep {
-    0% { transform: translateY(-100%); opacity: 0; }
-    30% { opacity: 0.65; }
-    70% { opacity: 0.65; }
-    100% { transform: translateY(100%); opacity: 0; }
-}
-
-/* Navigation Active Tab Pulse (Contained Glow, Zero Overlap) */
-@keyframes navActivePulse {
-    0% {
-        box-shadow: 0 0 6px rgba(25, 227, 194, 0.18), inset 0 0 6px rgba(25, 227, 194, 0.08);
-        border-color: rgba(25, 227, 194, 0.65);
-    }
-    100% {
-        box-shadow: 0 0 10px rgba(25, 227, 194, 0.32), inset 0 0 8px rgba(25, 227, 194, 0.14);
-        border-color: #2FE6D1;
-    }
-}
-
-/* Threat-Level Respiration Cycles */
-@keyframes confirmedBreathe {
-    0%, 100% { box-shadow: 0 0 4px rgba(0, 230, 118, 0.3); border-color: rgba(0, 230, 118, 0.55); }
-    50% { box-shadow: 0 0 14px rgba(0, 230, 118, 0.85); border-color: rgba(0, 230, 118, 1); }
-}
-
-@keyframes warningBreathe {
-    0%, 100% { box-shadow: 0 0 4px rgba(255, 122, 69, 0.35); border-color: rgba(255, 122, 69, 0.55); }
-    50% { box-shadow: 0 0 16px rgba(255, 122, 69, 0.88); border-color: rgba(255, 122, 69, 1); }
-}
-
-@keyframes dangerStrobe {
-    0%, 100% { box-shadow: 0 0 4px rgba(255, 82, 82, 0.45); border-color: rgba(255, 82, 82, 0.55); transform: scale(1); }
-    50% { box-shadow: 0 0 20px rgba(255, 82, 82, 0.95); border-color: rgba(255, 82, 82, 1); transform: scale(1.05); }
-}
-
-@keyframes buttonShimmer {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
-}
-
-@keyframes buttonLightSweep {
-    0% { transform: translateX(-150%) skewX(-20deg); }
-    100% { transform: translateX(250%) skewX(-20deg); }
-}
-
-@keyframes pulseBeacon {
-    0% { transform: scale(0.92); opacity: 0.75; box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.65); }
-    50% { transform: scale(1.08); opacity: 1.0; box-shadow: 0 0 14px 4px rgba(0, 230, 118, 0.45); }
-    100% { transform: scale(0.92); opacity: 0.75; box-shadow: 0 0 0 0 rgba(0, 230, 118, 0.65); }
-}
-
-@keyframes liveHeartbeat {
-    0%, 100% { transform: scale(1); opacity: 0.85; filter: drop-shadow(0 0 2px rgba(25, 227, 194, 0.4)); }
-    50% { transform: scale(1.06); opacity: 1; filter: drop-shadow(0 0 10px rgba(25, 227, 194, 0.95)); }
-}
-
-@keyframes waveShift {
-    0% { background-position-x: 0px; }
-    100% { background-position-x: 600px; }
-}
-
-@keyframes cardAmbientGlow {
-    0% {
-        border-color: rgba(25, 227, 194, 0.18);
-        box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(232, 244, 248, 0.06);
-    }
-    50% {
-        border-color: rgba(47, 230, 209, 0.36);
-        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45), 0 0 16px rgba(25, 227, 194, 0.14), inset 0 1px 0 rgba(232, 244, 248, 0.1);
-    }
-    100% {
-        border-color: rgba(25, 227, 194, 0.18);
-        box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(232, 244, 248, 0.06);
-    }
-}
-
-@keyframes hudReticlePulse {
-    0%, 100% { opacity: 0.75; transform: scale(1); }
-    50% { opacity: 1.0; transform: scale(1.02); filter: drop-shadow(0 0 4px #19E3C2); }
-}
-
-@keyframes compassHover {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-2.5px); filter: drop-shadow(0 0 6px #00e5ff); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    *, ::before, ::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
-    }
-}
-
-/* ── Base App Shell ── */
+/* Global Reset & Typography */
 html, body, [class*="css"], .stApp {
-    font-family: var(--font-body) !important;
-    background: var(--abyss-base) !important;
-    color: var(--foam-white) !important;
-    letter-spacing: -0.01em;
+    font-family: var(--font-sans) !important;
+    background-color: var(--bg-canvas) !important;
+    color: var(--text-primary);
+    letter-spacing: -0.015em;
 }
 
-.stApp {
-    background:
-        radial-gradient(ellipse 1100px 650px at 92% -12%, rgba(25, 227, 194, 0.14) 0%, rgba(25, 227, 194, 0) 65%),
-        radial-gradient(ellipse 850px 550px at 8% 8%, rgba(20, 108, 148, 0.16) 0%, rgba(20, 108, 148, 0) 65%),
-        radial-gradient(ellipse 1300px 950px at 50% 120%, rgba(15, 61, 92, 0.28) 0%, rgba(15, 61, 92, 0) 70%),
-        linear-gradient(180deg, #05141F 0%, #071C2B 42%, #05101A 100%) !important;
-    background-attachment: fixed !important;
+/* Completely hide Streamlit Header, Footer, and Left Sidebar */
+header[data-testid="stHeader"],
+footer,
+#MainMenu,
+.stDeployButton,
+[data-testid="stDecoration"],
+section[data-testid="stSidebar"],
+[data-testid="stSidebarCollapsedControl"],
+[data-testid="collapsedControl"] {
+    display: none !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-width: 0 !important;
+    visibility: hidden !important;
 }
 
-/* ── Typography Scale ── */
-h1, h2, h3, h4 {
-    font-family: var(--font-heading) !important;
-    color: var(--foam-white) !important;
-    letter-spacing: -0.02em;
-}
-
-/* ── Main container flush alignment ── */
-div[data-testid="stMainBlockContainer"],
+/* Full-Viewport Screen Fit — Eliminate Wasted Outer Margins */
+[data-testid="stAppViewBlockContainer"],
+[data-testid="stMainBlockContainer"],
 .block-container {
     max-width: 100% !important;
-    padding-top: 0 !important;
-    padding-left: 1.25rem !important;
-    padding-right: 1.25rem !important;
-    padding-bottom: 1.5rem !important;
-}
-
-/* Remove vertical gap from zero-height style / script elements at top of main block */
-div[data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] > div.element-container:nth-child(1),
-div[data-testid="stMainBlockContainer"] > div[data-testid="stVerticalBlock"] > div.element-container:nth-child(2) {
-    position: absolute !important;
-    width: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    pointer-events: none !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SIDEBAR: MISSION-CONTROL RAIL
-   ═══════════════════════════════════════════════════════════════════════════ */
-[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #040F18 0%, #071B29 45%, #05121D 100%) !important;
-    border-right: 1px solid rgba(25, 227, 194, 0.18) !important;
-    box-shadow: 6px 0 28px rgba(0, 0, 0, 0.65) !important;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-[data-testid="stSidebar"][aria-expanded="true"] {
-    min-width: 300px !important;
-    max-width: 300px !important;
-}
-
-/* Sidebar Header: Dedicated top utility bar for the collapse chevron */
-[data-testid="stSidebarHeader"] {
-    position: relative !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    align-items: center !important;
-    height: 38px !important;
-    min-height: 38px !important;
-    max-height: 38px !important;
-    padding: 0 14px !important;
-    margin: 0 !important;
-    background: rgba(4, 15, 24, 0.95) !important;
-    border-bottom: 1px solid rgba(25, 227, 194, 0.14) !important;
     width: 100% !important;
-    box-sizing: border-box !important;
-    z-index: 100 !important;
+    padding: 0.9rem 1.75rem 14rem 1.75rem !important;
+    margin: 0.15rem auto !important;
+    background: var(--bg-card) !important;
+    border-radius: 20px !important;
+    border: 1px solid var(--border-light) !important;
+    box-shadow: 0 12px 36px rgba(15, 17, 21, 0.04) !important;
 }
 
-[data-testid="stSidebarHeader"]::before {
-    content: "TACTICAL CONSOLE // AKHET";
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    color: #19E3C2;
-    letter-spacing: 0.08em;
-    font-weight: 700;
-    opacity: 0.85;
+/* Base Text Color (Without breaking white text inside black boxes!) */
+body, p, label, li,
+.stRadio label, .stSelectbox label, .stSlider label, .stToggle label, .stCheckbox label {
+    color: var(--text-primary);
 }
 
-[data-testid="stSidebarHeader"] [data-testid="stLogoSpacer"] {
-    display: none !important;
-}
-
-[data-testid="stSidebarCollapseButton"] {
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-[data-testid="stSidebarCollapseButton"] button {
-    background: rgba(15, 61, 92, 0.5) !important;
-    border: 1px solid rgba(25, 227, 194, 0.3) !important;
-    border-radius: 5px !important;
-    padding: 3px 6px !important;
-    color: #19E3C2 !important;
-    transition: all 0.2s ease !important;
-}
-
-[data-testid="stSidebarCollapseButton"] button svg {
-    fill: #19E3C2 !important;
-    stroke: #19E3C2 !important;
-}
-
-[data-testid="stSidebarCollapseButton"] button:hover {
-    background: rgba(25, 227, 194, 0.2) !important;
-    border-color: #2FE6D1 !important;
-    transform: scale(1.06) !important;
-    box-shadow: 0 0 8px rgba(25, 227, 194, 0.4) !important;
-}
-
-[data-testid="stSidebarContent"] {
-    scrollbar-gutter: auto !important;
-    scrollbar-width: thin !important;
-    padding: 0 !important;
-    background: transparent !important;
-    overflow-x: hidden !important;
-}
-
-[data-testid="stSidebarContent"]::-webkit-scrollbar {
-    width: 4px !important;
-}
-[data-testid="stSidebarContent"]::-webkit-scrollbar-track {
-    background: transparent !important;
-}
-[data-testid="stSidebarContent"]::-webkit-scrollbar-thumb {
-    background: rgba(25, 227, 194, 0.25) !important;
-    border-radius: 4px !important;
-}
-[data-testid="stSidebarContent"]::-webkit-scrollbar-thumb:hover {
-    background: rgba(25, 227, 194, 0.55) !important;
-}
-
-[data-testid="stSidebarUserContent"] {
-    padding-top: 0 !important;
-    padding-bottom: 20px !important;
-    padding-left: 0 !important;
-    padding-right: 0 !important;
-    width: 100% !important;
-    margin: 0 !important;
-}
-
-[data-testid="stSidebarUserContent"] > div,
-[data-testid="stSidebarUserContent"] [data-testid="stVerticalBlock"] {
-    width: 100% !important;
-    padding: 0 !important;
-    gap: 0 !important;
-}
-
-[data-testid="stSidebar"] [data-testid="stElementContainer"],
-[data-testid="stSidebar"] .element-container {
-    width: 100% !important;
-    max-width: 100% !important;
-}
-
-[data-testid="stSidebar"] p,
-[data-testid="stSidebar"] span,
-[data-testid="stSidebar"] label {
-    color: var(--muted-teal) !important;
-}
-
-[data-testid="stSidebar"] hr {
-    border-color: rgba(25, 227, 194, 0.12) !important;
-    margin: 8px 10px !important;
-}
-
-/* ── Sidebar Brand Header ── */
-.seadex-brand-box {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 14px !important;
-    margin: 0 0 10px 0 !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    border-bottom: 1px solid rgba(25, 227, 194, 0.16);
-    background: linear-gradient(180deg, rgba(15, 61, 92, 0.35) 0%, rgba(5, 20, 31, 0.6) 100%);
-    position: relative;
-}
-
-.seadex-brand-box::after {
-    content: "";
-    position: absolute;
-    bottom: -1px;
-    left: 16px;
-    right: 16px;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, #19E3C2, transparent);
-}
-
-.seadex-logo-diamond {
-    flex-shrink: 0;
-    filter: drop-shadow(0 0 6px rgba(25, 227, 194, 0.45));
-    animation: diamondGlowFloat 4s ease-in-out infinite;
-}
-
-.seadex-brand-title {
-    font-family: var(--font-heading);
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: 0.04em;
-    line-height: 1.2;
-    white-space: nowrap;
-    text-shadow: 0 0 8px rgba(25, 227, 194, 0.25);
-}
-
-.seadex-brand-sub {
-    font-family: var(--font-mono);
-    font-size: 0.53rem;
-    font-weight: 600;
-    color: var(--biolum-primary);
-    letter-spacing: 0.03em;
-    margin-top: 2px;
-    white-space: nowrap;
-}
-
-/* Live Operational Status Badge in Brand Header */
-.seadex-status-indicator {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-top: 4px;
-    font-family: var(--font-mono);
-    font-size: 0.58rem;
-    letter-spacing: 0.06em;
-    color: #a0d4c8;
-}
-
-.seadex-pulse-beacon {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--signal-green);
-    animation: pulseBeacon 2s infinite ease-in-out;
-    display: inline-block;
-}
-
-/* ── Sidebar Radio Navigation as Modern Mission Rail ── */
-[data-testid="stSidebar"] [data-testid="stRadioOption"] [class*="etak9234"],
-[data-testid="stSidebar"] [data-testid="stRadioOption"] [class*="etak9235"],
-[data-testid="stSidebar"] [data-testid="stRadioOption"] > div > div > div:first-child,
-[data-testid="stSidebar"] [data-testid="stRadio"] [data-baseweb="radio"] > div:first-child {
-    display: none !important;
-    visibility: hidden !important;
-    width: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-[data-testid="stSidebar"] div.stRadio,
-[data-testid="stSidebar"] div[data-testid="stRadio"],
-[data-testid="stSidebar"] div[role="radiogroup"],
-[data-testid="stSidebar"] [data-testid="stRadioGroup"] {
-    width: 100% !important;
-    box-sizing: border-box !important;
-    padding: 4px 10px !important;
-    gap: 4px !important;
-    display: flex !important;
-    flex-direction: column !important;
-}
-
-[data-testid="stSidebar"] [data-testid="stRadioOption"] {
-    display: flex !important;
-    align-items: center !important;
-    padding: 8px 12px !important;
-    margin: 1px 0 !important;
-    background: transparent !important;
-    border: 1px solid transparent !important;
-    border-radius: 8px !important;
-    color: var(--muted-teal) !important;
-    font-size: 0.84rem !important;
-    font-weight: 500 !important;
-    transition: transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, border-color 0.2s ease, color 0.18s ease !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    cursor: pointer !important;
-    position: relative !important;
-}
-
-[data-testid="stSidebar"] [data-testid="stRadioOption"] > label,
-[data-testid="stSidebar"] [data-testid="stRadioOption"] > div {
-    width: 100% !important;
-    display: flex !important;
-    align-items: center !important;
-}
-
-[data-testid="stSidebar"] [data-testid="stRadioOption"] p {
-    margin: 0 !important;
-    padding: 0 !important;
-    font-size: 0.84rem !important;
-    font-weight: 500 !important;
-    color: var(--muted-teal) !important;
-    letter-spacing: 0.01em !important;
-    line-height: 1.35 !important;
-    width: 100% !important;
-    white-space: nowrap !important;
-    transition: color 0.18s ease !important;
-}
-
-[data-testid="stSidebar"] [data-testid="stRadioOption"]:hover {
-    background: rgba(25, 227, 194, 0.09) !important;
-    border-color: rgba(25, 227, 194, 0.3) !important;
-    color: #ffffff !important;
-    transform: translateX(4px) !important;
-}
-
-[data-testid="stSidebar"] [data-testid="stRadioOption"]:hover p,
-[data-testid="stSidebar"] [data-testid="stRadioOption"]:hover span {
-    color: #ffffff !important;
-}
-
-/* Active Selected Tab in Mission Rail: Bioluminescent Left Accent & Contained Glow */
-.st-key-sidebar_nav [data-testid="stRadioOption"][data-selected="true"],
-.st-key-sidebar_nav [data-testid="stRadioOption"]:has(input:checked) {
-    background: linear-gradient(90deg, rgba(25, 227, 194, 0.18) 0%, rgba(20, 108, 148, 0.1) 100%) !important;
-    border: 1px solid var(--biolum-primary) !important;
-    border-left: 3.5px solid var(--biolum-cyan) !important;
-    animation: navActivePulse 3.5s ease-in-out infinite alternate !important;
-}
-
-.st-key-sidebar_nav [data-testid="stRadioOption"][data-selected="true"] p,
-.st-key-sidebar_nav [data-testid="stRadioOption"][data-selected="true"] span,
-.st-key-sidebar_nav [data-testid="stRadioOption"]:has(input:checked) p,
-.st-key-sidebar_nav [data-testid="stRadioOption"]:has(input:checked) span {
-    color: #ffffff !important;
+/* Headings — Geometric Editorial Style */
+h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display) !important;
+    color: var(--text-primary) !important;
     font-weight: 700 !important;
-    text-shadow: 0 0 8px rgba(25, 227, 194, 0.4) !important;
+    letter-spacing: -0.03em !important;
+    line-height: 1.12 !important;
+    text-transform: none !important;
 }
 
-/* Processing Mode: Clean Segmented Pill Toggle (Zero Conflicting Pulse Glow) */
-.st-key-selected_proc_mode {
-    margin-top: 2px !important;
-}
-
-.st-key-selected_proc_mode [data-testid="stRadioOption"] {
+/* ── Top Centered Pill Navigation Bar (Single Line, Compact Height) ── */
+div[class*="st-key-top_elegostra_nav"] {
     display: flex !important;
-    align-items: center !important;
-    padding: 7px 12px !important;
-    margin: 2px 0 !important;
-    background: rgba(10, 36, 54, 0.3) !important;
-    border: 1px solid rgba(25, 227, 194, 0.14) !important;
-    border-radius: 7px !important;
-    color: var(--muted-teal) !important;
-    font-size: 0.82rem !important;
-    font-weight: 500 !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    transition: all 0.2s ease !important;
-}
-
-.st-key-selected_proc_mode [data-testid="stRadioOption"]:hover {
-    background: rgba(25, 227, 194, 0.08) !important;
-    border-color: rgba(25, 227, 194, 0.3) !important;
-    color: #ffffff !important;
-}
-
-.st-key-selected_proc_mode [data-testid="stRadioOption"][data-selected="true"],
-.st-key-selected_proc_mode [data-testid="stRadioOption"]:has(input:checked) {
-    background: rgba(25, 227, 194, 0.14) !important;
-    border: 1px solid rgba(25, 227, 194, 0.6) !important;
-    border-left: 3.5px solid var(--biolum-primary) !important;
-    box-shadow: none !important;
-    animation: none !important;
-}
-
-.st-key-selected_proc_mode [data-testid="stRadioOption"][data-selected="true"] p,
-.st-key-selected_proc_mode [data-testid="stRadioOption"]:has(input:checked) p {
-    color: #ffffff !important;
-    font-weight: 600 !important;
-}
-
-/* ── Sidebar System Status & Hardware ── */
-.seadex-sidebar-sec-title {
-    font-family: var(--font-heading);
-    font-size: 0.66rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    color: var(--biolum-primary);
-    text-transform: uppercase;
-    padding: 12px 12px 4px 12px !important;
-    margin: 0 !important;
-}
-
-.seadex-proc-mode-card,
-[data-testid="stSidebar"] div:has(> b) {
-    margin: 6px 10px 14px 10px !important;
-    box-sizing: border-box !important;
-}
-
-.seadex-sys-card {
-    background: linear-gradient(180deg, rgba(10, 36, 54, 0.75) 0%, rgba(5, 20, 31, 0.85) 100%);
-    border: 1px solid rgba(25, 227, 194, 0.22);
-    border-radius: 9px;
-    margin: 6px 10px 14px 10px !important;
-    width: calc(100% - 20px) !important;
-    box-sizing: border-box !important;
-    padding: 12px 14px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(232, 244, 248, 0.06);
-    backdrop-filter: blur(8px);
-}
-
-.seadex-sys-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5px 0;
-    font-size: 0.76rem;
-    border-bottom: 1px solid rgba(25, 227, 194, 0.08);
-}
-
-.seadex-sys-row:last-child {
-    border-bottom: none;
-}
-
-.seadex-sys-item {
-    display: flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--foam-white);
-    font-weight: 500;
-}
-
-.seadex-dot-green {
-    display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--signal-green);
-    box-shadow: 0 0 8px var(--signal-green);
-    margin-right: 6px;
-    animation: pulseBeacon 2.5s infinite;
-}
-
-.seadex-hw-grid {
-    display: flex;
-    justify-content: space-between;
-    padding: 6px 0 4px 0;
-}
-
-.seadex-hw-lbl {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: var(--muted-seabed);
-    text-transform: uppercase;
-}
-
-.seadex-hw-val {
-    font-family: var(--font-mono);
-    font-size: 0.78rem;
-    font-weight: 600;
-    color: var(--biolum-primary);
-    margin-top: 1px;
-}
-
-.seadex-sidebar-footer {
-    margin: 8px 10px 0 10px !important;
-    padding: 10px 4px 6px 4px !important;
-    border-top: 1px solid rgba(25, 227, 194, 0.12) !important;
-    box-sizing: border-box !important;
-    font-size: 0.68rem;
-    color: var(--muted-seabed);
-}
-
-.seadex-footer-initiative {
-    color: var(--biolum-primary);
-    font-weight: 600;
-    letter-spacing: 0.05em;
-    margin-top: 2px;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MAIN PAGE OPERATIONAL HEADER
-   ═══════════════════════════════════════════════════════════════════════════ */
-.seadex-header-wrapper {
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin: 0 -1.25rem 18px -1.25rem !important;
-    padding: 24px 28px 20px 28px;
-    border-bottom: 1px solid rgba(25, 227, 194, 0.28);
-    background:
-        repeating-linear-gradient(115deg, rgba(25, 227, 194, 0.03) 0px, rgba(25, 227, 194, 0.03) 1px, transparent 1px, transparent 40px),
-        radial-gradient(ellipse 700px 360px at 90% -25%, rgba(25, 227, 194, 0.28) 0%, rgba(25, 227, 194, 0) 70%),
-        radial-gradient(ellipse 550px 340px at 6% 120%, rgba(20, 108, 148, 0.32) 0%, rgba(20, 108, 148, 0) 70%),
-        linear-gradient(180deg, #0B334B 0%, #072235 45%, #05141F 100%);
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
-}
-
-.seadex-header-wrapper::after {
-    content: "";
-    position: absolute;
-    bottom: 12px;
-    right: 36px;
-    width: 110px;
-    height: 60px;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 90'%3E%3Cg fill='%2319E3C2' fill-opacity='0.25'%3E%3Crect x='10' y='55' width='120' height='9' rx='2'/%3E%3Cpath d='M10 55 L22 40 L118 40 L130 55 Z'/%3E%3Crect x='35' y='24' width='16' height='17'/%3E%3Crect x='58' y='30' width='13' height='11'/%3E%3Crect x='78' y='30' width='13' height='11'/%3E%3Crect x='98' y='6' width='2' height='24'/%3E%3C/g%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-size: contain;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.seadex-header-wrapper::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='600' height='40' viewBox='0 0 600 40'%3E%3Cpath d='M0 20 Q 75 5 150 20 T 300 20 T 450 20 T 600 20' fill='none' stroke='%2319E3C2' stroke-opacity='0.08' stroke-width='1.5'/%3E%3Cpath d='M0 30 Q 75 16 150 30 T 300 30 T 450 30 T 600 30' fill='none' stroke='%232FE6D1' stroke-opacity='0.06' stroke-width='1.5'/%3E%3C/svg%3E");
-    background-repeat: repeat-x;
-    background-position: bottom;
-    background-size: 600px 40px;
-    animation: waveShift 40s linear infinite;
-    pointer-events: none;
-    z-index: 0;
-}
-
-.seadex-header-wrapper > div {
-    position: relative;
-    z-index: 1;
-}
-
-.seadex-op-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--font-mono);
-    font-size: 0.68rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: var(--biolum-primary);
-    background: rgba(25, 227, 194, 0.12);
-    border: 1px solid rgba(25, 227, 194, 0.35);
-    border-radius: 4px;
-    padding: 2px 8px;
-    text-transform: uppercase;
-    margin-bottom: 6px;
-}
-
-.seadex-page-title {
-    font-family: var(--font-heading);
-    font-size: 1.85rem;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: 0.01em;
-    margin: 0 0 4px 0;
-    line-height: 1.15;
-}
-
-.seadex-title-accent {
-    background: linear-gradient(120deg, #19E3C2 0%, #2FE6D1 50%, #64B5F6 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.seadex-page-desc {
-    font-size: 0.85rem;
-    color: var(--muted-teal);
-    margin: 0;
-    max-width: 760px;
-    line-height: 1.45;
-}
-
-.seadex-quote {
-    font-family: var(--font-heading);
-    font-size: 0.84rem;
-    font-weight: 600;
-    color: var(--muted-seabed);
-    text-align: right;
-    max-width: 260px;
-    border-left: 2px solid rgba(25, 227, 194, 0.3);
-    padding-left: 10px;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   COMMON GLASS CARD CONTAINERS
-   ═══════════════════════════════════════════════════════════════════════════ */
-.seadex-panel,
-.st-key-det_panel_input,
-.st-key-det_panel_sonar,
-.st-key-det_panel_telem,
-.st-key-det_panel_results,
-.mg-card {
-    background: linear-gradient(180deg, rgba(15, 61, 92, 0.45) 0%, rgba(10, 36, 54, 0.65) 100%) !important;
-    border: 1px solid rgba(25, 227, 194, 0.20) !important;
-    border-radius: 10px !important;
-    padding: 14px 16px !important;
-    box-sizing: border-box !important;
-    margin-bottom: 14px !important;
-    min-height: 100% !important;
-    height: auto !important;
-    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(232, 244, 248, 0.06) !important;
-    backdrop-filter: blur(10px) !important;
-    animation: cardAmbientGlow 7s ease-in-out infinite alternate !important;
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), border-color 0.22s ease, box-shadow 0.25s ease !important;
-}
-
-.seadex-panel:hover,
-.st-key-det_panel_input:hover,
-.st-key-det_panel_sonar:hover,
-.st-key-det_panel_telem:hover,
-.st-key-det_panel_results:hover,
-.mg-card:hover {
-    border-color: rgba(47, 230, 209, 0.45) !important;
-    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.45), 0 0 18px rgba(25, 227, 194, 0.18) !important;
-    transform: translateY(-2px) !important;
-}
-
-.st-key-det_panel_results { height: auto !important; }
-.st-key-det_panel_input,
-.st-key-det_panel_sonar,
-.st-key-det_panel_telem {
-    padding: 12px 12px !important;
-}
-
-.seadex-panel-hdr {
-    font-family: var(--font-heading);
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.seadex-step-badge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 20px;
-    height: 20px;
-    min-width: 20px;
-    margin-right: 8px;
-    border-radius: 50%;
-    background: rgba(25, 227, 194, 0.16);
-    border: 1px solid var(--biolum-primary);
-    color: var(--biolum-primary);
-    font-family: var(--font-mono);
-    font-size: 0.70rem;
-    font-weight: 800;
-    vertical-align: middle;
-}
-
-/* ── Pill Buttons for Segmented Controls & Radio ── */
-[data-testid="stMain"] [data-testid="stRadioGroup"] {
-    display: flex !important;
-    gap: 4px !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
-}
-
-/* Hide native radio circle indicators across segmented controls */
-[data-testid="stRadioOption"] [class*="etak9234"],
-[data-testid="stRadioOption"] [class*="etak9235"],
-[data-testid="stRadioOption"] input[type="radio"],
-[data-testid="stRadioOption"] input[type="radio"] + div,
-[data-testid="stRadioOption"] svg {
-    display: none !important;
-    visibility: hidden !important;
-    width: 0 !important;
-    height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    opacity: 0 !important;
-    pointer-events: none !important;
-}
-
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"] {
-    display: inline-flex !important;
-    align-items: center !important;
     justify-content: center !important;
-    background: rgba(7, 28, 43, 0.85) !important;
-    border: 1px solid rgba(25, 227, 194, 0.25) !important;
-    border-radius: 6px !important;
-    padding: 5px 11px !important;
-    margin: 0 !important;
-    font-size: 0.72rem !important;
-    color: var(--muted-teal) !important;
-    cursor: pointer !important;
-    transition: all 0.18s ease !important;
-    white-space: nowrap !important;
-    flex-shrink: 0 !important;
-}
-
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"] p {
-    font-size: 0.72rem !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    line-height: 1.2 !important;
-    color: var(--muted-teal) !important;
-}
-
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"]:hover {
-    border-color: var(--biolum-cyan) !important;
-    color: #ffffff !important;
-    background: rgba(25, 227, 194, 0.12) !important;
-}
-
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"]:hover p {
-    color: #ffffff !important;
-}
-
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"][data-selected="true"],
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"]:has(input:checked) {
-    background: var(--biolum-primary) !important;
-    border-color: var(--biolum-cyan) !important;
-    box-shadow: 0 0 12px rgba(25, 227, 194, 0.45) !important;
-}
-
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"][data-selected="true"] p,
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"][data-selected="true"] span,
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"]:has(input:checked) p,
-[data-testid="stMain"] div[role="radiogroup"] [data-testid="stRadioOption"]:has(input:checked) span {
-    color: #040F18 !important;
-    font-weight: 700 !important;
-}
-
-/* ── Styled Upload Dropzone ── */
-.seadex-dropzone-visual {
-    border: 1.5px dashed rgba(25, 227, 194, 0.35);
-    border-radius: 9px;
-    background: rgba(5, 20, 31, 0.55);
-    padding: 22px 14px;
-    text-align: center;
-    margin: 8px 0;
-    transition: border-color 0.2s ease, background 0.2s ease;
-}
-
-.seadex-dropzone-visual:hover {
-    border-color: var(--biolum-cyan);
-    background: rgba(15, 61, 92, 0.25);
-}
-
-.seadex-drop-cloud {
-    font-size: 1.8rem;
-    color: var(--biolum-primary);
-    margin-bottom: 6px;
-    filter: drop-shadow(0 0 8px rgba(25, 227, 194, 0.4));
-}
-
-.seadex-drop-text {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: var(--foam-white);
-    margin-bottom: 3px;
-}
-
-.seadex-drop-sub {
-    font-family: var(--font-mono);
-    font-size: 0.70rem;
-    color: var(--biolum-primary);
-    margin-bottom: 6px;
-}
-
-.seadex-drop-fmts {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    color: var(--muted-seabed);
-    letter-spacing: 0.06em;
-}
-
-/* File Uploader styling inside dropzone */
-[data-testid="stFileUploader"] {
-    margin-top: 4px !important;
-}
-
-[data-testid="stFileUploaderDropzone"] {
-    background: rgba(7, 28, 43, 0.45) !important;
-    border: 1px dashed rgba(25, 227, 194, 0.3) !important;
-    border-radius: 8px !important;
-    padding: 8px !important;
-}
-
-[data-testid="stFileUploaderDropzone"] button {
-    background: rgba(25, 227, 194, 0.12) !important;
-    border: 1px solid rgba(25, 227, 194, 0.45) !important;
-    color: var(--biolum-primary) !important;
-    border-radius: 6px !important;
-    font-size: 0.76rem !important;
-    padding: 4px 14px !important;
-    font-weight: 600 !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   BUTTONS: BIOLUMINESCENT & TACTICAL GHOST
-   ═══════════════════════════════════════════════════════════════════════════ */
-[data-testid="stButton"] button[kind="primary"] {
-    position: relative !important;
-    overflow: hidden !important;
-    background: linear-gradient(135deg, #0d7062 0%, #16cfae 45%, #25e5cf 80%, #0d7062 100%) !important;
-    background-size: 250% 250% !important;
-    animation: buttonShimmer 5s ease infinite !important;
-    border: 1px solid rgba(255, 255, 255, 0.25) !important;
-    border-radius: 8px !important;
-    color: #03121C !important;
-    font-family: var(--font-heading) !important;
-    font-weight: 800 !important;
-    font-size: 0.88rem !important;
-    padding: 10px 22px !important;
-    letter-spacing: 0.04em !important;
-    box-shadow: 0 4px 18px rgba(25, 227, 194, 0.42) !important;
-    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-
-[data-testid="stButton"] button[kind="primary"]::after {
-    content: "" !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 50% !important;
-    height: 100% !important;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.32), transparent) !important;
-    animation: buttonLightSweep 3.2s infinite ease-in-out !important;
-    pointer-events: none !important;
-}
-
-[data-testid="stButton"] button[kind="primary"]:hover {
-    transform: translateY(-2px) scale(1.015) !important;
-    box-shadow: 0 8px 28px rgba(25, 227, 194, 0.65), 0 0 16px rgba(47, 230, 209, 0.45) !important;
-}
-
-[data-testid="stButton"] button[kind="primary"]:active {
-    transform: translateY(0px) scale(0.985) !important;
-}
-
-/* Secondary / Download / Popover Buttons */
-[data-testid="stButton"] button[kind="secondary"],
-[data-testid="stDownloadButton"] button,
-[data-testid="stPopoverButton"] {
-    background: rgba(15, 61, 92, 0.35) !important;
-    border: 1px solid rgba(25, 227, 194, 0.32) !important;
-    border-radius: 8px !important;
-    color: var(--biolum-primary) !important;
-    font-weight: 600 !important;
-    font-size: 0.82rem !important;
-    padding: 9px 16px !important;
-    transition: all 0.2s ease !important;
-}
-
-[data-testid="stButton"] button[kind="secondary"]:hover,
-[data-testid="stDownloadButton"] button:hover,
-[data-testid="stPopoverButton"]:hover {
-    background: rgba(25, 227, 194, 0.15) !important;
-    border-color: var(--biolum-cyan) !important;
-    color: #ffffff !important;
-    box-shadow: 0 0 14px rgba(25, 227, 194, 0.25) !important;
-}
-
-[data-testid="stPopoverBody"] {
-    background: #081D2D !important;
-    border: 1px solid rgba(25, 227, 194, 0.3) !important;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
-}
-
-/* ── Modal Dialogs ── */
-[data-testid="stDialog"] div[role="dialog"] {
-    background: #071C2B !important;
-    border: 1px solid rgba(25, 227, 194, 0.35) !important;
-    box-shadow: 0 14px 44px rgba(0, 0, 0, 0.75) !important;
-}
-
-/* ── Toggles & Selectboxes ── */
-[data-testid="stToggle"] label {
-    font-size: 0.78rem !important;
-    color: var(--muted-teal) !important;
-}
-
-[data-baseweb="select"] > div {
-    background: #071C2B !important;
-    border: 1px solid rgba(25, 227, 194, 0.28) !important;
-    border-radius: 8px !important;
-    color: var(--foam-white) !important;
-    font-size: 0.82rem !important;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   TACTICAL SONAR VIEWPORT: RETICLE & SCANLINE CORNER BRACKETS
-   ═══════════════════════════════════════════════════════════════════════════ */
-.seadex-sonar-viewport {
-    position: relative;
-    width: 100%;
-    height: 420px;
-    max-height: 420px;
-    background: #030C14;
-    background-image:
-        radial-gradient(ellipse at center, rgba(25, 227, 194, 0.08) 0%, rgba(3, 12, 20, 0.98) 78%),
-        linear-gradient(rgba(25, 227, 194, 0.04) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(25, 227, 194, 0.04) 1px, transparent 1px);
-    background-size: 100% 100%, 30px 30px, 30px 30px;
-    border: 1px solid rgba(25, 227, 194, 0.32);
-    border-radius: 8px;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.95), 0 6px 24px rgba(0, 0, 0, 0.45);
-    margin-bottom: 8px;
-}
-
-/* Animated Vertical Acoustic Scanline Sweep */
-.seadex-sonar-viewport::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, transparent 0%, rgba(25, 227, 194, 0.03) 48%, rgba(47, 230, 209, 0.22) 50%, rgba(25, 227, 194, 0.03) 52%, transparent 100%);
-    background-size: 100% 200%;
-    animation: sonarScan 4.5s linear infinite;
-    pointer-events: none;
-    z-index: 6;
-}
-
-/* Technical HUD Corner Brackets */
-.seadex-sonar-viewport::after {
-    content: "";
-    position: absolute;
-    inset: 6px;
-    border: 1px solid rgba(25, 227, 194, 0.12);
-    pointer-events: none;
-    z-index: 5;
-    animation: hudReticlePulse 4s ease-in-out infinite;
-    background:
-        linear-gradient(to right, #19E3C2 2.5px, transparent 2.5px) 0 0,
-        linear-gradient(to right, #19E3C2 2.5px, transparent 2.5px) 0 100%,
-        linear-gradient(to left, #19E3C2 2.5px, transparent 2.5px) 100% 0,
-        linear-gradient(to left, #19E3C2 2.5px, transparent 2.5px) 100% 100%,
-        linear-gradient(to bottom, #19E3C2 2.5px, transparent 2.5px) 0 0,
-        linear-gradient(to bottom, #19E3C2 2.5px, transparent 2.5px) 100% 0,
-        linear-gradient(to top, #19E3C2 2.5px, transparent 2.5px) 0 100%,
-        linear-gradient(to top, #19E3C2 2.5px, transparent 2.5px) 100% 100%;
-    background-repeat: no-repeat;
-    background-size: 16px 16px;
-}
-
-/* 360-Degree Acoustic Radar Sweep (21st.dev Radar Effect) */
-.seadex-sonar-sweep {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 520px;
-    height: 520px;
-    margin-top: -260px;
-    margin-left: -260px;
-    border-radius: 50%;
-    background: conic-gradient(from 0deg, rgba(25, 227, 194, 0.22) 0deg, rgba(25, 227, 194, 0.06) 32deg, transparent 70deg, transparent 360deg);
-    animation: radarSweep 6s linear infinite;
-    pointer-events: none;
-    z-index: 4;
-}
-
-/* 21st.dev Border Beam Overlay for Sonar Viewport */
-.seadex-sonar-border-beam {
-    position: absolute;
-    inset: 0;
-    border-radius: 8px;
-    pointer-events: none;
-    z-index: 7;
-    overflow: hidden;
-}
-
-.seadex-sonar-border-beam::after {
-    content: "";
-    position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: conic-gradient(from 0deg, transparent 0deg, transparent 65deg, rgba(25, 227, 194, 0.65) 90deg, transparent 115deg, transparent 360deg);
-    animation: borderBeamMove 8s linear infinite;
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    -webkit-mask-composite: xor;
-    mask-composite: exclude;
-    padding: 1.5px;
-    border-radius: inherit;
-}
-
-/* Tactical Rotating Azimuth Graticule Dial */
-.seadex-sonar-azimuth-ring {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 360px;
-    height: 360px;
-    border-radius: 50%;
-    border: 1px dashed rgba(25, 227, 194, 0.22);
-    animation: azimuthRotate 60s linear infinite;
-    pointer-events: none;
-    z-index: 3;
-    box-shadow: inset 0 0 24px rgba(25, 227, 194, 0.05);
-}
-
-.seadex-sonar-azimuth-ring::before {
-    content: "";
-    position: absolute;
-    inset: 16px;
-    border-radius: 50%;
-    border: 1px dotted rgba(47, 230, 209, 0.2);
-    animation: azimuthRotateReverse 40s linear infinite;
-}
-
-/* Tactical Target Acquisition Crosshair */
-.seadex-target-lock-crosshair {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 38px;
-    height: 38px;
-    border: 1px solid rgba(25, 227, 194, 0.45);
-    border-radius: 50%;
-    animation: crosshairPulse 2.4s ease-in-out infinite;
-    pointer-events: none;
-    z-index: 5;
-}
-
-.seadex-target-lock-crosshair::before {
-    content: "";
-    position: absolute;
-    top: 50%;
-    left: -6px;
-    right: -6px;
-    height: 1px;
-    background: rgba(25, 227, 194, 0.6);
-    transform: translateY(-50%);
-}
-
-.seadex-target-lock-crosshair::after {
-    content: "";
-    position: absolute;
-    left: 50%;
-    top: -6px;
-    bottom: -6px;
-    width: 1px;
-    background: rgba(25, 227, 194, 0.6);
-    transform: translateX(-50%);
-}
-
-/* Concentric Expanding Acoustic Sonar Ping Rings */
-.seadex-sonar-echo-ring {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    width: 140px;
-    height: 140px;
-    border: 1.5px solid rgba(25, 227, 194, 0.7);
-    border-radius: 50%;
-    animation: sonarPingEcho 4s cubic-bezier(0.1, 0.8, 0.3, 1) infinite;
-    pointer-events: none;
-    z-index: 3;
-}
-
-.seadex-sonar-echo-ring:nth-of-type(2) {
-    animation-delay: 2s;
-}
-
-.seadex-sonar-img {
+    margin: 0.1rem auto 0.55rem auto !important;
     width: 100% !important;
-    height: 100% !important;
-    max-height: 420px !important;
-    object-fit: contain !important;
-    display: block !important;
-    margin: auto !important;
-    border-radius: 4px;
-    position: relative;
-    z-index: 1;
 }
-
-.seadex-empty-radar {
-    margin-bottom: 12px;
-    filter: drop-shadow(0 0 10px rgba(25, 227, 194, 0.45));
-}
-
-.seadex-empty-radar svg line {
-    transform-origin: 24px 24px;
-    animation: radarSweep 3.5s linear infinite;
-}
-
-.seadex-empty-radar svg circle:nth-child(1) {
-    animation: liveHeartbeat 2s ease-in-out infinite;
-}
-
-.seadex-empty-title {
-    font-family: var(--font-heading);
-    font-size: 0.92rem;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-    color: var(--biolum-primary);
-    margin-bottom: 6px;
-    text-shadow: 0 0 12px rgba(25, 227, 194, 0.5);
-}
-
-.seadex-empty-desc {
-    font-size: 0.76rem;
-    color: var(--muted-teal);
-    max-width: 320px;
-    line-height: 1.5;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   EXPLAINABILITY TAB: INSTRUMENT PANEL & GRAD-CAM VIEWPORT
-   ═══════════════════════════════════════════════════════════════════════════ */
-.seadex-explain-card {
-    background: linear-gradient(180deg, rgba(15, 61, 92, 0.5) 0%, rgba(7, 24, 38, 0.75) 100%);
-    border: 1px solid rgba(25, 227, 194, 0.22);
-    border-radius: 10px;
-    padding: 14px 16px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 490px;
-    min-height: 490px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), inset 0 0 35px rgba(10, 36, 54, 0.5);
-    box-sizing: border-box;
-    margin-top: 4px;
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
-}
-
-.seadex-explain-card:hover {
-    transform: translateY(-3px) scale(1.01) !important;
-    border-color: rgba(47, 230, 209, 0.45) !important;
-    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.65), 0 0 20px rgba(25, 227, 194, 0.22) !important;
-}
-
-.seadex-explain-card-header {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(25, 227, 194, 0.16);
-    margin-bottom: 10px;
-}
-
-.seadex-explain-card-title {
-    font-family: var(--font-heading);
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.02em;
-}
-
-.seadex-explain-viewport {
-    background: #020912;
-    border: 1px solid rgba(25, 227, 194, 0.2);
-    border-radius: 8px;
-    padding: 8px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    flex: 1;
-    min-height: 350px;
-    max-height: 375px;
-    box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.92);
-    box-sizing: border-box;
-    overflow: hidden;
-    position: relative;
-}
-
-.seadex-explain-viewport::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(180deg, transparent 0%, rgba(255, 122, 69, 0.03) 48%, rgba(255, 193, 7, 0.16) 50%, rgba(255, 122, 69, 0.03) 52%, transparent 100%);
-    background-size: 100% 200%;
-    animation: thermalSweep 5s linear infinite;
-    pointer-events: none;
-    border-radius: 8px;
-}
-
-.seadex-explain-img {
-    height: 335px !important;
-    max-height: 345px !important;
-    width: auto !important;
-    max-width: 96% !important;
-    object-fit: contain !important;
-    border-radius: 6px;
-    border: 1px solid rgba(25, 227, 194, 0.35);
-    background: #01060D;
-    box-shadow: 0 6px 25px rgba(0, 0, 0, 0.85), 0 0 14px rgba(25, 227, 194, 0.18);
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease !important;
-}
-
-.seadex-explain-img:hover {
-    transform: scale(1.025) !important;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.95), 0 0 20px rgba(25, 227, 194, 0.35) !important;
-}
-
-.seadex-explain-caption {
-    font-family: var(--font-mono);
-    font-size: 0.74rem;
-    color: var(--muted-teal);
-    margin-top: 8px;
-    text-align: center;
-}
-
-/* HUD Overlay Widgets */
-.seadex-hud-scale {
-    position: absolute;
-    bottom: 12px;
-    left: 16px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    pointer-events: none;
-    z-index: 10;
-}
-
-.seadex-scale-line {
-    width: 60px;
-    height: 2px;
-    background: #ffffff;
-    box-shadow: 0 0 5px rgba(25, 227, 194, 0.8);
-}
-
-.seadex-scale-label {
-    font-family: var(--font-mono);
-    font-size: 0.65rem;
-    font-weight: 700;
-    color: #ffffff;
-    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
-}
-
-.seadex-hud-status-badge {
-    position: absolute;
-    top: 10px;
-    right: 12px;
-    background: rgba(5, 20, 31, 0.85);
-    border: 1px solid var(--biolum-primary);
-    border-radius: 4px;
-    padding: 2px 8px;
-    font-size: 0.62rem;
-    color: var(--biolum-primary);
-    font-family: var(--font-mono);
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    z-index: 10;
-    pointer-events: none;
-}
-
-.seadex-hud-compass {
-    position: absolute;
-    top: 10px;
-    left: 14px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 1px;
-    pointer-events: none;
-    z-index: 10;
-    animation: compassHover 3.5s ease-in-out infinite;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   KPI STATS & SENSOR TELEMETRY READOUTS
-   ═══════════════════════════════════════════════════════════════════════════ */
-.seadex-kpi-row {
-    display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.seadex-kpi-card {
-    background: linear-gradient(180deg, rgba(15, 61, 92, 0.5) 0%, rgba(7, 24, 38, 0.7) 100%);
-    border: 1px solid rgba(25, 227, 194, 0.2);
-    border-radius: 8px;
-    padding: 10px 10px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
-    position: relative !important;
-    overflow: hidden !important;
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
-}
-
-.seadex-kpi-card::before {
-    content: "" !important;
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 60% !important;
-    height: 1.5px !important;
-    background: linear-gradient(90deg, transparent, var(--biolum-primary), #ffffff, var(--biolum-primary), transparent) !important;
-    animation: kpiTopBeam 4.5s ease-in-out infinite !important;
-    pointer-events: none !important;
-}
-
-.seadex-kpi-card:nth-child(2)::before { animation-delay: 0.9s !important; }
-.seadex-kpi-card:nth-child(3)::before { animation-delay: 1.8s !important; }
-.seadex-kpi-card:nth-child(4)::before { animation-delay: 2.7s !important; }
-.seadex-kpi-card:nth-child(5)::before { animation-delay: 3.6s !important; }
-
-.seadex-kpi-card:hover {
-    transform: translateY(-3px) scale(1.025) !important;
-    border-color: rgba(47, 230, 209, 0.6) !important;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 20px rgba(25, 227, 194, 0.28) !important;
-}
-
-.seadex-kpi-card:hover .seadex-kpi-val {
-    color: #ffffff !important;
-    text-shadow: 0 0 14px var(--biolum-primary) !important;
-}
-
-.seadex-kpi-val {
-    font-family: var(--font-mono);
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #ffffff;
-    line-height: 1.1;
-}
-
-.seadex-kpi-lbl {
-    font-size: 0.66rem;
-    color: var(--muted-teal);
-    margin-top: 2px;
-}
-
-.seadex-telem-item {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 5.5px 0;
-    font-size: 0.77rem;
-    border-bottom: 1px solid rgba(25, 227, 194, 0.08);
-}
-
-.seadex-telem-lbl {
-    color: var(--muted-teal);
-    display: flex;
-    align-items: center;
-    gap: 7px;
-}
-
-.seadex-telem-val {
-    font-family: var(--font-mono);
-    color: #ffffff;
-    font-weight: 600;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   TRIAGE CARDS: 🟢 KNOWN DEBRIS | 🟡 UNKNOWN ANOMALY | 🔴 REJECT
-   ═══════════════════════════════════════════════════════════════════════════ */
-.seadex-triage-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.seadex-triage-title {
-    font-family: var(--font-heading);
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: #ffffff;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.seadex-triage-link {
-    font-family: var(--font-mono);
-    font-size: 0.72rem;
-    color: var(--biolum-primary);
-    cursor: pointer;
-}
-
-.seadex-triage-card {
-    background: linear-gradient(180deg, rgba(10, 36, 54, 0.8) 0%, rgba(5, 20, 31, 0.9) 100%);
-    border: 1px solid rgba(25, 227, 194, 0.2);
-    border-radius: 9px;
-    padding: 12px 14px;
-    box-sizing: border-box;
-    width: 100%;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-    position: relative !important;
-    overflow: hidden !important;
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.28s ease, border-color 0.25s ease !important;
-}
-
-.seadex-triage-card:hover {
-    transform: translateY(-5px) scale(1.018) !important;
-    border-color: var(--biolum-cyan) !important;
-    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 22px rgba(25, 227, 194, 0.35) !important;
-}
-
-.seadex-triage-card:hover .seadex-triage-img {
-    transform: scale(1.08) !important;
-    border-color: var(--biolum-primary) !important;
-    box-shadow: 0 0 16px rgba(25, 227, 194, 0.5) !important;
-}
-
-.seadex-triage-card-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-    padding-bottom: 6px;
-    border-bottom: 1px solid rgba(25, 227, 194, 0.14);
-}
-
-.seadex-triage-id {
-    font-family: var(--font-mono);
-    font-weight: 700;
-    font-size: 0.82rem;
-    color: var(--biolum-primary);
-    margin-right: 6px;
-}
-
-.seadex-triage-name {
-    font-family: var(--font-heading);
-    font-weight: 700;
-    font-size: 0.86rem;
-    color: #ffffff;
-}
-
-.seadex-triage-body {
-    display: flex;
-    gap: 12px;
-    align-items: center;
-}
-
-.seadex-triage-img {
-    width: 68px;
-    height: 68px;
-    min-width: 68px;
-    object-fit: cover;
-    border-radius: 6px;
-    border: 1px solid rgba(25, 227, 194, 0.3);
-    background: #030d17;
-    transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
-}
-
-.seadex-triage-table {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
-}
-
-.seadex-tt-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 0.72rem;
-    padding: 1.5px 0;
-    border-bottom: 1px solid rgba(25, 227, 194, 0.06);
-}
-
-.seadex-tt-row:last-child {
-    border-bottom: none;
-}
-
-.seadex-tt-lbl {
-    color: var(--muted-teal);
-    font-size: 0.70rem;
-    white-space: nowrap;
-}
-
-.seadex-tt-val {
-    font-family: var(--font-mono);
-    font-weight: 600;
-    color: #ffffff;
-    font-size: 0.72rem;
-    white-space: nowrap;
-}
-
-.seadex-triage-empty {
-    background: rgba(10, 36, 54, 0.5);
-    border: 1px dashed rgba(25, 227, 194, 0.25);
-    border-radius: 8px;
-    padding: 18px;
-    text-align: center;
-    margin: 8px 0;
-}
-
-.badge-confirmed {
-    background: rgba(0, 230, 118, 0.16);
-    border: 1px solid var(--signal-green);
-    color: var(--signal-green);
-    animation: confirmedBreathe 3.5s ease-in-out infinite !important;
-}
-
-.badge-high,
-.badge-moderate {
-    background: rgba(255, 122, 69, 0.16);
-    border: 1px solid var(--signal-amber);
-    color: var(--signal-amber);
-    animation: warningBreathe 2.2s ease-in-out infinite !important;
-}
-
-.badge-review {
-    background: rgba(255, 82, 82, 0.16);
-    border: 1px solid var(--signal-red);
-    color: var(--signal-red);
-    animation: dangerStrobe 1.4s ease-in-out infinite !important;
-}
-
-.seadex-badge-status {
-    border-radius: 4px;
-    font-family: var(--font-mono);
-    font-size: 0.62rem;
-    font-weight: 700;
-    padding: 2px 7px;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   STREAMLIT NATIVE COMPONENT OVERRIDES
-   ═══════════════════════════════════════════════════════════════════════════ */
-[data-testid="stMetric"] {
-    background: linear-gradient(180deg, rgba(15, 61, 92, 0.45) 0%, rgba(10, 36, 54, 0.65) 100%) !important;
-    border: 1px solid rgba(25, 227, 194, 0.2) !important;
-    border-radius: 8px !important;
-    padding: 12px 14px !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3) !important;
-}
-
-[data-testid="stMetricValue"] {
-    font-family: var(--font-mono) !important;
-    font-size: 1.5rem !important;
-    font-weight: 800 !important;
-    color: var(--biolum-primary) !important;
-}
-
-[data-testid="stMetricLabel"] {
-    font-size: 0.72rem !important;
-    color: var(--muted-teal) !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.06em !important;
-}
-
-/* Expander Overrides */
-[data-testid="stExpander"] {
-    background: linear-gradient(180deg, rgba(15, 61, 92, 0.35) 0%, rgba(7, 24, 38, 0.55) 100%) !important;
-    border: 1px solid rgba(25, 227, 194, 0.18) !important;
-    border-radius: 8px !important;
-}
-
-[data-testid="stExpander"] summary {
-    font-weight: 600 !important;
-    color: var(--foam-white) !important;
-}
-
-/* Slider Track Overrides */
-[data-testid="stSlider"] div[data-baseweb="slider"] div[role="slider"] {
-    background-color: var(--biolum-primary) !important;
-    border: 2px solid #ffffff !important;
-    box-shadow: 0 0 8px var(--biolum-primary) !important;
-}
-
-/* Global Image Constrain */
-[data-testid="stImage"] img {
-    max-height: 390px !important;
-    width: auto !important;
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] {
+    background: #F4F4F5 !important;
+    padding: 4px 6px !important;
+    border-radius: 9999px !important;
+    border: 1px solid var(--border-light) !important;
+    display: inline-flex !important;
+    flex-wrap: nowrap !important;
+    white-space: nowrap !important;
+    gap: 3px !important;
+    justify-content: center !important;
+    align-items: center !important;
     max-width: 100% !important;
-    object-fit: contain !important;
+}
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label > div:first-child,
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label > div:first-child,
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label > div:first-child {
+    display: none !important;
+}
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label {
+    background: transparent !important;
+    border: none !important;
+    border-radius: 9999px !important;
+    padding: 5px 13px !important;
+    margin: 0 !important;
+    font-size: 1.08rem !important;
+    font-weight: 500 !important;
+    color: #52525B !important;
+    transition: all 0.16s ease !important;
+    cursor: pointer !important;
+    white-space: nowrap !important;
+}
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label p {
+    color: #52525B !important;
+    font-size: 1.08rem !important;
+    font-weight: 500 !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+}
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label:hover {
+    color: var(--text-primary) !important;
+    background: rgba(24, 24, 27, 0.05) !important;
+}
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label:has(input:checked) {
+    background: #18181B !important;
+    color: #FFFFFF !important;
+    font-weight: 600 !important;
+    box-shadow: 0 2px 8px rgba(24, 24, 27, 0.14) !important;
+}
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label:has(input:checked) p,
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label:has(input:checked) span,
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label:has(input:checked) div {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* ── Standard Radio Buttons: Black Points (#18181B) & Dark Text ── */
+div[role="radiogroup"] label {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+}
+div[role="radiogroup"] label p {
+    color: var(--text-primary) !important;
+    font-size: 1.08rem !important;
+    font-weight: 500 !important;
+}
+div[data-baseweb="radio"] > div:first-child {
+    border-color: #18181B !important;
+    background-color: #FFFFFF !important;
+}
+div[data-baseweb="radio"]:has(input:checked) > div:first-child {
+    border-color: #18181B !important;
+    background-color: #18181B !important;
+}
+div[data-baseweb="radio"]:has(input:checked) > div:first-child > div {
+    background-color: #FFFFFF !important;
+}
+input[type="radio"], input[type="checkbox"] {
+    accent-color: #18181B !important;
+}
+
+/* ── Segmented Toolbars (RAW / ENHANCED / DETECTION / MASK / HEATMAP / CLUTTER & Fit / Fill / Cover) ── */
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"],
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] {
+    background: #F4F4F5 !important;
+    padding: 3px !important;
+    border-radius: 9px !important;
+    border: 1px solid var(--border-light) !important;
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    gap: 2px !important;
+    width: 100% !important;
+    justify-content: space-between !important;
+    box-sizing: border-box !important;
+}
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label,
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label {
+    flex: 1 1 auto !important;
+    text-align: center !important;
+    justify-content: center !important;
+    padding: 4px 4px !important;
     border-radius: 6px !important;
+    margin: 0 !important;
+    background: transparent !important;
+    min-width: 0 !important;
+}
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label p,
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label p {
+    font-size: 0.97rem !important;
+    font-weight: 600 !important;
+    color: #52525B !important;
+    margin: 0 !important;
+    white-space: nowrap !important;
+}
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label:has(input:checked),
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label:has(input:checked) {
+    background: #18181B !important;
+    color: #FFFFFF !important;
+}
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label:has(input:checked) p,
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label:has(input:checked) span,
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label:has(input:checked) p,
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label:has(input:checked) span {
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+
+/* ── GUARANTEED PURE WHITE TEXT INSIDE ALL BLACK BOXES, BUTTONS, AND BADGES ── */
+.stButton > button,
+button[kind="primary"],
+button[kind="secondary"],
+button[data-testid^="stBaseButton"] {
+    background: #18181B !important;
+    background-color: #18181B !important;
+    color: #FFFFFF !important;
+    border: 1px solid #18181B !important;
+    border-radius: 9999px !important;
+    padding: 0.48rem 1.15rem !important;
+    font-family: var(--font-sans) !important;
+    font-weight: 600 !important;
+    font-size: 1.10rem !important;
+    letter-spacing: -0.01em !important;
+    box-shadow: 0 2px 6px rgba(24, 24, 27, 0.12) !important;
+    transition: all 0.16s ease !important;
+}
+.stButton > button,
+.stButton > button *,
+.stButton > button p,
+.stButton > button span,
+.stButton > button div,
+.stButton > button div[data-testid="stMarkdownContainer"] p,
+button[kind="primary"] *,
+button[kind="secondary"] *,
+button[data-testid^="stBaseButton"] *,
+button[data-testid^="stBaseButton"] p,
+button[data-testid^="stBaseButton"] span,
+button[data-testid^="stBaseButton"] div[data-testid="stMarkdownContainer"] p,
+[data-testid="stFileUploader"] section button,
+[data-testid="stFileUploader"] section button *,
+.seadex-step-badge,
+.seadex-hud-status-badge,
+.seadex-badge-status,
+.black-pill-badge,
+.seadex-live-tag,
+span[style*="background:#18181B"],
+span[style*="background: #18181B"],
+div[style*="background:#18181B"],
+div[style*="background: #18181B"] {
+    color: #FFFFFF !important;
+    fill: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+}
+.stButton > button:hover,
+button[data-testid^="stBaseButton"]:hover {
+    background: #27272A !important;
+    background-color: #27272A !important;
+    border-color: #27272A !important;
+}
+
+/* ── File Uploader Styling ── */
+[data-testid="stFileUploader"] section {
+    background-color: #F8FAFC !important;
+    border: 1px dashed #CBD5E1 !important;
+    border-radius: 12px !important;
+    padding: 10px 12px !important;
+}
+[data-testid="stFileUploader"] section > div,
+[data-testid="stFileUploader"] section small {
+    color: #0F1115 !important;
+}
+[data-testid="stFileUploader"] section button {
+    background-color: #18181B !important;
+    color: #FFFFFF !important;
+    border-radius: 9999px !important;
+    border: none !important;
+    padding: 5px 14px !important;
+    font-weight: 600 !important;
+    font-size: 1.06rem !important;
+}
+
+/* ── Selectbox & Dropdowns ── */
+div[data-baseweb="select"] > div {
+    background-color: #F8FAFC !important;
+    border: 1px solid #E4E4E7 !important;
+    border-radius: 10px !important;
+    color: #0F1115 !important;
+}
+div[data-baseweb="select"] span {
+    color: #0F1115 !important;
+}
+
+/* ── Elegostra Hero Banner (Compact so 3 Columns Fit Screen Immediately) ── */
+.elegostra-hero {
+    text-align: center;
+    padding: 0.2rem 1rem 0.5rem 1rem;
+    max-width: 760px;
+    margin: 0 auto 0.35rem auto;
+}
+.elegostra-hero-title {
+    font-family: var(--font-display) !important;
+    font-size: 2.85rem !important;
+    font-weight: 700 !important;
+    color: #0F1115 !important;
+    letter-spacing: -0.035em !important;
+    line-height: 1.1 !important;
+    margin-bottom: 0.25rem !important;
+}
+.elegostra-hero-sub {
+    font-family: var(--font-sans) !important;
+    font-size: 1.13rem !important;
+    font-weight: 400 !important;
+    color: #64748B !important;
+    line-height: 1.4 !important;
+    max-width: 580px !important;
     margin: 0 auto !important;
 }
 
-/* ── Streamlit Chrome & Navigation Overrides ── */
-#MainMenu,
-[data-testid="stAppDeployButton"],
-[data-testid="stDecoration"],
-footer {
-    display: none !important;
+/* ── Three-Column Panel Containers (1, 2, 3) & Section 4 ── */
+div[class*="st-key-det_panel_input"],
+div[class*="st-key-det_panel_sonar"],
+div[class*="st-key-det_panel_telem"] {
+    background: #FFFFFF !important;
+    border: 1.5px solid #E4E4E7 !important;
+    border-radius: 20px !important;
+    padding: 24px 26px !important;
+    min-height: 780px !important;
+    box-shadow: 0 6px 24px rgba(15, 17, 21, 0.045) !important;
+    margin-bottom: 18px !important;
+    zoom: 1.10;
+}
+div[class*="st-key-det_panel_results"] {
+    background: #FFFFFF !important;
+    border: 1.5px solid #E4E4E7 !important;
+    border-radius: 20px !important;
+    padding: 24px 28px !important;
+    min-height: 270px !important;
+    box-shadow: 0 6px 24px rgba(15, 17, 21, 0.045) !important;
+    margin-bottom: 18px !important;
+    zoom: 1.10;
 }
 
-/* Keep header transparent without blocking clicks */
-header[data-testid="stHeader"], header {
-    background: transparent !important;
-    height: 0px !important;
-    min-height: 0px !important;
-    border: none !important;
-    pointer-events: none !important;
-}
-
-[data-testid="stToolbar"] {
-    background: transparent !important;
-    pointer-events: none !important;
-    height: 0px !important;
+/* ── Panel Headers (1 INPUT, 2 SONAR, 3 TELEMETRY) ── */
+.seadex-panel-hdr {
+    font-family: var(--font-display) !important;
+    font-size: 1.14rem !important;
+    font-weight: 700 !important;
+    color: #0F1115 !important;
+    letter-spacing: 0.02em !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 14px !important;
+    border-bottom: 1px solid #E4E4E7 !important;
     display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 34px !important;
+}
+.seadex-step-badge {
+    background: #18181B !important;
+    color: #FFFFFF !important;
+    border-radius: 6px !important;
+    padding: 3px 9px !important;
+    font-size: 1.04rem !important;
+    font-weight: 700 !important;
+    margin-right: 9px !important;
+    display: inline-block !important;
+}
+.seadex-live-tag {
+    background: #18181B !important;
+    color: #FFFFFF !important;
+    border: 1px solid #18181B !important;
+    border-radius: 9999px !important;
+    padding: 3px 12px !important;
+    font-size: 1.00rem !important;
+    font-weight: 600 !important;
 }
 
-/* Bioluminescent Floating Sidebar Expand Button (visible whenever collapsed) */
-[data-testid="stExpandSidebarButton"],
-[data-testid="stSidebarCollapsedControl"],
-[data-testid="collapsedControl"] {
-    display: flex !important;
-    visibility: visible !important;
-    pointer-events: auto !important;
-    position: fixed !important;
-    top: 14px !important;
-    left: 14px !important;
-    z-index: 9999999 !important;
-    background: rgba(7, 28, 43, 0.95) !important;
-    border: 1.5px solid var(--biolum-primary) !important;
-    border-radius: 8px !important;
-    box-shadow: 0 0 18px rgba(25, 227, 194, 0.6) !important;
-    padding: 3px !important;
-    cursor: pointer !important;
-    transition: all 0.2s ease !important;
-}
-
-[data-testid="stExpandSidebarButton"]:hover,
-[data-testid="stSidebarCollapsedControl"]:hover,
-[data-testid="collapsedControl"]:hover {
-    background: rgba(15, 61, 92, 0.95) !important;
-    box-shadow: 0 0 24px rgba(25, 227, 194, 0.8) !important;
-    transform: scale(1.08) !important;
-}
-
-[data-testid="stExpandSidebarButton"] button,
-[data-testid="stExpandSidebarButton"] svg,
-[data-testid="stSidebarCollapsedControl"] button,
-[data-testid="collapsedControl"] button {
-    color: var(--biolum-primary) !important;
-    fill: var(--biolum-primary) !important;
-    background: transparent !important;
-}
-
-[data-testid="stSidebarCollapseButton"] {
-    color: var(--biolum-primary) !important;
-    transition: all 0.2s ease !important;
-}
-
-[data-testid="stSidebarCollapseButton"]:hover {
-    color: #ffffff !important;
-    transform: scale(1.15) !important;
-}
-
-body [data-testid="stMainBlockContainer"],
-body .block-container {
-    padding-top: 0.5rem !important;
-    margin-top: 0 !important;
-}
-body section[data-testid="stMain"] {
-    padding-top: 0 !important;
-}
-
-/* Metric cards across GIS Hotspots and Evaluation */
-.metric-card {
-    background: linear-gradient(180deg, rgba(15, 61, 92, 0.45) 0%, rgba(10, 36, 54, 0.65) 100%) !important;
-    border: 1px solid rgba(25, 227, 194, 0.22) !important;
-    border-radius: 9px !important;
-    padding: 12px 14px !important;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35) !important;
+/* ── Column 2: Sonar Viewport & HUD ── */
+.seadex-sonar-viewport {
     position: relative !important;
+    width: 100% !important;
+    min-height: 510px !important;
+    max-height: 560px !important;
+    background: #F8FAFC !important;
+    border: 1.5px solid #E4E4E7 !important;
+    border-radius: 16px !important;
     overflow: hidden !important;
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    margin: 12px 0 18px 0 !important;
 }
-
-.metric-card::after {
-    content: "" !important;
+.seadex-sonar-img {
+    width: 100% !important;
+    height: 525px !important;
+    object-fit: contain !important;
+    display: block !important;
+}
+.seadex-sonar-img.fit-fill {
+    object-fit: fill !important;
+}
+.seadex-sonar-img.fit-cover {
+    object-fit: cover !important;
+}
+.seadex-empty-placeholder {
+    text-align: center !important;
+    padding: 56px 28px !important;
+    max-width: 440px !important;
+    margin: 0 auto !important;
+}
+.seadex-empty-title {
+    font-family: var(--font-display) !important;
+    font-size: 1.28rem !important;
+    font-weight: 700 !important;
+    color: #0F1115 !important;
+    letter-spacing: 0.02em !important;
+    margin-bottom: 10px !important;
+}
+.seadex-empty-desc {
+    font-size: 1.12rem !important;
+    color: #64748B !important;
+    line-height: 1.5 !important;
+}
+.seadex-hud-status-badge {
     position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 60% !important;
-    height: 1.5px !important;
-    background: linear-gradient(90deg, transparent, var(--biolum-primary), transparent) !important;
-    animation: kpiTopBeam 5s ease-in-out infinite !important;
-    pointer-events: none !important;
+    top: 12px !important;
+    right: 12px !important;
+    background: #18181B !important;
+    color: #FFFFFF !important;
+    font-size: 1.00rem !important;
+    font-weight: 600 !important;
+    padding: 4px 12px !important;
+    border-radius: 9999px !important;
+    letter-spacing: 0.03em !important;
+}
+.seadex-hud-scale {
+    position: absolute !important;
+    bottom: 12px !important;
+    left: 12px !important;
+    background: #18181B !important;
+    color: #FFFFFF !important;
+    border-radius: 6px !important;
+    padding: 3px 10px !important;
+    font-size: 1.00rem !important;
+    font-weight: 600 !important;
+}
+.seadex-hud-compass {
+    position: absolute !important;
+    bottom: 12px !important;
+    right: 12px !important;
+    background: #18181B !important;
+    color: #FFFFFF !important;
+    border-radius: 6px !important;
+    padding: 3px 10px !important;
+    font-size: 1.02rem !important;
+    font-weight: 700 !important;
 }
 
-.metric-card:hover {
-    transform: translateY(-4px) scale(1.02) !important;
-    border-color: var(--biolum-cyan) !important;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.5), 0 0 18px rgba(25, 227, 194, 0.28) !important;
+/* ── Column 2: 5-Card Horizontal KPI Row ── */
+.seadex-kpi-row {
+    display: grid !important;
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 12px !important;
+    width: 100% !important;
+    margin-top: 8px !important;
 }
-
-/* Model Registry cards */
-.mg-model-card {
-    background: linear-gradient(180deg, rgba(15, 61, 92, 0.4) 0%, rgba(7, 24, 38, 0.65) 100%) !important;
-    border: 1px solid rgba(25, 227, 194, 0.2) !important;
-    border-radius: 9px !important;
+.seadex-kpi-card {
+    background: #F8FAFC !important;
+    border: 1px solid #E4E4E7 !important;
+    border-radius: 14px !important;
     padding: 14px 16px !important;
-    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.4) !important;
-    transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.25s ease !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-height: 105px !important;
+}
+.seadex-kpi-val {
+    font-family: var(--font-display) !important;
+    font-size: 1.42rem !important;
+    font-weight: 700 !important;
+    color: #0F1115 !important;
+    line-height: 1.15 !important;
+}
+.seadex-kpi-lbl {
+    font-size: 1.02rem !important;
+    font-weight: 500 !important;
+    color: #64748B !important;
+    margin-top: 4px !important;
+}
+.seadex-kpi-trend {
+    margin-top: 6px !important;
+    font-size: 1.00rem !important;
+    font-weight: 600 !important;
+    color: #18181B !important;
 }
 
-.mg-model-card:hover {
-    transform: translateY(-3px) scale(1.015) !important;
-    border-color: var(--biolum-cyan) !important;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.55), 0 0 18px rgba(25, 227, 194, 0.24) !important;
+/* ── Column 3: Acoustic Telemetry Rows ── */
+.seadex-telem-item {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 11px 0 !important;
+    border-bottom: 1px solid #F1F5F9 !important;
+    font-size: 1.12rem !important;
+}
+.seadex-telem-lbl {
+    color: #64748B !important;
+    font-weight: 500 !important;
+}
+.seadex-telem-val {
+    color: #0F1115 !important;
+    font-weight: 600 !important;
+    font-family: var(--font-mono) !important;
+    font-size: 1.10rem !important;
+}
+.seadex-signal-hdr {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding-top: 12px !important;
+    margin-top: 6px !important;
+    font-size: 1.10rem !important;
+    font-weight: 600 !important;
+    color: #0F1115 !important;
 }
 
-/* Dropzone interactive micro-interaction */
-.seadex-dropzone-visual {
-    transition: border-color 0.25s ease, background 0.25s ease, transform 0.25s ease !important;
+/* ── Section 4: Detection Results & Triage ── */
+.seadex-triage-header-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding-bottom: 12px !important;
+    margin-bottom: 14px !important;
+    border-bottom: 1px solid #E4E4E7 !important;
+}
+.seadex-triage-title {
+    font-family: var(--font-display) !important;
+    font-size: 1.14rem !important;
+    font-weight: 700 !important;
+    color: #0F1115 !important;
+}
+.seadex-triage-link {
+    font-size: 1.06rem !important;
+    font-weight: 600 !important;
+    color: #18181B !important;
+}
+.seadex-triage-card {
+    background: #F8FAFC !important;
+    border: 1px solid #E4E4E7 !important;
+    border-radius: 14px !important;
+    padding: 14px 16px !important;
+    margin-bottom: 10px !important;
+}
+.seadex-triage-card-top {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    margin-bottom: 8px !important;
+}
+.seadex-triage-id {
+    font-family: var(--font-mono) !important;
+    font-size: 1.02rem !important;
+    font-weight: 700 !important;
+    color: #64748B !important;
+    margin-right: 6px !important;
+}
+.seadex-triage-name {
+    font-weight: 700 !important;
+    font-size: 1.10rem !important;
+    color: #0F1115 !important;
+}
+.seadex-badge-status {
+    background: #18181B !important;
+    color: #FFFFFF !important;
+    font-size: 0.94rem !important;
+    font-weight: 600 !important;
+    padding: 2px 8px !important;
+    border-radius: 9999px !important;
+}
+.seadex-triage-body {
+    display: flex !important;
+    gap: 10px !important;
+    align-items: center !important;
+}
+.seadex-triage-img {
+    width: 60px !important;
+    height: 60px !important;
+    border-radius: 8px !important;
+    object-fit: cover !important;
+    border: 1px solid #E4E4E7 !important;
+    background: #FFFFFF !important;
+    flex-shrink: 0 !important;
+}
+.seadex-triage-table {
+    flex: 1 !important;
+    font-size: 1.02rem !important;
+}
+.seadex-tt-row {
+    display: flex !important;
+    justify-content: space-between !important;
+    padding: 2px 0 !important;
+}
+.seadex-tt-lbl {
+    color: #64748B !important;
+}
+.seadex-tt-val {
+    color: #0F1115 !important;
+    font-weight: 600 !important;
 }
 
-.seadex-dropzone-visual:hover {
-    transform: scale(1.01) !important;
-    border-color: var(--biolum-cyan) !important;
-    box-shadow: 0 0 16px rgba(25, 227, 194, 0.2) !important;
+/* Metric Cards & Elegostra Hero Pill Buttons across all pages */
+.elegostra-pill-row {
+    display: flex !important;
+    justify-content: center !important;
+    align-items: center !important;
+    gap: 10px !important;
+    margin-top: 0.75rem !important;
+    flex-wrap: wrap !important;
+}
+.elegostra-btn-dark {
+    background: #18181B !important;
+    color: #FFFFFF !important;
+    -webkit-text-fill-color: #FFFFFF !important;
+    border: 1px solid #18181B !important;
+    border-radius: 9999px !important;
+    padding: 6px 16px !important;
+    font-size: 1.08rem !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+.elegostra-btn-light {
+    background: #FFFFFF !important;
+    color: #0F1115 !important;
+    border: 1px solid #E4E4E7 !important;
+    border-radius: 9999px !important;
+    padding: 6px 16px !important;
+    font-size: 1.08rem !important;
+    font-weight: 600 !important;
+    display: inline-block !important;
+}
+.mg-card {
+    background: #F8FAFC !important;
+    border: 1px solid #E4E4E7 !important;
+    border-radius: 14px !important;
+    padding: 14px 18px !important;
+    margin-bottom: 14px !important;
+}
+.mg-card-title {
+    font-family: var(--font-display) !important;
+    font-size: 1.18rem !important;
+    font-weight: 700 !important;
+    color: #0F1115 !important;
+}
+.mg-card-sub {
+    font-size: 1.08rem !important;
+    color: #64748B !important;
+}
+div[data-testid="stMetric"] {
+    background: #FFFFFF !important;
+    border: 1px solid #E4E4E7 !important;
+    border-radius: 12px !important;
+    padding: 12px 16px !important;
+}
+div[data-testid="stMetricLabel"] {
+    color: #64748B !important;
+    font-weight: 500 !important;
+}
+div[data-testid="stMetricValue"] {
+    color: #0F1115 !important;
+    font-weight: 700 !important;
+}
+
+/* ── Smooth Page Change Transitions & Staggered Entrance Animations ── */
+@keyframes elegostraHeroReveal {
+    0% {
+        opacity: 0;
+        transform: translateY(12px) scale(0.994);
+        filter: blur(3px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+@keyframes elegostraPageEnter {
+    0% {
+        opacity: 0;
+        transform: translateY(16px) scale(0.994);
+        filter: blur(2.5px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        filter: blur(0px);
+    }
+}
+
+.elegostra-hero {
+    animation: elegostraHeroReveal 0.44s cubic-bezier(0.22, 1, 0.36, 1) both;
+    will-change: transform, opacity, filter;
+}
+
+div[class*="st-key-det_panel_input"],
+div[class*="st-key-det_panel_sonar"],
+div[class*="st-key-det_panel_telem"],
+div[class*="st-key-det_panel_results"],
+.mg-card,
+div[data-testid="stMetric"],
+div[data-testid="stPlotlyChart"] {
+    animation: elegostraPageEnter 0.50s cubic-bezier(0.22, 1, 0.36, 1) both;
+    transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                opacity 0.24s cubic-bezier(0.22, 1, 0.36, 1) !important;
+    will-change: transform, opacity;
+}
+
+div[class*="st-key-det_panel_input"] { animation-delay: 0.03s; }
+div[class*="st-key-det_panel_sonar"] { animation-delay: 0.08s; }
+div[class*="st-key-det_panel_telem"] { animation-delay: 0.13s; }
+div[class*="st-key-det_panel_results"] { animation-delay: 0.18s; }
+
+/* Smooth pill morphing in top navigation & segmented toolbars */
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label,
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label,
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label {
+    transition: background-color 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+                color 0.25s cubic-bezier(0.22, 1, 0.36, 1),
+                transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+                box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .elegostra-hero,
+    div[class*="st-key-det_panel_"],
+    .mg-card,
+    div[data-testid="stMetric"],
+    div[data-testid="stPlotlyChart"] {
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
+/* ── Ambient Coastal Sky Seagulls (Top) & Tall Rolling Ocean Waves (Bottom) ── */
+.block-container {
+    padding-bottom: 11.5rem !important;
+}
+
+@keyframes gullFlyRight {
+    0%   { transform: translate3d(-12vw, 0px, 0); }
+    25%  { transform: translate3d(22vw, -7px, 0); }
+    50%  { transform: translate3d(55vw, 4px, 0); }
+    75%  { transform: translate3d(85vw, -5px, 0); }
+    100% { transform: translate3d(112vw, 0px, 0); }
+}
+
+@keyframes gullFlyLeft {
+    0%   { transform: translate3d(112vw, 0px, 0) scaleX(-1); }
+    25%  { transform: translate3d(80vw, -6px, 0) scaleX(-1); }
+    50%  { transform: translate3d(45vw, 5px, 0) scaleX(-1); }
+    75%  { transform: translate3d(15vw, -4px, 0) scaleX(-1); }
+    100% { transform: translate3d(-12vw, 0px, 0) scaleX(-1); }
+}
+
+@keyframes gullWingLeft {
+    0%, 100% { transform: rotate(-16deg); }
+    50%      { transform: rotate(20deg); }
+}
+
+@keyframes gullWingRight {
+    0%, 100% { transform: rotate(16deg); }
+    50%      { transform: rotate(-20deg); }
+}
+
+@keyframes elegostraWaveSlide {
+    0%   { transform: translate3d(0, 0, 0); }
+    50%  { transform: translate3d(-25%, -10px, 0); }
+    100% { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes elegostraWaveSlideReverse {
+    0%   { transform: translate3d(-50%, 0, 0); }
+    50%  { transform: translate3d(-25%, 10px, 0); }
+    100% { transform: translate3d(0, 0, 0); }
+}
+
+/* ── Global Readability & Larger Font Scale Across All Pages ── */
+html {
+    font-size: 19px !important;
+}
+body, p, li, td, th,
+div[data-testid="stMarkdownContainer"] p,
+div[data-testid="stMarkdownContainer"] li,
+div[data-testid="stMarkdownContainer"] td,
+div[data-testid="stMarkdownContainer"] th {
+    font-size: 1.12rem !important;
+    line-height: 1.55 !important;
+}
+/* Top Navigation Bar Tabs */
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label {
+    padding: 8px 18px !important;
+    font-size: 1.08rem !important;
+}
+div[class*="st-key-top_elegostra_nav"] div[role="radiogroup"] label p {
+    font-size: 1.08rem !important;
+    font-weight: 600 !important;
+}
+/* Hero Title & Subtitle on Every Page */
+.elegostra-hero-title {
+    font-size: 2.95rem !important;
+    line-height: 1.12 !important;
+}
+.elegostra-hero-sub {
+    font-size: 1.18rem !important;
+    line-height: 1.52 !important;
+    max-width: 720px !important;
+}
+.elegostra-btn-dark,
+.elegostra-btn-light {
+    font-size: 1.04rem !important;
+    padding: 8px 20px !important;
+}
+/* Panel Section Headers & Step Badges */
+.seadex-panel-hdr,
+.seadex-triage-title {
+    font-size: 1.08rem !important;
+}
+.seadex-step-badge {
+    font-size: 0.96rem !important;
+    padding: 3px 9px !important;
+}
+/* Radio Buttons, Selectboxes, Toggles, Sliders */
+div[role="radiogroup"] label p,
+.stRadio label,
+.stSelectbox label,
+.stToggle label,
+.stSlider label,
+.stCheckbox label,
+div[data-baseweb="select"] span {
+    font-size: 1.06rem !important;
+}
+/* Segmented View & Fit Mode Toolbars */
+div[class*="st-key-seadex_view_mode"] div[role="radiogroup"] label p,
+div[class*="st-key-seadex_fit_mode"] div[role="radiogroup"] label p {
+    font-size: 0.90rem !important;
+    font-weight: 700 !important;
+}
+/* Action Buttons */
+.stButton > button,
+button[data-testid^="stBaseButton"] {
+    font-size: 1.08rem !important;
+    padding: 0.60rem 1.35rem !important;
+}
+/* KPI Cards */
+.seadex-kpi-val {
+    font-size: 1.38rem !important;
+}
+.seadex-kpi-lbl {
+    font-size: 0.94rem !important;
+}
+.seadex-kpi-trend {
+    font-size: 0.92rem !important;
+}
+/* Telemetry Rows */
+.seadex-telem-item {
+    font-size: 1.04rem !important;
+    padding: 8px 0 !important;
+}
+.seadex-telem-lbl {
+    font-size: 1.04rem !important;
+}
+.seadex-telem-val {
+    font-size: 1.04rem !important;
+}
+.seadex-signal-hdr {
+    font-size: 1.04rem !important;
+}
+/* Triage & Explainability & Model Registry Cards */
+.mg-card-title {
+    font-size: 1.28rem !important;
+}
+.mg-card-sub {
+    font-size: 1.08rem !important;
+}
+.mg-model-name {
+    font-size: 1.25rem !important;
+    font-weight: 700 !important;
+}
+.mg-model-desc {
+    font-size: 1.08rem !important;
+}
+.mg-model-meta {
+    font-size: 1.02rem !important;
+}
+.seadex-triage-name {
+    font-size: 1.12rem !important;
+}
+.seadex-triage-id,
+.seadex-triage-table {
+    font-size: 0.98rem !important;
+}
+.seadex-empty-title {
+    font-size: 1.22rem !important;
+}
+.seadex-empty-desc {
+    font-size: 1.06rem !important;
+}
+div[data-testid="stMetricLabel"] p {
+    font-size: 1.06rem !important;
+}
+div[data-testid="stMetricValue"] {
+    font-size: 1.75rem !important;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ── JS: Auto-expand sidebar on load and zero out top padding ──
+# ── JS: Fit UI to full screen, enforce white text inside black boxes, sync active/inactive tab pills, orchestrate smooth page transitions, and render ambient seagulls + tall waves ──
 import streamlit.components.v1 as _components
 _components.html("""
 <script>
-(function ensureSidebarAndLayout() {
-    function fix() {
-        var doc = window.parent.document;
-        // 1. Auto-open sidebar if browser had it collapsed
-        try {
-            var expandBtn = doc.querySelector('[data-testid="stExpandSidebarButton"], [data-testid="stExpandSidebarButton"] button, [data-testid="stSidebarCollapsedControl"] button, [data-testid="collapsedControl"] button');
-            if (expandBtn) {
-                expandBtn.click();
-            }
-        } catch(e) {}
+(function enforceElegostraLayout() {
+    var doc = window.parent.document;
 
-        // 2. Adjust padding and hide unwanted chrome
-        var targets = [
-            '[data-testid="stMainBlockContainer"]',
-            '[data-testid="stAppViewBlockContainer"]',
-            '.block-container',
-            '[data-testid="stDecoration"]',
-            '[data-testid="stAppDeployButton"]',
-            '#MainMenu'
-        ];
-        targets.forEach(function(sel) {
-            doc.querySelectorAll(sel).forEach(function(el) {
-                if (sel.includes('Deploy') || sel.includes('Decoration') || sel.includes('MainMenu')) {
-                    el.style.display = 'none';
-                } else {
-                    el.style.paddingTop = '0';
-                    el.style.marginTop = '0';
+    // Inject persistent top flying seagulls & tall bottom ocean waves into parent document body
+    function ensureMarineAmbientScene() {
+        var existingStyle = doc.getElementById('elegostra-ambient-style');
+        if (!existingStyle || existingStyle.getAttribute('data-ver') !== 'v2-tall') {
+            if (existingStyle) existingStyle.remove();
+            var st = doc.createElement('style');
+            st.id = 'elegostra-ambient-style';
+            st.setAttribute('data-ver', 'v2-tall');
+            st.textContent = `
+                #elegostra-seagulls-layer {
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 145px;
+                    pointer-events: none;
+                    z-index: 9998;
+                    overflow: hidden;
                 }
+                .elegostra-gull-wrap {
+                    position: absolute;
+                    top: 20px;
+                    left: 0;
+                    will-change: transform;
+                }
+                .elegostra-gull-svg {
+                    overflow: visible;
+                    display: block;
+                }
+                .elegostra-wing-l {
+                    transform-origin: 18px 12px;
+                    animation: gullWingLeft 1.15s ease-in-out infinite;
+                }
+                .elegostra-wing-r {
+                    transform-origin: 18px 12px;
+                    animation: gullWingRight 1.15s ease-in-out infinite;
+                }
+                #elegostra-waves-layer {
+                    position: fixed;
+                    bottom: 0;
+                    left: 0;
+                    width: 100vw;
+                    height: 210px;
+                    pointer-events: none;
+                    z-index: 9998;
+                    overflow: hidden;
+                }
+                .elegostra-wave-track {
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    width: 200%;
+                    height: 100%;
+                    display: flex;
+                    will-change: transform;
+                }
+                .elegostra-wave-track svg {
+                    width: 50%;
+                    height: 100%;
+                    flex-shrink: 0;
+                }
+                .elegostra-wave-0 {
+                    animation: elegostraWaveSlideReverse 24s linear infinite;
+                    bottom: 0;
+                }
+                .elegostra-wave-1 {
+                    animation: elegostraWaveSlide 18s linear infinite;
+                    bottom: -2px;
+                }
+                .elegostra-wave-2 {
+                    animation: elegostraWaveSlideReverse 13s linear infinite;
+                    bottom: -4px;
+                }
+                .elegostra-wave-3 {
+                    animation: elegostraWaveSlide 8.5s linear infinite;
+                    bottom: -6px;
+                }
+            `;
+            doc.head.appendChild(st);
+        }
+
+        // 1. Top Flying Seagulls Layer
+        if (!doc.getElementById('elegostra-seagulls-layer')) {
+            var gullLayer = doc.createElement('div');
+            gullLayer.id = 'elegostra-seagulls-layer';
+            var gullsConfig = [
+                { top: 14, scale: 0.72, dur: 24, delay: -3,  flap: 1.05, op: 0.52, dir: 'gullFlyRight' },
+                { top: 32, scale: 0.55, dur: 29, delay: -11, flap: 0.92, op: 0.38, dir: 'gullFlyRight' },
+                { top: 22, scale: 0.85, dur: 21, delay: -16, flap: 1.18, op: 0.60, dir: 'gullFlyRight' },
+                { top: 48, scale: 0.62, dur: 27, delay: -7,  flap: 1.00, op: 0.42, dir: 'gullFlyLeft'  },
+                { top: 18, scale: 0.50, dur: 33, delay: -21, flap: 0.88, op: 0.34, dir: 'gullFlyRight' },
+                { top: 58, scale: 0.68, dur: 25, delay: -14, flap: 1.12, op: 0.45, dir: 'gullFlyLeft'  },
+                { top: 38, scale: 0.76, dur: 22, delay: -1,  flap: 1.08, op: 0.50, dir: 'gullFlyRight' }
+            ];
+            var gullsHtml = '';
+            gullsConfig.forEach(function(g) {
+                gullsHtml += '<div class="elegostra-gull-wrap" style="top:' + g.top + 'px; opacity:' + g.op + '; animation:' + g.dir + ' ' + g.dur + 's linear ' + g.delay + 's infinite;">' +
+                    '<svg class="elegostra-gull-svg" width="' + Math.round(36 * g.scale) + '" height="' + Math.round(22 * g.scale) + '" viewBox="0 0 36 22" fill="none">' +
+                        '<path class="elegostra-wing-l" style="animation-duration:' + g.flap + 's;" d="M18 12 C13 6, 6 5, 1 9 C7 8, 13 10, 18 13 Z" fill="#18181B" stroke="#18181B" stroke-width="1.2" stroke-linecap="round"/>' +
+                        '<path class="elegostra-wing-r" style="animation-duration:' + g.flap + 's;" d="M18 12 C23 6, 30 5, 35 9 C29 8, 23 10, 18 13 Z" fill="#18181B" stroke="#18181B" stroke-width="1.2" stroke-linecap="round"/>' +
+                    '</svg>' +
+                '</div>';
             });
-        });
-        var hdr = doc.querySelector('header[data-testid="stHeader"]');
-        if (hdr) {
-            hdr.style.background = 'transparent';
-            hdr.style.height = '0px';
-            hdr.style.pointerEvents = 'none';
+            gullLayer.innerHTML = gullsHtml;
+            doc.body.appendChild(gullLayer);
+        }
+
+        // 2. Tall Bottom Rolling Ocean Waves Layer (210px height, 4 ocean-blue wave crests)
+        var existingWaves = doc.getElementById('elegostra-waves-layer');
+        if (!existingWaves || existingWaves.getAttribute('data-ver') !== 'v3-blue') {
+            if (existingWaves) existingWaves.remove();
+            var waveLayer = doc.createElement('div');
+            waveLayer.id = 'elegostra-waves-layer';
+            waveLayer.setAttribute('data-ver', 'v3-blue');
+
+            var waveSvg0 = '<svg viewBox="0 0 1440 220" preserveAspectRatio="none"><path d="M0,65 C220,5 480,155 720,65 C960,-25 1220,155 1440,65 L1440,220 L0,220 Z" fill="rgba(56, 189, 248, 0.22)" stroke="rgba(14, 165, 233, 0.45)" stroke-width="1.4"/></svg>';
+            var waveSvg1 = '<svg viewBox="0 0 1440 220" preserveAspectRatio="none"><path d="M0,95 C240,185 480,10 720,95 C960,180 1200,10 1440,95 L1440,220 L0,220 Z" fill="rgba(14, 165, 233, 0.32)" stroke="rgba(2, 132, 199, 0.58)" stroke-width="1.5"/></svg>';
+            var waveSvg2 = '<svg viewBox="0 0 1440 220" preserveAspectRatio="none"><path d="M0,125 C320,35 560,195 720,125 C880,55 1120,195 1440,125 L1440,220 L0,220 Z" fill="rgba(37, 99, 235, 0.44)" stroke="rgba(37, 99, 235, 0.75)" stroke-width="1.7"/></svg>';
+            var waveSvg3 = '<svg viewBox="0 0 1440 220" preserveAspectRatio="none"><path d="M0,152 C180,75 420,210 720,152 C1020,94 1260,210 1440,152 L1440,220 L0,220 Z" fill="rgba(29, 78, 216, 0.60)" stroke="#1D4ED8" stroke-width="2.0"/></svg>';
+
+            waveLayer.innerHTML =
+                '<div class="elegostra-wave-track elegostra-wave-0">' + waveSvg0 + waveSvg0 + '</div>' +
+                '<div class="elegostra-wave-track elegostra-wave-1">' + waveSvg1 + waveSvg1 + '</div>' +
+                '<div class="elegostra-wave-track elegostra-wave-2">' + waveSvg2 + waveSvg2 + '</div>' +
+                '<div class="elegostra-wave-track elegostra-wave-3">' + waveSvg3 + waveSvg3 + '</div>';
+            doc.body.appendChild(waveLayer);
         }
     }
-    fix();
-    setTimeout(fix, 50);
-    setTimeout(fix, 150);
-    setTimeout(fix, 350);
-    setTimeout(fix, 800);
-    setTimeout(fix, 1500);
-    setTimeout(fix, 3000);
+
+    // Collect all top-level page content blocks below the top header row (Logos + Navigation Bar)
+    function getPageContentBlocks() {
+        var topNav = doc.querySelector('div[class*="st-key-top_elegostra_nav"]');
+        if (!topNav) return [];
+        var navWrapper = topNav.closest('[data-testid="stHorizontalBlock"]') || topNav.closest('[data-testid="stElementContainer"], .element-container') || topNav;
+        var parentBlock = navWrapper.parentElement;
+        if (!parentBlock) return [];
+        var children = Array.from(parentBlock.children);
+        var navIdx = children.indexOf(navWrapper);
+        if (navIdx === -1) return [];
+        return children.slice(navIdx + 1).filter(function(el) {
+            return el.offsetHeight > 0 && !el.querySelector('iframe[height="0"]');
+        });
+    }
+
+    // Play staggered entrance transition on page change
+    function playPageEntrance() {
+        var blocks = getPageContentBlocks();
+        blocks.forEach(function(el, idx) {
+            var delayMs = Math.min(idx * 45, 200);
+            el.style.transition = 'none';
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(16px) scale(0.994)';
+            el.style.filter = 'blur(2.5px)';
+            // Force reflow so browser registers the initial state
+            void el.offsetWidth;
+            el.style.transition =
+                'opacity 0.44s cubic-bezier(0.22, 1, 0.36, 1) ' + delayMs + 'ms, ' +
+                'transform 0.46s cubic-bezier(0.22, 1, 0.36, 1) ' + delayMs + 'ms, ' +
+                'filter 0.38s cubic-bezier(0.22, 1, 0.36, 1) ' + delayMs + 'ms';
+            el.style.opacity = '1';
+            el.style.transform = 'translateY(0) scale(1)';
+            el.style.filter = 'blur(0px)';
+        });
+    }
+
+    // Attach instant click handler on top nav tabs for smooth exit fade + instant pill response
+    function bindTopNavTransition() {
+        var topNav = doc.querySelector('div[class*="st-key-top_elegostra_nav"]');
+        if (!topNav) return;
+        var labels = topNav.querySelectorAll('div[role="radiogroup"] label');
+        labels.forEach(function(lbl) {
+            if (lbl.dataset.transitionBound === '1') return;
+            lbl.dataset.transitionBound = '1';
+            lbl.addEventListener('mousedown', function() {
+                var inp = lbl.querySelector('input[type="radio"]');
+                if (inp && inp.checked) return; // Already on this tab
+                // Immediately highlight the clicked tab pill and unhighlight siblings
+                labels.forEach(function(other) {
+                    if (other === lbl) {
+                        other.style.setProperty('background-color', '#18181B', 'important');
+                        other.style.setProperty('color', '#FFFFFF', 'important');
+                        other.style.setProperty('transform', 'scale(1.02)', 'important');
+                        other.querySelectorAll('*').forEach(function(c) {
+                            c.style.setProperty('color', '#FFFFFF', 'important');
+                            c.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important');
+                        });
+                    } else {
+                        other.style.setProperty('background-color', 'transparent', 'important');
+                        other.style.setProperty('box-shadow', 'none', 'important');
+                        other.style.setProperty('transform', 'scale(1)', 'important');
+                        other.style.setProperty('color', '#52525B', 'important');
+                        other.querySelectorAll('*').forEach(function(c) {
+                            c.style.setProperty('color', '#52525B', 'important');
+                            c.style.setProperty('-webkit-text-fill-color', '#52525B', 'important');
+                        });
+                    }
+                });
+                // Smooth exit fade on outgoing page content while Streamlit loads new tab
+                var blocks = getPageContentBlocks();
+                blocks.forEach(function(el) {
+                    el.style.transition =
+                        'opacity 0.18s cubic-bezier(0.4, 0, 0.2, 1), ' +
+                        'transform 0.18s cubic-bezier(0.4, 0, 0.2, 1), ' +
+                        'filter 0.18s cubic-bezier(0.4, 0, 0.2, 1)';
+                    el.style.opacity = '0.18';
+                    el.style.transform = 'translateY(8px) scale(0.996)';
+                    el.style.filter = 'blur(2px)';
+                });
+            });
+        });
+    }
+
+    function applyFix() {
+        ensureMarineAmbientScene();
+        doc.documentElement.style.setProperty("font-size", "19px", "important");
+        // 1. Hide this zero-height iframe's parent wrapper so it takes 0 vertical space
+        doc.querySelectorAll('iframe[height="0"]').forEach(function(ifr) {
+            var wrapper = ifr.closest('[data-testid="stElementContainer"], .element-container');
+            if (wrapper) {
+                wrapper.style.display = 'none';
+                wrapper.style.margin = '0';
+                wrapper.style.padding = '0';
+                wrapper.style.height = '0';
+            }
+        });
+        // 2. Ensure all black buttons and black badges have crisp white (#FFFFFF) text
+        var blackSelectors = [
+            '.stButton button',
+            'button[data-testid^="stBaseButton"]',
+            '[data-testid="stFileUploader"] section button',
+            '.seadex-step-badge',
+            '.seadex-hud-status-badge',
+            '.seadex-badge-status',
+            '.black-pill-badge',
+            '.seadex-live-tag',
+            '.elegostra-btn-dark'
+        ];
+        blackSelectors.forEach(function(sel) {
+            doc.querySelectorAll(sel).forEach(function(el) {
+                el.style.setProperty('background-color', '#18181B', 'important');
+                el.style.setProperty('color', '#FFFFFF', 'important');
+                el.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important');
+                el.querySelectorAll('*').forEach(function(child) {
+                    child.style.setProperty('color', '#FFFFFF', 'important');
+                    child.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important');
+                });
+            });
+        });
+        // 3. Sync checked vs unchecked pill radio tabs (top nav, view mode, fit mode)
+        doc.querySelectorAll('div[role="radiogroup"] label').forEach(function(lbl) {
+            var rg = lbl.closest('div[class*="st-key-top_elegostra_nav"], div[class*="st-key-seadex_view_mode"], div[class*="st-key-seadex_fit_mode"]');
+            if (!rg) return;
+            var inp = lbl.querySelector('input[type="radio"]');
+            var isChecked = (inp && inp.checked) || lbl.getAttribute('data-checked') === 'true';
+            if (isChecked) {
+                lbl.style.setProperty('background-color', '#18181B', 'important');
+                lbl.style.setProperty('color', '#FFFFFF', 'important');
+                lbl.style.setProperty('transform', 'scale(1)', 'important');
+                lbl.querySelectorAll('*').forEach(function(c) {
+                    c.style.setProperty('color', '#FFFFFF', 'important');
+                    c.style.setProperty('-webkit-text-fill-color', '#FFFFFF', 'important');
+                });
+            } else {
+                lbl.style.setProperty('background-color', 'transparent', 'important');
+                lbl.style.setProperty('box-shadow', 'none', 'important');
+                lbl.style.setProperty('transform', 'scale(1)', 'important');
+                lbl.style.setProperty('color', '#52525B', 'important');
+                lbl.querySelectorAll('*').forEach(function(c) {
+                    c.style.setProperty('color', '#52525B', 'important');
+                    c.style.setProperty('-webkit-text-fill-color', '#52525B', 'important');
+                });
+            }
+        });
+        // 4. Bind click listeners and trigger entrance animation whenever active_tab changes
+        bindTopNavTransition();
+        var marker = doc.getElementById('elegostra-page-marker');
+        if (marker) {
+            var curTab = marker.getAttribute('data-active-tab');
+            if (window.parent._lastElegostraTab !== curTab) {
+                window.parent._lastElegostraTab = curTab;
+                playPageEntrance();
+            }
+        }
+    }
+    applyFix();
+    setInterval(applyFix, 120);
 })();
 </script>
 """, height=0, scrolling=False)
@@ -2084,13 +1320,7 @@ _ICON_PATHS: Dict[str, str] = {
 
 
 def icon(name: str, size: int = 15, color: str = "currentColor", stroke_width: float = 2.0) -> str:
-    """Returns an inline Lucide-style SVG line icon (no emoji, no external assets)."""
-    body = _ICON_PATHS.get(name, _ICON_PATHS["circle-dashed"])
-    return (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{size}" height="{size}" viewBox="0 0 24 24" '
-        f'fill="none" stroke="{color}" stroke-width="{stroke_width}" stroke-linecap="round" '
-        f'stroke-linejoin="round" style="vertical-align:middle;flex-shrink:0;">{body}</svg>'
-    )
+    return ""
 
 
 # ─── Model Registry ─────────────────────────────────────────────────────────
@@ -2101,14 +1331,14 @@ SIH_27CLASS_WEIGHTS = (
 )
 
 MODEL_REGISTRY = {
-    "🎯 SIH 2026 Master Detector (All 27 Classes)": {
+    " SIH 2026 Master Detector (All 27 Classes)": {
         "weights": SIH_27CLASS_WEIGHTS,
         "description": "Unified 27-class detector covering marine debris, lost tools, subsea infrastructure, tires, and shipwrecks (94.09% mAP50).",
         "type": "Master Universal (27 Classes)",
         "default_conf": 0.30,
         "class_filter": None,
     },
-    "🗑️ Marine Debris & Containers (15 Classes)": {
+    " Marine Debris & Containers (15 Classes)": {
         "weights": SIH_27CLASS_WEIGHTS,
         "description": "Specialized focus on bottles, cans, drink cartons/sachets, jars, shampoo bottles, bidons, and metal boxes.",
         "type": "Debris & Containers",
@@ -2119,7 +1349,7 @@ MODEL_REGISTRY = {
             "plastic-bottle","potion-glass-bottle","shampoo-bottle","standing-bottle",
         ],
     },
-    "⚙️ Marine Hardware, Infrastructure & Tools (8 Classes)": {
+    " Marine Hardware, Infrastructure & Tools (8 Classes)": {
         "weights": SIH_27CLASS_WEIGHTS,
         "description": "Underwater subsea pipeline/cables, valves, wrenches, chains, hooks, propellers, and rotating platforms.",
         "type": "Hardware & Infrastructure",
@@ -2129,21 +1359,21 @@ MODEL_REGISTRY = {
             "propeller","rotating-platform","valve","wrench",
         ],
     },
-    "🛞 Tires & Subsea Rubber Material (3 Classes)": {
+    " Tires & Subsea Rubber Material (3 Classes)": {
         "weights": SIH_27CLASS_WEIGHTS,
         "description": "Detection of submerged automotive and industrial rubber: tire, small-tire, large-tire.",
         "type": "Rubber & Tires",
         "default_conf": 0.35,
         "class_filter": ["tire","small-tire","large-tire"],
     },
-    "🚢 Sonar Anomalies & Shipwrecks (Acoustic Targets)": {
+    " Sonar Anomalies & Shipwrecks (Acoustic Targets)": {
         "weights": SIH_27CLASS_WEIGHTS,
         "description": "Acoustic side-scan sonar shipwrecks and large submerged structural targets.",
         "type": "Sonar Anomalies",
         "default_conf": 0.25,
         "class_filter": ["Shipwrecks"],
     },
-    "🔬 Anoma Deep Sonar Detector (Trained on 535 Anomaly Images)": {
+    " Anoma Deep Sonar Detector (Trained on 535 Anomaly Images)": {
         "weights": "weights/yolo11s_anoma_best.pt",
         "description": "Specialized 4-class acoustic model fine-tuned on the Anoma dataset: Debris Target, Small Fragment, Structural Cluster, Linear Structure.",
         "type": "Anoma Sonar Detector",
@@ -2160,37 +1390,37 @@ SEGFORMER_WEIGHTS = (
 RESNET_WEIGHTS = "weights/resnet18_debris_best.pt"
 
 CLASS_METADATA = {
-    "Debris Target":            {"emoji": "🎯", "color": "#FF5555", "type": "Acoustic Target"},
-    "Small Acoustic Fragment":  {"emoji": "🔬", "color": "#FFAA33", "type": "Fragment Scatterer"},
-    "Structural Cluster":       {"emoji": "📦", "color": "#33DDFF", "type": "Seabed Cluster"},
-    "Subsea Linear Structure":  {"emoji": "⚡", "color": "#33FF88", "type": "Linear Feature"},
-    "Shipwrecks":           {"emoji": "🚢", "color": "#FFD700", "type": "Acoustic Sonar Target"},
-    "bottle":               {"emoji": "🍾", "color": "#00BFFF", "type": "Polymer Container"},
-    "brown-glass-bottle":   {"emoji": "🍾", "color": "#C08040", "type": "Glass Debris"},
-    "can":                  {"emoji": "🥫", "color": "#FF4488", "type": "Metallic Litter"},
-    "chain":                {"emoji": "⛓️", "color": "#88AAFF", "type": "Marine Rigging"},
-    "drink-carton":         {"emoji": "🧃", "color": "#FFAA44", "type": "Cellulose Packaging"},
-    "drink-sachet":         {"emoji": "🧃", "color": "#FF88AA", "type": "Flexible Plastic"},
-    "glass-bottle":         {"emoji": "🍶", "color": "#44DDAA", "type": "Glass Debris"},
-    "glass-jar":            {"emoji": "🫙", "color": "#88FFCC", "type": "Glass Container"},
-    "hook":                 {"emoji": "🪝", "color": "#FF9933", "type": "Lost Rigging Tool"},
-    "large-tire":           {"emoji": "🛞", "color": "#777777", "type": "Heavy Rubber Debris"},
-    "metal-bottle":         {"emoji": "🧯", "color": "#FF6666", "type": "Metal Debris"},
-    "metal-box":            {"emoji": "📦", "color": "#EEAA66", "type": "Metal Container"},
-    "pipeline or cable":    {"emoji": "⚡", "color": "#00E5FF", "type": "Subsea Infrastructure"},
-    "plastic-bidon":        {"emoji": "🛢️", "color": "#00EEFF", "type": "Rigid Plastic Drum"},
-    "plastic-bottle":       {"emoji": "🧴", "color": "#00BFFF", "type": "Polymer Debris"},
-    "plastic-pipe":         {"emoji": "🧪", "color": "#55AAFF", "type": "Synthetic Piping"},
-    "plastic-propeller":    {"emoji": "⚙️", "color": "#77CCEE", "type": "Plastic Mechanism"},
-    "potion-glass-bottle":  {"emoji": "🧪", "color": "#AA66FF", "type": "Specialized Glass"},
-    "propeller":            {"emoji": "🌀", "color": "#FFAA00", "type": "Marine Propulsion"},
-    "rotating-platform":    {"emoji": "🏗️", "color": "#99DDFF", "type": "Subsea Structure"},
-    "shampoo-bottle":       {"emoji": "🧴", "color": "#FF66CC", "type": "Personal Care Bottle"},
-    "small-tire":           {"emoji": "🛞", "color": "#AAAAAA", "type": "Rubber Debris"},
-    "standing-bottle":      {"emoji": "🍾", "color": "#33FFDD", "type": "Bottle Container"},
-    "tire":                 {"emoji": "🛞", "color": "#888888", "type": "Automotive Rubber"},
-    "valve":                {"emoji": "🔩", "color": "#FFCC00", "type": "Subsea Fitting"},
-    "wrench":               {"emoji": "🔧", "color": "#00FFCC", "type": "Lost Tool"},
+    "Debris Target":            {"emoji": "", "color": "#FF5555", "type": "Acoustic Target"},
+    "Small Acoustic Fragment":  {"emoji": "", "color": "#FFAA33", "type": "Fragment Scatterer"},
+    "Structural Cluster":       {"emoji": "", "color": "#33DDFF", "type": "Seabed Cluster"},
+    "Subsea Linear Structure":  {"emoji": "", "color": "#33FF88", "type": "Linear Feature"},
+    "Shipwrecks":           {"emoji": "", "color": "#FFD700", "type": "Acoustic Sonar Target"},
+    "bottle":               {"emoji": "", "color": "#00BFFF", "type": "Polymer Container"},
+    "brown-glass-bottle":   {"emoji": "", "color": "#C08040", "type": "Glass Debris"},
+    "can":                  {"emoji": "", "color": "#FF4488", "type": "Metallic Litter"},
+    "chain":                {"emoji": "", "color": "#88AAFF", "type": "Marine Rigging"},
+    "drink-carton":         {"emoji": "", "color": "#FFAA44", "type": "Cellulose Packaging"},
+    "drink-sachet":         {"emoji": "", "color": "#FF88AA", "type": "Flexible Plastic"},
+    "glass-bottle":         {"emoji": "", "color": "#44DDAA", "type": "Glass Debris"},
+    "glass-jar":            {"emoji": "", "color": "#88FFCC", "type": "Glass Container"},
+    "hook":                 {"emoji": "", "color": "#FF9933", "type": "Lost Rigging Tool"},
+    "large-tire":           {"emoji": "", "color": "#777777", "type": "Heavy Rubber Debris"},
+    "metal-bottle":         {"emoji": "", "color": "#FF6666", "type": "Metal Debris"},
+    "metal-box":            {"emoji": "", "color": "#EEAA66", "type": "Metal Container"},
+    "pipeline or cable":    {"emoji": "", "color": "#00E5FF", "type": "Subsea Infrastructure"},
+    "plastic-bidon":        {"emoji": "", "color": "#00EEFF", "type": "Rigid Plastic Drum"},
+    "plastic-bottle":       {"emoji": "", "color": "#00BFFF", "type": "Polymer Debris"},
+    "plastic-pipe":         {"emoji": "", "color": "#55AAFF", "type": "Synthetic Piping"},
+    "plastic-propeller":    {"emoji": "", "color": "#77CCEE", "type": "Plastic Mechanism"},
+    "potion-glass-bottle":  {"emoji": "", "color": "#AA66FF", "type": "Specialized Glass"},
+    "propeller":            {"emoji": "", "color": "#FFAA00", "type": "Marine Propulsion"},
+    "rotating-platform":    {"emoji": "", "color": "#99DDFF", "type": "Subsea Structure"},
+    "shampoo-bottle":       {"emoji": "", "color": "#FF66CC", "type": "Personal Care Bottle"},
+    "small-tire":           {"emoji": "", "color": "#AAAAAA", "type": "Rubber Debris"},
+    "standing-bottle":      {"emoji": "", "color": "#33FFDD", "type": "Bottle Container"},
+    "tire":                 {"emoji": "", "color": "#888888", "type": "Automotive Rubber"},
+    "valve":                {"emoji": "", "color": "#FFCC00", "type": "Subsea Fitting"},
+    "wrench":               {"emoji": "", "color": "#00FFCC", "type": "Lost Tool"},
 }
 
 # ─── Model Loaders ───────────────────────────────────────────────────────────
@@ -2245,54 +1475,54 @@ def compute_iou(box1, box2):
 ANOMALIES_DIR = ROOT_DIR / "samples" / "anomalies"
 
 ANOMALY_CLASSES = {
-    "🐟 Fish & Marine Biomass School": {
+    " Fish & Marine Biomass School": {
         "file": "fish_biomass_school.png",
         "name": "Fish & Marine Biomass School",
         "desc": "Biological acoustic scattering cluster in water column",
-        "color": "#38b8f0",
-        "emoji": "🐟"
+        "color": "#2563EB",
+        "emoji": ""
     },
-    "💣 Naval Mines & Unexploded Ordnance (UXO)": {
+    " Naval Mines & Unexploded Ordnance (UXO)": {
         "file": "naval_mine_uxo.png",
         "name": "Naval Mines & Unexploded Ordnance (UXO)",
         "desc": "Moored subsea spherical mine with contact horns & acoustic shadow",
         "color": "#e74c3c",
-        "emoji": "💣"
+        "emoji": ""
     },
-    "🛢️ Hazardous Industrial Containers": {
+    " Hazardous Industrial Containers": {
         "file": "hazardous_industrial_container.png",
         "name": "Hazardous Industrial Containers",
         "desc": "Corroded chemical / fuel steel drum on seafloor",
         "color": "#f39c12",
-        "emoji": "🛢️"
+        "emoji": ""
     },
-    "📦 Subsea Flight Recorders & Aerospace Debris": {
+    " Subsea Flight Recorders & Aerospace Debris": {
         "file": "subsea_flight_recorder.png",
         "name": "Subsea Flight Recorders & Aerospace Debris",
         "desc": "Metallic flight data recorder (ULB) beacon & aircraft fuselage plate",
         "color": "#a370f7",
-        "emoji": "📦"
+        "emoji": ""
     },
-    "⚡ Seafloor Infrastructure Fractures": {
+    " Seafloor Infrastructure Fractures": {
         "file": "seafloor_infrastructure_fracture.png",
         "name": "Seafloor Infrastructure Fractures",
         "desc": "Cracked subsea pipeline casing blowout crater & exposed trench",
         "color": "#e67e22",
-        "emoji": "⚡"
+        "emoji": ""
     },
-    "🏺 Subsea Archaeological Relics": {
+    " Subsea Archaeological Relics": {
         "file": "subsea_archaeological_relic.png",
         "name": "Subsea Archaeological Relics",
         "desc": "Ancient submerged terracotta amphora / historical seabed artifact",
         "color": "#1abc9c",
-        "emoji": "🏺"
+        "emoji": ""
     },
-    "🕸️ Ghost Fishing Gear & Tangled Trawl Nets": {
+    " Ghost Fishing Gear & Tangled Trawl Nets": {
         "file": "ghost_fishing_gear.png",
         "name": "Ghost Fishing Gear & Tangled Trawl Nets",
         "desc": "Massive tangled synthetic nylon net clump smothering benthic zone",
         "color": "#e84393",
-        "emoji": "🕸️"
+        "emoji": ""
     }
 }
 
@@ -2526,7 +1756,7 @@ def run_model_inference(
     # Draw Known Debris (Ontology Colors)
     for det in filtered_dets:
         cname   = det["class_name"]
-        meta    = CLASS_METADATA.get(cname, {"color": "#00d4ff"})
+        meta    = CLASS_METADATA.get(cname, {"color": "#2563EB"})
         bgr_col = hex_to_bgr(meta["color"])
         draw_bounding_box(annotated_img, det["bbox"],
                           f"{cname} {det['conf']:.0%}", bgr_col, line_thickness=2)
@@ -2572,195 +1802,26 @@ cpu_display = f"{cpu_cores} Cores"
 # ═══════════════════════════════════════════════════════════════════════════
 # SIDEBAR
 # ═══════════════════════════════════════════════════════════════════════════
-with st.sidebar:
-    # ── SEADEX Diamond Brand Header ──
-    st.markdown("""
-    <div class="seadex-brand-box">
-        <div class="seadex-logo-diamond">
-            <svg width="36" height="36" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <polygon points="24,4 42,16 34,44 14,44 6,16" fill="url(#biolumGrad1)" stroke="#19E3C2" stroke-width="1.6" />
-                <polygon points="24,4 24,28 6,16" fill="url(#biolumGrad2)" opacity="0.85" />
-                <polygon points="24,4 42,16 24,28" fill="url(#biolumGrad3)" opacity="0.95" />
-                <polygon points="24,28 42,16 34,44" fill="#0F3D5C" opacity="0.75" />
-                <polygon points="24,28 34,44 14,44" fill="#146C94" opacity="0.85" />
-                <polygon points="24,28 14,44 6,16" fill="#0A2436" opacity="0.9" />
-                <defs>
-                    <linearGradient id="biolumGrad1" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse">
-                        <stop stop-color="#2FE6D1"/>
-                        <stop offset="1" stop-color="#0F3D5C"/>
-                    </linearGradient>
-                    <linearGradient id="biolumGrad2" x1="6" y1="4" x2="24" y2="28" gradientUnits="userSpaceOnUse">
-                        <stop stop-color="#19E3C2"/>
-                        <stop offset="1" stop-color="#0A2436"/>
-                    </linearGradient>
-                    <linearGradient id="biolumGrad3" x1="24" y1="4" x2="42" y2="28" gradientUnits="userSpaceOnUse">
-                        <stop stop-color="#E8F4F8"/>
-                        <stop offset="1" stop-color="#19E3C2"/>
-                    </linearGradient>
-                </defs>
-            </svg>
-        </div>
-        <div>
-            <div class="seadex-brand-title">AKHET : MARINE GUARD</div>
-            <div class="seadex-brand-sub">TURNING ECHOES INTO IMPACT</div>
-            <div class="seadex-status-indicator">
-                <span class="seadex-pulse-beacon"></span>
-                <span>AUV TACTICAL &bull; SCQI NOMINAL</span>
-            </div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+# ── Top-Level Navigation & Processing Mode (Left Sidebar Removed) ──
+nav_options = [
+    "Detection & Inspection",
+    "Explainability",
+    "Model Registry",
+    "Evaluation",
+    "GIS Hotspots",
+    "Active Learning",
+]
 
-    # ── Nav items ──
-    if "active_nav" not in st.session_state:
-        st.session_state["active_nav"] = 0
+nav_mapping = {
+    "Detection & Inspection": 0,
+    "Explainability": 1,
+    "Model Registry": 3,
+    "Evaluation": 4,
+    "GIS Hotspots": 6,
+    "Active Learning": 7,
+}
 
-    nav_options = [
-        "Detection & Inspection",
-        "Explainability",
-        "Video Stream",
-        "Model Registry",
-        "Evaluation",
-        "Space Debris Tracker",
-        "GIS Hotspots",
-        "Active Learning",
-    ]
-    
-    nav_mapping = {
-        "Detection & Inspection": 0,
-        "Explainability": 1,
-        "Video Stream": 2,
-        "Model Registry": 3,
-        "Evaluation": 4,
-        "Space Debris Tracker": 5,
-        "GIS Hotspots": 6,
-        "Active Learning": 7,
-    }
-
-    def nav_icon_format(opt):
-        icons = {
-            "Detection & Inspection": "🎯  Detection & Inspection",
-            "Explainability": "☷  Explainability",
-            "Video Stream": "▶  Video Stream",
-            "Model Registry": "⛃  Model Registry",
-            "Evaluation": "☵  Evaluation",
-            "Space Debris Tracker": "◎  Space Debris Tracker",
-            "GIS Hotspots": "◈  GIS Hotspots",
-            "Active Learning": "⟲  Active Learning",
-        }
-        return icons.get(opt, opt)
-
-    selected_nav = st.radio(
-        "Navigation",
-        options=nav_options,
-        index=0,
-        format_func=nav_icon_format,
-        label_visibility="collapsed",
-        key="sidebar_nav"
-    )
-    target_tab = nav_mapping.get(selected_nav, 0)
-    st.session_state["active_nav"] = target_tab
-
-    # ── Processing Mode Selection (Slide 3) ──
-    st.markdown('<div class="seadex-sidebar-sec-title" style="margin-top:10px;">PROCESSING MODE</div>', unsafe_allow_html=True)
-    processing_mode = st.radio(
-        "Processing Mode",
-        ["🔬 Full Mode (Shore-Side)", "⚡ Edge Mode (AUV - Jetson Orin)"],
-        index=0,
-        key="selected_proc_mode",
-        label_visibility="collapsed"
-    )
-    if "Edge Mode" in processing_mode:
-        st.markdown("""
-        <div class="seadex-proc-mode-card" style="background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.25);border-radius:6px;padding:6px 10px;font-size:0.68rem;color:#c4e4f5;">
-            <b style="color:#00e5ff;">AUV Onboard Target:</b> NVIDIA Jetson Orin NX (10–25W)<br>
-            <span style="color:#7b9bb3;">Pipeline: Fast SA-CFAR + YOLOv11 (FP16 / INT8) &bull; ~18ms</span>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.markdown("""
-        <div class="seadex-proc-mode-card" style="background:rgba(0,188,212,0.08);border:1px solid rgba(0,188,212,0.22);border-radius:6px;padding:6px 10px;font-size:0.68rem;color:#c4e4f5;">
-            <b style="color:#00bcd4;">Shore Analysis Target:</b> High-Resolution Dual-Branch<br>
-            <span style="color:#7b9bb3;">Pipeline: YOLO11 + SegFormer Masks + ResNet Grad-CAM</span>
-        </div>
-        """, unsafe_allow_html=True)
-
-    # ── AI SYSTEM STATUS & HARDWARE UNIFIED CARD ──
-    sidebar_card_html = (
-        '<div class="seadex-sys-card">'
-        '<div class="seadex-sidebar-sec-title">AI SYSTEM STATUS</div>'
-        '<div class="seadex-sys-row">'
-        '<span class="seadex-sys-item">'
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="3" fill="#00e676"/></svg> '
-        'YOLOv11'
-        '</span>'
-        '<span style="color:#00e676;font-weight:600;font-size:0.75rem;">Online</span>'
-        '</div>'
-        '<div class="seadex-sys-row">'
-        '<span class="seadex-sys-item">'
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5ff" stroke-width="2.2"><circle cx="12" cy="12" r="4"/><circle cx="12" cy="4" r="2.2"/><circle cx="12" cy="20" r="2.2"/><circle cx="4" cy="12" r="2.2"/><circle cx="20" cy="12" r="2.2"/></svg> '
-        'ResNet-18'
-        '</span>'
-        '<span style="color:#00e676;font-weight:600;font-size:0.75rem;">Online</span>'
-        '</div>'
-        '<div class="seadex-sys-row" style="border-bottom:none;">'
-        '<span class="seadex-sys-item">'
-        '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e676" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="3" fill="#00e676"/></svg> '
-        'SegFormer-B0'
-        '</span>'
-        '<span style="color:#00e676;font-weight:600;font-size:0.75rem;">Online</span>'
-        '</div>'
-        '<div class="seadex-sidebar-sec-title" style="margin-top:14px;">HARDWARE</div>'
-        '<div class="seadex-hw-grid">'
-        '<div>'
-        '<div class="seadex-hw-lbl">GPU</div>'
-        f'<div class="seadex-hw-val">{gpu_display}</div>'
-        '</div>'
-        '<div>'
-        '<div class="seadex-hw-lbl">CPU</div>'
-        f'<div class="seadex-hw-val">{cpu_display}</div>'
-        '</div>'
-        '</div>'
-        '<div style="margin-top:6px; height:34px; overflow:hidden; background:rgba(4,10,18,0.65); border:1px solid rgba(25,227,194,0.18); border-radius:6px; padding:3px 6px; position:relative;">'
-        '<div style="display:flex; justify-content:space-between; font-size:0.55rem; color:#19E3C2; font-family:var(--font-mono); margin-bottom:2px; letter-spacing:0.04em;">'
-        '<span>HYDROPHONE SPECTRUM</span><span>120 kHz &bull; ACTIVE</span>'
-        '</div>'
-        '<svg width="100%" height="20" viewBox="0 0 200 24" preserveAspectRatio="none">'
-        '<line class="seadex-wave-bar" x1="8" y1="12" x2="8" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.6"/>'
-        '<line class="seadex-wave-bar" x1="18" y1="8" x2="18" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.75"/>'
-        '<line class="seadex-wave-bar" x1="28" y1="14" x2="28" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.65"/>'
-        '<line class="seadex-wave-bar" x1="38" y1="6" x2="38" y2="24" stroke="#2FE6D1" stroke-width="1.8" opacity="0.85"/>'
-        '<line class="seadex-wave-bar" x1="48" y1="16" x2="48" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.65"/>'
-        '<line class="seadex-wave-bar" x1="58" y1="10" x2="58" y2="24" stroke="#2FE6D1" stroke-width="1.8" opacity="0.8"/>'
-        '<line class="seadex-wave-bar" x1="68" y1="18" x2="68" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.6"/>'
-        '<line class="seadex-wave-bar" x1="78" y1="12" x2="78" y2="24" stroke="#2FE6D1" stroke-width="1.8" opacity="0.85"/>'
-        '<line class="seadex-wave-bar" x1="88" y1="20" x2="88" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.65"/>'
-        '<line class="seadex-wave-bar" x1="98" y1="14" x2="98" y2="24" stroke="#2FE6D1" stroke-width="1.8" opacity="0.8"/>'
-        '<line class="seadex-wave-bar" x1="108" y1="8" x2="108" y2="24" stroke="#2FE6D1" stroke-width="1.8" opacity="0.9"/>'
-        '<line class="seadex-wave-bar" x1="118" y1="16" x2="118" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.65"/>'
-        '<line class="seadex-wave-bar" x1="128" y1="10" x2="128" y2="24" stroke="#2FE6D1" stroke-width="1.8" opacity="0.8"/>'
-        '<line class="seadex-wave-bar" x1="138" y1="14" x2="138" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.65"/>'
-        '<line class="seadex-wave-bar" x1="148" y1="18" x2="148" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.6"/>'
-        '<line class="seadex-wave-bar" x1="158" y1="12" x2="158" y2="24" stroke="#2FE6D1" stroke-width="1.8" opacity="0.8"/>'
-        '<line class="seadex-wave-bar" x1="168" y1="6" x2="168" y2="24" stroke="#2FE6D1" stroke-width="1.8" opacity="0.9"/>'
-        '<line class="seadex-wave-bar" x1="178" y1="14" x2="178" y2="24" stroke="#19E3C2" stroke-width="1.8" opacity="0.65"/>'
-        '<line class="seadex-wave-bar" x1="188" y1="10" x2="188" y2="24" stroke="#2FE6D1" stroke-width="1.8" opacity="0.8"/>'
-        '<path class="seadex-wave-contour" d="M0,12 Q35,4 75,15 T145,17 T200,10" fill="none" stroke="#2FE6D1" stroke-width="1.6"/>'
-        '</svg>'
-        '</div>'
-        '</div>'
-    )
-    st.markdown(sidebar_card_html, unsafe_allow_html=True)
-
-    # ── Sidebar Footer ──
-    sidebar_footer_html = (
-        '<div class="seadex-sidebar-footer">'
-        '<div style="font-size:0.68rem; color:#4a708a; margin-bottom:2px;">v1.0.0</div>'
-        '<div style="font-size:0.62rem; color:#00bcd4; letter-spacing:0.09em; font-weight:600;">MARINE GUARD &nbsp;&mdash;&mdash;&nbsp; <span style="color:#00e5ff;">INDIAN OCEAN INITIATIVE</span></div>'
-        '</div>'
-    )
-    st.markdown(sidebar_footer_html, unsafe_allow_html=True)
-
+processing_mode = st.session_state.get("selected_proc_mode", "Full Mode (Shore-Side)")
 
 # ── Preserved Pipeline Parameters ──
 selected_model_key = st.session_state.get("selected_model_key", list(MODEL_REGISTRY.keys())[0])
@@ -2780,7 +1841,57 @@ enable_resnet = st.session_state.get("enable_resnet", True)
 # ═══════════════════════════════════════════════════════════════════════════
 # MAIN CONTENT ROUTING
 # ═══════════════════════════════════════════════════════════════════════════
+# ── Top Header Bar: Team AKHET Logo (Left Corner) | Centered Pill Navigation | NIOT Logo (Right Corner) ──
+_saved_tab = st.session_state.get("active_nav", 0)
+_valid_tab_ids = list(nav_mapping.values())
+_default_radio_idx = _valid_tab_ids.index(_saved_tab) if _saved_tab in _valid_tab_ids else 0
+
+@st.cache_data
+def _load_header_logos_b64():
+    team_b64, niot_b64 = "", ""
+    team_p = ROOT_DIR / "assets" / "team_akhet_logo.png"
+    niot_p = ROOT_DIR / "assets" / "niot_logo.png"
+    if team_p.exists():
+        team_b64 = base64.b64encode(team_p.read_bytes()).decode("utf-8")
+    if niot_p.exists():
+        niot_b64 = base64.b64encode(niot_p.read_bytes()).decode("utf-8")
+    return team_b64, niot_b64
+
+_team_logo_b64, _niot_logo_b64 = _load_header_logos_b64()
+
+hdr_col_left, hdr_col_center, hdr_col_right = st.columns([0.20, 0.60, 0.20], vertical_alignment="center")
+with hdr_col_left:
+    if _team_logo_b64:
+        st.markdown(
+            f'<div style="display:flex;align-items:center;justify-content:flex-start;padding-left:8px;">'
+            f'<img src="data:image/png;base64,{_team_logo_b64}" alt="Team AKHET Logo" '
+            f'style="height:120px;max-height:120px;width:auto;object-fit:contain;display:block;filter:drop-shadow(0 4px 10px rgba(0,0,0,0.10));" />'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+with hdr_col_center:
+    _top_nav_choice = st.radio(
+        "Top Navigation",
+        options=nav_options,
+        index=_default_radio_idx,
+        horizontal=True,
+        label_visibility="collapsed",
+        key="top_elegostra_nav"
+    )
+with hdr_col_right:
+    if _niot_logo_b64:
+        st.markdown(
+            f'<div style="display:flex;align-items:center;justify-content:flex-end;padding-right:8px;">'
+            f'<img src="data:image/png;base64,{_niot_logo_b64}" alt="NIOT Logo" '
+            f'style="height:120px;max-height:120px;width:auto;object-fit:contain;display:block;border-radius:50%;box-shadow:0 4px 12px rgba(0,0,0,0.08);" />'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+
+if nav_mapping.get(_top_nav_choice, 0) != st.session_state.get("active_nav", 0):
+    st.session_state["active_nav"] = nav_mapping[_top_nav_choice]
 active_tab = st.session_state.get("active_nav", 0)
+st.markdown(f'<div id="elegostra-page-marker" data-active-tab="{active_tab}" style="display:none;"></div>', unsafe_allow_html=True)
 
 # Helper function to convert images or paths to base64
 def img_to_b64(img_or_path, quality=92):
@@ -2823,14 +1934,12 @@ def draw_sonar_hud(img):
 if active_tab == 0:
     # ── Top Operational View Header ──
     st.markdown("""
-    <div class="seadex-header-wrapper">
-        <div>
-            <div class="seadex-op-tag">&bull; DUAL-BRANCH AI PIPELINE &bull; MOES / NIOT (PS 26057)</div>
-            <h1 class="seadex-page-title">AKHET : <span class="seadex-title-accent">MARINE GUARD</span></h1>
-            <p class="seadex-page-desc">AI-Powered Automated Underwater Marine Debris &amp; Anomaly Detection System using Side-Scan Sonar Imagery.</p>
-        </div>
-        <div>
-            <div class="seadex-quote">&ldquo;Turning Echoes<br>into Impact.&rdquo;</div>
+    <div class="elegostra-hero">
+        <h1 class="elegostra-hero-title">Acoustic intelligence for<br>modern marine surveys</h1>
+        <p class="elegostra-hero-sub">Akhet helps maritime teams detect submerged debris, analyze side-scan sonar backscatter, and turn complex seabed echoes into georeferenced insights.</p>
+        <div class="elegostra-pill-row">
+            <span class="elegostra-btn-dark">Start Sonar Scan</span>
+            <span class="elegostra-btn-light">Mission Telemetry</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -2874,7 +1983,7 @@ if active_tab == 0:
         if input_source == "Upload":
             st.markdown("""
             <div class="seadex-dropzone-visual">
-                <div class="seadex-drop-cloud">&#9729;&#xFE0E;</div>
+                <div class="seadex-drop-cloud"></div>
                 <div class="seadex-drop-text">Drag &amp; drop sonar image here</div>
                 <div class="seadex-drop-sub">or <span style="text-decoration:underline;">browse files</span></div>
                 <div class="seadex-drop-fmts">JPG &nbsp;&nbsp; PNG &nbsp;&nbsp; BMP &nbsp;&nbsp; WEBP</div>
@@ -2888,14 +1997,24 @@ if active_tab == 0:
             )
             if uploaded_file is not None:
                 _upload_id = getattr(uploaded_file, "file_id", uploaded_file.name)
+                try:
+                    uploaded_file.seek(0)
+                    _imm_pil = Image.open(uploaded_file).convert("RGB")
+                    _imm_bgr = cv2.cvtColor(np.array(_imm_pil), cv2.COLOR_RGB2BGR)
+                    uploaded_file.seek(0)
+                    st.session_state["persisted_uploaded_bgr"] = _imm_bgr
+                    st.session_state["persisted_uploaded_name"] = getattr(uploaded_file, "name", "Uploaded Sonar Image")
+                except Exception:
+                    pass
                 if st.session_state.get("_last_uploaded_id") != _upload_id:
                     st.session_state["_last_uploaded_id"] = _upload_id
+                    st.session_state.pop("_al_synced_upload_id", None)
                     for k in ["latest_dets", "latest_raw_bgr", "latest_prep_bgr", "latest_annotated_bgr", "latest_triage", "latest_summary", "latest_latency_ms"]:
                         st.session_state.pop(k, None)
         elif input_source == "Raw Sonar (.xtf)":
             st.markdown("""
             <div class="seadex-dropzone-visual">
-                <div class="seadex-drop-cloud">&#9881;&#xFE0E;</div>
+                <div class="seadex-drop-cloud"></div>
                 <div class="seadex-drop-text">Upload Raw Sonar Log (.xtf / .jsf)</div>
                 <div class="seadex-drop-sub">or select pre-loaded mission below</div>
                 <div class="seadex-drop-fmts">TRITON XTF &nbsp;&nbsp; EDGETECH JSF</div>
@@ -2918,28 +2037,28 @@ if active_tab == 0:
             sample_xtf_choice = st.selectbox("Select Raw Sonar Mission:", raw_opts, index=0)
         elif input_source == "Sample Data":
             sample_options = [
-                "🛞 Sample: Tire",
-                "⚡ Sample: Pipeline or Cable",
-                "🥫 Sample: Metal Can",
-                "🚢 Sample: Shipwrecks (Acoustic Sonar)",
-                "🔧 Sample: Lost Wrench",
-                "🔩 Sample: Subsea Valve",
-                "🛞 Sample: Small Tire",
-                "🛞 Sample: Large Tire",
-                "🧴 Sample: Plastic Bottle",
-                "🧃 Sample: Drink Carton",
-                "🧃 Sample: Drink Sachet",
-                "🍶 Sample: Glass Bottle",
-                "🍾 Sample: Brown Glass Bottle",
-                "🫙 Sample: Glass Jar",
-                "🪝 Sample: Hook",
-                "⛓️ Sample: Chain",
-                "🛢️ Sample: Plastic Bidon",
-                "🧪 Sample: Plastic Pipe",
-                "⚙️ Sample: Plastic Propeller",
-                "🌀 Sample: Propeller",
-                "🏗️ Sample: Rotating Platform",
-                "🧴 Sample: Shampoo Bottle",
+                " Sample: Tire",
+                " Sample: Pipeline or Cable",
+                " Sample: Metal Can",
+                " Sample: Shipwrecks (Acoustic Sonar)",
+                " Sample: Lost Wrench",
+                " Sample: Subsea Valve",
+                " Sample: Small Tire",
+                " Sample: Large Tire",
+                " Sample: Plastic Bottle",
+                " Sample: Drink Carton",
+                " Sample: Drink Sachet",
+                " Sample: Glass Bottle",
+                " Sample: Brown Glass Bottle",
+                " Sample: Glass Jar",
+                " Sample: Hook",
+                " Sample: Chain",
+                " Sample: Plastic Bidon",
+                " Sample: Plastic Pipe",
+                " Sample: Plastic Propeller",
+                " Sample: Propeller",
+                " Sample: Rotating Platform",
+                " Sample: Shampoo Bottle",
             ]
             sample_choice = st.selectbox("Select Sample Target:", sample_options, index=0)
             if "Tire" in sample_choice and "Small" not in sample_choice and "Large" not in sample_choice:
@@ -2977,16 +2096,16 @@ if active_tab == 0:
                 selected_anomaly_meta = {
                     "name": "Subsea Sonar Anomaly (Anoma)",
                     "desc": f"Acoustic target from Anoma dataset: {anoma_pick[:24]}...",
-                    "emoji": "🔬"
+                    "emoji": ""
                 }
 
-        st.markdown('<div style="font-size:0.75rem;font-weight:600;color:#c5e4f5;margin:10px 0 3px 0;">Target Stream</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:1.05rem;font-weight:600;color:#0F1115;margin:10px 0 3px 0;">Target Stream</div>', unsafe_allow_html=True)
         stream_choice = st.selectbox(
             "Target Stream Selector",
             [
-                "⚓ Known Marine Debris (27 classes: shipwrecks, tires, cables, etc.)",
-                "⚠️ Novel Subsea Anomalies (7 OOD Classes)",
-                "🔬 Real Anoma Dataset (535 Images in samples/anoma)"
+                " Known Marine Debris (27 classes: shipwrecks, tires, cables, etc.)",
+                " Novel Subsea Anomalies (7 OOD Classes)",
+                " Real Anoma Dataset (535 Images in samples/anoma)"
             ],
             index=0,
             label_visibility="collapsed",
@@ -2994,8 +2113,8 @@ if active_tab == 0:
         )
 
         st.markdown(
-            '<div style="font-size:0.75rem;font-weight:700;color:#00e5ff;margin:12px 0 4px 0;letter-spacing:0.04em;">'
-            '📍 TARGET GEOLOCATION &amp; COORDINATES (WGS-84)</div>',
+            '<div style="font-size:1.05rem;font-weight:700;color:#18181B;margin:12px 0 4px 0;letter-spacing:0.04em;">'
+            ' TARGET GEOLOCATION &amp; COORDINATES (WGS-84)</div>',
             unsafe_allow_html=True
         )
         g_c1, g_c2 = st.columns(2)
@@ -3054,7 +2173,7 @@ if active_tab == 0:
 
         show_preprocessed_view = st.toggle("Show preprocessing comparison", value=True, key="seadex_preproc_toggle")
         run_btn = st.button("Run Detection Pipeline  →", type="primary", use_container_width=True)
-        st.markdown('<div style="font-size:0.67rem;color:#4a7590;margin-top:6px;text-align:center;">ℹ Supports side scan sonar imagery (.jpg, .png, .bmp, .webp)</div>', unsafe_allow_html=True)
+        st.markdown('<div style="font-size:0.99rem;color:#64748B;margin-top:6px;text-align:center;">Supports side-scan sonar imagery (.jpg, .png, .bmp, .webp)</div>', unsafe_allow_html=True)
 
     # ── Inference Execution when Run is Pressed ──
     inferred_telemetry = TelemetryRecord(
@@ -3088,13 +2207,13 @@ if active_tab == 0:
 
                 if raw_telems:
                     inferred_telemetry = raw_telems[len(raw_telems) // 2]
-                _auto_notice = f"⚓ Decoded {raw_meta.get('format', 'XTF')} binary log: {raw_meta.get('num_pings', 0)} pings, {raw_meta.get('samples_per_channel', 0)} samples/ch."
+                _auto_notice = f" Decoded {raw_meta.get('format', 'XTF')} binary log: {raw_meta.get('num_pings', 0)} pings, {raw_meta.get('samples_per_channel', 0)} samples/ch."
             except Exception as _xtf_err:
-                _upload_error = f"⚠️ Could not decode raw sonar log: {_xtf_err}"
+                _upload_error = f" Could not decode raw sonar log: {_xtf_err}"
         elif input_source != "Upload" and sample_path and sample_path.exists():
             img_bgr = cv2.imread(str(sample_path))
             if img_bgr is None:
-                _upload_error = f"⚠️ Could not read sample image at `{sample_path}`."
+                _upload_error = f" Could not read sample image at `{sample_path}`."
         elif uploaded_file is not None:
             file_bytes = uploaded_file.read()
             uploaded_file.seek(0)
@@ -3115,19 +2234,19 @@ if active_tab == 0:
                 fallback_sample = SAMPLES_DIR / f"{matched_cname}.png"
                 if fallback_sample.exists():
                     img_bgr = cv2.imread(str(fallback_sample))
-                    _auto_notice = f"ℹ️ Loaded high-resolution Sonar target for **`{matched_cname}`**."
+                    _auto_notice = f"ℹ Loaded high-resolution Sonar target for **`{matched_cname}`**."
                 else:
-                    _upload_error = "⚠️ Uploaded file is a pointer. Please upload a full image."
+                    _upload_error = " Uploaded file is a pointer. Please upload a full image."
             else:
                 try:
                     pil_img = Image.open(uploaded_file).convert("RGB")
                     img_bgr = cv2.cvtColor(np.array(pil_img), cv2.COLOR_RGB2BGR)
                 except Exception as _pil_err:
-                    _upload_error = f"⚠️ Could not read image file: {_pil_err}"
+                    _upload_error = f" Could not read image file: {_pil_err}"
         elif sample_path and sample_path.exists():
             img_bgr = cv2.imread(str(sample_path))
         else:
-            _upload_error = "⚠️ Please upload a sonar image or select a sample dataset before running detection."
+            _upload_error = " Please upload a sonar image or select a sample dataset before running detection."
 
         if _auto_notice:
             st.info(_auto_notice)
@@ -3200,9 +2319,21 @@ if active_tab == 0:
 
             try:
                 al_mgr = ActiveLearningManager()
-                for d in dets:
-                    if d.get("uncertainty_flag") == "HIGH" or d.get("conf", 1.0) < 0.40:
-                        al_mgr.enqueue_for_review(d, d.get("roi_crop"), reason="Epistemic Uncertainty Flagged")
+                for d in final_dets:
+                    crop_to_save = d.get("roi_crop")
+                    if crop_to_save is None or not isinstance(crop_to_save, np.ndarray) or crop_to_save.size == 0:
+                        if "bbox" in d and len(d["bbox"]) == 4:
+                            bx1, by1, bx2, by2 = [max(0, int(v)) for v in d["bbox"]]
+                            crop_to_save = img_bgr[by1:max(by1+10, by2), bx1:max(bx1+10, bx2)]
+                        else:
+                            crop_to_save = annotated_bgr if annotated_bgr is not None else img_bgr
+                    if d.get("uncertainty_flag") == "HIGH" or d.get("conf", 1.0) < 0.45:
+                        flag_rsn = "Epistemic Uncertainty Flagged"
+                    elif d.get("conf", 1.0) < 0.80:
+                        flag_rsn = "Moderate Confidence — Operator Verification"
+                    else:
+                        flag_rsn = "Uploaded Survey Target — Human-in-the-Loop Sign-Off"
+                    al_mgr.enqueue_for_review(d, crop_to_save, reason=flag_rsn)
                 if triage_decisions:
                     for dec in triage_decisions:
                         if dec.category == "UNKNOWN_ANOMALY":
@@ -3210,10 +2341,11 @@ if active_tab == 0:
                                 "class_name": dec.class_name,
                                 "conf": dec.confidence,
                                 "uncertainty_flag": "HIGH",
-                                "latitude": 12.3456,
-                                "longitude": 72.9876,
+                                "latitude": float(given_lat),
+                                "longitude": float(given_lon),
                                 "error_ellipse_a": 4.0
-                            }, reason="Novel Sonar Anomaly")
+                            }, annotated_bgr if annotated_bgr is not None else img_bgr, reason="Novel Sonar Anomaly")
+                st.session_state["_al_synced_upload_id"] = st.session_state.get("_last_uploaded_id", "synced")
             except Exception:
                 pass
 
@@ -3225,7 +2357,7 @@ if active_tab == 0:
         st.markdown('<div class="seadex-panel-hdr"><span><span class="seadex-step-badge">2</span>SONAR VISUALIZATION &amp; DETECTIONS</span></div>', unsafe_allow_html=True)
         
         # View mode toolbar
-        tb_col1, tb_col2 = st.columns([0.6, 0.4], gap="small")
+        tb_col1, tb_col2 = st.columns([0.73, 0.27], gap="small")
         with tb_col1:
             view_mode = st.radio(
                 "Sonar View Mode",
@@ -3304,56 +2436,26 @@ if active_tab == 0:
                 fit_cls = "fit-cover"
 
             sonar_b64 = img_to_b64(display_img_bgr)
-            st.markdown(f"""
-            <div class="seadex-sonar-viewport">
-                <div class="seadex-sonar-border-beam"></div>
-                <div class="seadex-sonar-azimuth-ring"></div>
-                <div class="seadex-target-lock-crosshair"></div>
-                <div class="seadex-sonar-echo-ring"></div>
-                <div class="seadex-sonar-echo-ring"></div>
-                <div class="seadex-sonar-sweep"></div>
-                <img src="data:image/jpeg;base64,{sonar_b64}" class="seadex-sonar-img {fit_cls}" alt="Sonar Target Display" />
-                <div class="seadex-hud-status-badge">{status_label or 'ONLINE'}</div>
-                <div class="seadex-hud-scale">
-                    <div class="seadex-scale-line-wrapper">
-                        <span class="seadex-scale-tick"></span>
-                        <span class="seadex-scale-line"></span>
-                        <span class="seadex-scale-tick"></span>
-                    </div>
-                    <span class="seadex-scale-label">10 m</span>
-                </div>
-                <div class="seadex-hud-compass">
-                    <svg width="20" height="20" viewBox="0 0 24 24">
-                        <polygon points="12,2 17,20 12,15 7,20" fill="#00e5ff"/>
-                        <polygon points="12,2 7,20 12,15" fill="#ffffff" opacity="0.9"/>
-                    </svg>
-                    <span class="seadex-compass-label">N</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                f'<div class="seadex-sonar-viewport">'
+                f'<img src="data:image/jpeg;base64,{sonar_b64}" class="seadex-sonar-img {fit_cls}" alt="Sonar Target Display" />'
+                f'<div class="seadex-hud-status-badge">{status_label or "ONLINE"}</div>'
+                f'<div class="seadex-hud-scale"><span class="seadex-scale-label">10 m</span></div>'
+                f'<div class="seadex-hud-compass"><span class="seadex-compass-label">N</span></div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
         else:
-            st.markdown("""
-            <div class="seadex-sonar-viewport">
-                <div class="seadex-sonar-border-beam"></div>
-                <div class="seadex-sonar-azimuth-ring"></div>
-                <div class="seadex-sonar-echo-ring"></div>
-                <div class="seadex-sonar-sweep"></div>
-                <div class="seadex-empty-placeholder">
-                    <div class="seadex-empty-radar">
-                        <svg width="60" height="60" viewBox="0 0 48 48" fill="none">
-                            <circle cx="24" cy="24" r="22" stroke="#00e5ff" stroke-width="1.2" stroke-dasharray="4 3" opacity="0.35"/>
-                            <circle cx="24" cy="24" r="15" stroke="#00bcd4" stroke-width="1.2" opacity="0.5"/>
-                            <circle cx="24" cy="24" r="8" stroke="#00e5ff" stroke-width="1.2" opacity="0.7"/>
-                            <circle cx="24" cy="24" r="2.5" fill="#00e5ff"/>
-                            <line x1="24" y1="24" x2="38" y2="10" stroke="#00e5ff" stroke-width="1.6" opacity="0.85"/>
-                        </svg>
-                    </div>
-                    <div class="seadex-empty-title">AWAITING SONAR IMAGERY</div>
-                    <div class="seadex-empty-desc">Upload a side-scan sonar image or select a sample dataset on the left to run AI detection.</div>
-                </div>
-                <div class="seadex-hud-status-badge">STANDBY</div>
-            </div>
-            """, unsafe_allow_html=True)
+            st.markdown(
+                '<div class="seadex-sonar-viewport">'
+                '<div class="seadex-empty-placeholder">'
+                '<div class="seadex-empty-title">AWAITING SONAR IMAGERY</div>'
+                '<div class="seadex-empty-desc">Upload a side-scan sonar image or select a sample dataset on the left to run AI detection.</div>'
+                '</div>'
+                '<div class="seadex-hud-status-badge">STANDBY</div>'
+                '</div>',
+                unsafe_allow_html=True
+            )
 
         # KPI Metrics Row with SCQI Survey Quality (Slide 3)
         latest_raw = st.session_state.get("latest_raw_bgr")
@@ -3369,27 +2471,26 @@ if active_tab == 0:
             lat_ms = st.session_state.get("latest_latency_ms", 0.0)
             latency_str = f"{lat_ms:.1f} ms"
             scqi_str = f"{scqi_res.overall_score:.0f}/100"
-            scqi_grade_badge = f'<span style="color:#00e676;font-size:0.68rem;font-weight:600;">{scqi_res.grade}</span>' if not scqi_res.resurvey_recommended else '<span style="color:#ff5252;font-size:0.68rem;font-weight:600;">Resurvey</span>'
-            trend_k_html = '<span style="color:#00e676;font-size:0.68rem;font-weight:600;">&bull; Processed</span>'
-            trend_u_html = '<span style="color:#00bcd4;font-size:0.68rem;font-weight:600;">&bull; Verified</span>'
-            trend_r_html = '<span style="color:#ff5252;font-size:0.68rem;font-weight:600;">&bull; Filtered</span>'
-            trend_lat_html = '<span style="color:#00e676;font-size:0.68rem;font-weight:600;">&bull; Active</span>'
+            scqi_grade_badge = f'<span style="color:#18181B;font-size:1.00rem;font-weight:600;">{scqi_res.grade}</span>' if not scqi_res.resurvey_recommended else '<span style="color:#ff5252;font-size:1.00rem;font-weight:600;">Resurvey</span>'
+            trend_k_html = '<span style="color:#18181B;font-size:1.00rem;font-weight:600;">&bull; Processed</span>'
+            trend_u_html = '<span style="color:#18181B;font-size:1.00rem;font-weight:600;">&bull; Verified</span>'
+            trend_r_html = '<span style="color:#ff5252;font-size:1.00rem;font-weight:600;">&bull; Filtered</span>'
+            trend_lat_html = '<span style="color:#18181B;font-size:1.00rem;font-weight:600;">&bull; Active</span>'
         else:
             k_count = "—"
             u_count = "—"
             r_count = "—"
             latency_str = "—"
             scqi_str = f"{scqi_res.overall_score:.0f}/100"
-            scqi_grade_badge = f'<span style="color:#00e676;font-size:0.68rem;">{scqi_res.grade}</span>'
-            trend_k_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
-            trend_u_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
-            trend_r_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
-            trend_lat_html = '<span style="color:#527891;font-size:0.68rem;">Standby</span>'
+            scqi_grade_badge = f'<span style="color:#18181B;font-size:1.00rem;">{scqi_res.grade}</span>'
+            trend_k_html = '<span style="color:#64748B;font-size:1.00rem;">Standby</span>'
+            trend_u_html = '<span style="color:#64748B;font-size:1.00rem;">Standby</span>'
+            trend_r_html = '<span style="color:#64748B;font-size:1.00rem;">Standby</span>'
+            trend_lat_html = '<span style="color:#64748B;font-size:1.00rem;">Standby</span>'
 
         st.markdown(f"""
         <div class="seadex-kpi-row">
             <div class="seadex-kpi-card">
-                <div class="seadex-kpi-icon icon-cyan">{icon("check-circle", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{k_count}</div>
                     <div class="seadex-kpi-lbl">Known Debris</div>
@@ -3399,7 +2500,6 @@ if active_tab == 0:
                 </div>
             </div>
             <div class="seadex-kpi-card">
-                <div class="seadex-kpi-icon icon-coral">{icon("alert-triangle", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{u_count}</div>
                     <div class="seadex-kpi-lbl">Unknown Anomalies</div>
@@ -3409,7 +2509,6 @@ if active_tab == 0:
                 </div>
             </div>
             <div class="seadex-kpi-card">
-                <div class="seadex-kpi-icon icon-green">{icon("shield", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{scqi_str}</div>
                     <div class="seadex-kpi-lbl">SCQI Quality</div>
@@ -3419,7 +2518,6 @@ if active_tab == 0:
                 </div>
             </div>
             <div class="seadex-kpi-card">
-                <div class="seadex-kpi-icon icon-cyan">{icon("filter", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{r_count}</div>
                     <div class="seadex-kpi-lbl">Clutter / Filtered</div>
@@ -3429,7 +2527,6 @@ if active_tab == 0:
                 </div>
             </div>
             <div class="seadex-kpi-card">
-                <div class="seadex-kpi-icon icon-green">{icon("clock", size=16)}</div>
                 <div>
                     <div class="seadex-kpi-val">{latency_str}</div>
                     <div class="seadex-kpi-lbl">Pipeline Latency</div>
@@ -3446,19 +2543,19 @@ if active_tab == 0:
             prep_rep = st.session_state.get("latest_prep_rep", {})
             clutter_res = prep_rep.get("clutter_result")
             if clutter_res is not None:
-                with st.expander("🌊 Seabed Clutter Segmentation & SA-CFAR Regimes", expanded=(view_mode == "CLUTTER")):
+                with st.expander(" Seabed Clutter Segmentation & SA-CFAR Regimes", expanded=(view_mode == "CLUTTER")):
                     cc1, cc2, cc3, cc4 = st.columns(4)
                     reg_pcts = clutter_res.regime_percentages
                     with cc1:
-                        st.markdown(f"<div style='font-size:0.75rem;color:#7b9bb3;'>Nadir Column</div><div style='color:#4a90e2;font-weight:700;font-size:1.0rem;'>{reg_pcts.get('Nadir Water Column', 0.0)}%</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:1.05rem;color:#64748B;'>Nadir Column</div><div style='color:#4a90e2;font-weight:700;font-size:1.26rem;'>{reg_pcts.get('Nadir Water Column', 0.0)}%</div>", unsafe_allow_html=True)
                     with cc2:
-                        st.markdown(f"<div style='font-size:0.75rem;color:#7b9bb3;'>Smooth Sand</div><div style='color:#d4a373;font-weight:700;font-size:1.0rem;'>{reg_pcts.get('Smooth Sand / Silt', 0.0)}%</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:1.05rem;color:#64748B;'>Smooth Sand</div><div style='color:#d4a373;font-weight:700;font-size:1.26rem;'>{reg_pcts.get('Smooth Sand / Silt', 0.0)}%</div>", unsafe_allow_html=True)
                     with cc3:
-                        st.markdown(f"<div style='font-size:0.75rem;color:#7b9bb3;'>Rippled Seabed</div><div style='color:#00e5ff;font-weight:700;font-size:1.0rem;'>{reg_pcts.get('Rippled Seabed', 0.0)}%</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:1.05rem;color:#64748B;'>Rippled Seabed</div><div style='color:#18181B;font-weight:700;font-size:1.26rem;'>{reg_pcts.get('Rippled Seabed', 0.0)}%</div>", unsafe_allow_html=True)
                     with cc4:
-                        st.markdown(f"<div style='font-size:0.75rem;color:#7b9bb3;'>Rocky Clutter</div><div style='color:#ff6b6b;font-weight:700;font-size:1.0rem;'>{reg_pcts.get('Rocky / High Clutter', 0.0)}%</div>", unsafe_allow_html=True)
+                        st.markdown(f"<div style='font-size:1.05rem;color:#64748B;'>Rocky Clutter</div><div style='color:#ff6b6b;font-weight:700;font-size:1.26rem;'>{reg_pcts.get('Rocky / High Clutter', 0.0)}%</div>", unsafe_allow_html=True)
                     sa_cnt = len(prep_rep.get("sa_candidates", []))
-                    st.markdown(f"<div style='font-size:0.72rem;color:#90e0ef;margin-top:6px;border-top:1px solid rgba(0,188,212,0.12);padding-top:4px;'>Dominant: <strong>{clutter_res.dominant_regime}</strong> &nbsp;|&nbsp; SA-CFAR Adaptive Candidate ROIs: <strong>{sa_cnt}</strong> (Adaptive clutter thresholding active)</div>", unsafe_allow_html=True)
+                    st.markdown(f"<div style='font-size:1.02rem;color:#475569;margin-top:6px;border-top:1px solid rgba(0,188,212,0.12);padding-top:4px;'>Dominant: <strong>{clutter_res.dominant_regime}</strong> &nbsp;|&nbsp; SA-CFAR Adaptive Candidate ROIs: <strong>{sa_cnt}</strong> (Adaptive clutter thresholding active)</div>", unsafe_allow_html=True)
 
     _panel_sonar.__exit__(None, None, None)
 
@@ -3505,7 +2602,7 @@ if active_tab == 0:
             telem_speed = "—"
             telem_snr = "—"
             telem_gain = "—"
-            live_tag = '<span class="seadex-live-tag" style="background:rgba(123,155,179,0.15);color:#7b9bb3;border-color:rgba(123,155,179,0.3);">&bull; STANDBY</span>'
+            live_tag = '<span class="seadex-live-tag" style="background:rgba(123,155,179,0.15);color:#64748B;border-color:rgba(123,155,179,0.3);">&bull; STANDBY</span>'
             snr_header_val = "Noise Floor"
 
         st.markdown(f"""
@@ -3516,7 +2613,7 @@ if active_tab == 0:
         """, unsafe_allow_html=True)
         
         st.markdown(f"""
-        <div style="background:rgba(10,20,36,0.6);border:1px solid rgba(0,188,212,0.12);border-radius:8px;padding:8px 12px;margin-bottom:10px;">
+        <div style="background:#FFFFFF;border:1px solid #E4E4E7;border-radius:8px;padding:8px 12px;margin-bottom:10px;">
             <div class="seadex-telem-item">
                 <span class="seadex-telem-lbl">{icon("map-pin", size=13)} Latitude</span>
                 <span class="seadex-telem-val">{telem_lat}</span>
@@ -3555,7 +2652,7 @@ if active_tab == 0:
             </div>
             <div class="seadex-signal-hdr">
                 <span>Signal Profile</span>
-                <span style="color:#00e5ff;font-weight:700;">{snr_header_val}</span>
+                <span style="color:#18181B;font-weight:700;">{snr_header_val}</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -3569,11 +2666,11 @@ if active_tab == 0:
                 1.5 * np.sin(x_sig * 0.35) +
                 np.random.normal(0, 0.18, len(x_sig))
             )
-            line_col = '#00e5ff'
-            fill_col = 'rgba(0, 229, 255, 0.12)'
+            line_col = '#18181B'
+            fill_col = 'rgba(24, 24, 27, 0.08)'
         else:
             y_sig = 0.3 * np.sin(x_sig * 0.4) + np.random.normal(0, 0.08, len(x_sig))
-            line_col = '#4a708a'
+            line_col = '#71717A'
             fill_col = 'rgba(74, 112, 138, 0.06)'
 
         fig_sig = go.Figure()
@@ -3585,7 +2682,7 @@ if active_tab == 0:
         ))
         fig_sig.update_layout(
             margin=dict(l=0, r=0, t=0, b=0),
-            height=85,
+            height=155,
             paper_bgcolor='rgba(0,0,0,0)',
             plot_bgcolor='rgba(0,0,0,0)',
             xaxis=dict(showgrid=False, showticklabels=False, zeroline=False),
@@ -3627,7 +2724,7 @@ if active_tab == 0:
                     crop_b64 = base64.b64encode(buf).decode("utf-8")
                 
                 shadow_check = d.get("acoustic_shadow_verified", f_conf >= 75.0)
-                shadow_text = "✔ Confirmed" if shadow_check else "⚠ Uncertain"
+                shadow_text = " Confirmed" if shadow_check else " Uncertain"
                 shadow_col = "#00e676" if shadow_check else "#ffc107"
 
                 cards_to_show.append({
@@ -3650,7 +2747,7 @@ if active_tab == 0:
                 t_cols = st.columns(4, gap="small")
                 for i, c_data in enumerate(row_cards):
                     with t_cols[i]:
-                        img_html = f'<img class="seadex-triage-img" src="data:image/jpeg;base64,{c_data["b64"]}" />' if c_data["b64"] else '<div class="seadex-triage-img" style="display:flex;align-items:center;justify-content:center;color:#00bcd4;font-size:1.2rem;">◎</div>'
+                        img_html = f'<img class="seadex-triage-img" src="data:image/jpeg;base64,{c_data["b64"]}" />' if c_data["b64"] else '<div class="seadex-triage-img" style="display:flex;align-items:center;justify-content:center;color:#18181B;font-size:1.48rem;">ROI</div>'
                         st.markdown(f"""
                         <div class="seadex-triage-card">
                             <div class="seadex-triage-card-top">
@@ -3675,15 +2772,15 @@ if active_tab == 0:
         else:
             st.markdown(f"""
             <div class="seadex-triage-empty" style="border-color:rgba(0,230,118,0.25);">
-                <div style="color:#00e676;font-size:0.85rem;font-weight:700;letter-spacing:0.08em;margin-bottom:4px;">CLEAR SEABED &bull; 0 ANOMALIES DETECTED</div>
-                <div style="color:#6d96b3;font-size:0.75rem;">The AI pipeline processed this scan and detected no marine debris above the {conf_thresh:.0%} confidence threshold.</div>
+                <div style="color:#18181B;font-size:1.13rem;font-weight:700;letter-spacing:0.08em;margin-bottom:4px;">CLEAR SEABED &bull; 0 ANOMALIES DETECTED</div>
+                <div style="color:#64748B;font-size:1.05rem;">The AI pipeline processed this scan and detected no marine debris above the {conf_thresh:.0%} confidence threshold.</div>
             </div>
             """, unsafe_allow_html=True)
     else:
         st.markdown("""
         <div class="seadex-triage-empty">
-            <div style="color:#00e5ff;font-size:0.85rem;font-weight:700;letter-spacing:0.08em;margin-bottom:4px;">NO ACTIVE DETECTIONS</div>
-            <div style="color:#6d96b3;font-size:0.75rem;">Awaiting image input. Upload or select a sonar image and run the pipeline to view classified debris, multi-evidence fusion scores, and shadow validation.</div>
+            <div style="color:#18181B;font-size:1.13rem;font-weight:700;letter-spacing:0.08em;margin-bottom:4px;">NO ACTIVE DETECTIONS</div>
+            <div style="color:#64748B;font-size:1.05rem;">Awaiting image input. Upload or select a sonar image and run the pipeline to view classified debris, multi-evidence fusion scores, and shadow validation.</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -3695,12 +2792,20 @@ if active_tab == 0:
 # ═══════════════════════════════════════════════════════════════════════════
 elif active_tab == 1:
     st.markdown("""
+    <div class="elegostra-hero">
+        <h1 class="elegostra-hero-title">Visual explainability for<br>neural target verification</h1>
+        <p class="elegostra-hero-sub">Inspect ResNet-18 deep feature activations, Monte Carlo dropout uncertainty variance, and spatial attention heatmaps across every candidate region.</p>
+        <div class="elegostra-pill-row">
+            <span class="elegostra-btn-dark">Grad-CAM Verification</span>
+            <span class="elegostra-btn-light">Epistemic Consensus</span>
+        </div>
+    </div>
     <div class="mg-card" style="margin-bottom:16px;">
-        <div class="mg-card-title">&#128300; ResNet-18 Deep Feature Verification &amp; PyTorch Grad-CAM Heatmaps</div>
+        <div class="mg-card-title">ResNet-18 Deep Feature Verification and Grad-CAM Heatmaps</div>
         <div class="mg-card-sub" style="margin-top:5px;line-height:1.5;">
             Trained on <strong style="color:#50b8d8;">6,127 ROI crops across all 27 SIH classes</strong>
             with <strong style="color:#2ecc71;">99.47% Validation Accuracy</strong>.
-            Includes <strong style="color:#f39c12;">Monte Carlo (MC) Dropout Epistemic Uncertainty</strong> &amp; <strong style="color:#38b8f0;">layer4 Grad-CAM</strong>.
+            Includes <strong style="color:#f39c12;">Monte Carlo (MC) Dropout Epistemic Uncertainty</strong> &amp; <strong style="color:#18181B;">layer4 Grad-CAM</strong>.
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -3711,12 +2816,12 @@ elif active_tab == 1:
     else:
         for idx, det in enumerate(dets):
             cname = det["class_name"]
-            meta  = CLASS_METADATA.get(cname, {"emoji": "🏷️", "color": "#00d4ff", "type": "Object"})
+            meta  = CLASS_METADATA.get(cname, {"emoji": "", "color": "#2563EB", "type": "Object"})
             unc_flag = det.get("uncertainty_flag", "LOW")
             unc_col = "#2ecc71" if unc_flag == "LOW" else ("#f39c12" if unc_flag == "MODERATE" else "#e74c3c")
             
             st.markdown(
-                f'<div style="background:rgba(0,28,54,0.7);border:1px solid rgba(0,140,200,0.16);'
+                f'<div style="background:#FFFFFF;border:1px solid rgba(0,140,200,0.16);'
                 f'border-radius:9px;padding:8px 14px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">'
                 f'<div><span style="font-size:1.0em;">{meta["emoji"]}</span> '
                 f'<strong style="color:{meta["color"]};">Target #{idx+1}: {cname}</strong> '
@@ -3735,7 +2840,7 @@ elif active_tab == 1:
                     crop_html = (
                         f'<div class="seadex-explain-card">'
                         f'<div class="seadex-explain-card-header">'
-                        f'<span style="font-size:1.0rem;">🔍</span>'
+                        f'<span style="font-size:1.26rem;"></span>'
                         f'<span class="seadex-explain-card-title">1. Dynamic Adaptive ROI Crop</span>'
                         f'</div>'
                         f'<div class="seadex-explain-viewport">'
@@ -3749,10 +2854,10 @@ elif active_tab == 1:
                     no_crop_html = (
                         f'<div class="seadex-explain-card">'
                         f'<div class="seadex-explain-card-header">'
-                        f'<span style="font-size:1.0rem;">🔍</span>'
+                        f'<span style="font-size:1.26rem;"></span>'
                         f'<span class="seadex-explain-card-title">1. Dynamic Adaptive ROI Crop</span>'
                         f'</div>'
-                        f'<div class="seadex-explain-viewport" style="color:#4a7a90;font-size:0.85rem;">'
+                        f'<div class="seadex-explain-viewport" style="color:#4a7a90;font-size:1.13rem;">'
                         f'No ROI Crop Available'
                         f'</div>'
                         f'<div class="seadex-explain-caption">&mdash;</div>'
@@ -3766,7 +2871,7 @@ elif active_tab == 1:
                     gc_html = (
                         f'<div class="seadex-explain-card">'
                         f'<div class="seadex-explain-card-header">'
-                        f'<span style="font-size:1.0rem;">🔥</span>'
+                        f'<span style="font-size:1.26rem;"></span>'
                         f'<span class="seadex-explain-card-title">2. ResNet18 Grad-CAM Heatmap</span>'
                         f'</div>'
                         f'<div class="seadex-explain-viewport">'
@@ -3780,10 +2885,10 @@ elif active_tab == 1:
                     no_gc_html = (
                         f'<div class="seadex-explain-card">'
                         f'<div class="seadex-explain-card-header">'
-                        f'<span style="font-size:1.0rem;">🔥</span>'
+                        f'<span style="font-size:1.26rem;"></span>'
                         f'<span class="seadex-explain-card-title">2. ResNet18 Grad-CAM Heatmap</span>'
                         f'</div>'
-                        f'<div class="seadex-explain-viewport" style="color:#4a7a90;font-size:0.85rem;">'
+                        f'<div class="seadex-explain-viewport" style="color:#4a7a90;font-size:1.13rem;">'
                         f'Grad-CAM Not Generated'
                         f'</div>'
                         f'<div class="seadex-explain-caption">&mdash;</div>'
@@ -3800,12 +2905,12 @@ elif active_tab == 1:
                         pct = min(100, max(0, int(ev_val)))
                         breakdown_items.append(
                             f'<div style="margin-bottom:6px;">'
-                            f'<div style="font-size:0.75rem;display:flex;justify-content:space-between;color:#8ab4cd;margin-bottom:2px;">'
+                            f'<div style="font-size:1.05rem;display:flex;justify-content:space-between;color:#8ab4cd;margin-bottom:2px;">'
                             f'<span>&bull; {ev_name}</span>'
-                            f'<span style="color:#00e5ff;font-weight:600;">{ev_val:.1f}%</span>'
+                            f'<span style="color:#18181B;font-weight:600;">{ev_val:.1f}%</span>'
                             f'</div>'
-                            f'<div style="background:rgba(0,18,36,0.85);height:4px;border-radius:2px;overflow:hidden;">'
-                            f'<div style="background:linear-gradient(90deg, #007799, #00e5ff);width:{pct}%;height:100%;border-radius:2px;"></div>'
+                            f'<div style="background:#FFFFFF;height:4px;border-radius:2px;overflow:hidden;">'
+                            f'<div style="background:#FFFFFF;width:{pct}%;height:100%;border-radius:2px;"></div>'
                             f'</div>'
                             f'</div>'
                         )
@@ -3814,51 +2919,51 @@ elif active_tab == 1:
                         pct = min(100, max(0, int(p_t * 100)))
                         breakdown_items.append(
                             f'<div style="margin-bottom:6px;">'
-                            f'<div style="font-size:0.75rem;display:flex;justify-content:space-between;color:#8ab4cd;margin-bottom:2px;">'
+                            f'<div style="font-size:1.05rem;display:flex;justify-content:space-between;color:#8ab4cd;margin-bottom:2px;">'
                             f'<span>&bull; {cls_t}</span>'
-                            f'<span style="color:#38b8f0;font-weight:600;">{pct}%</span>'
+                            f'<span style="color:#18181B;font-weight:600;">{pct}%</span>'
                             f'</div>'
-                            f'<div style="background:rgba(0,18,36,0.85);height:4px;border-radius:2px;overflow:hidden;">'
-                            f'<div style="background:linear-gradient(90deg, #0068a8, #00c0f0);width:{pct}%;height:100%;border-radius:2px;"></div>'
+                            f'<div style="background:#FFFFFF;height:4px;border-radius:2px;overflow:hidden;">'
+                            f'<div style="background:#FFFFFF;width:{pct}%;height:100%;border-radius:2px;"></div>'
                             f'</div>'
                             f'</div>'
                         )
                 else:
-                    breakdown_items.append('<div style="font-size:0.75rem;color:#4a7a90;">No evidence breakdown available.</div>')
+                    breakdown_items.append('<div style="font-size:1.05rem;color:#4a7a90;">No evidence breakdown available.</div>')
                 
                 breakdown_html = "".join(breakdown_items)
                 
                 card3_html = (
                     f'<div class="seadex-explain-card">'
                     f'<div class="seadex-explain-card-header">'
-                    f'<span style="font-size:1.0rem;">🧮</span>'
+                    f'<span style="font-size:1.26rem;"></span>'
                     f'<span class="seadex-explain-card-title">3. Multi-Model Consensus &amp; Fusion</span>'
                     f'</div>'
                     f'<div class="seadex-explain-stats-body">'
-                    f'<div style="margin-bottom:5px;font-size:0.82rem;">'
-                    f'🧮 <strong style="color:#cce8f5;">Fused Confidence:</strong> '
+                    f'<div style="margin-bottom:5px;font-size:1.10rem;">'
+                    f' <strong style="color:#0F1115;">Fused Confidence:</strong> '
                     f'<span style="color:#2ecc71;font-weight:700;margin-left:4px;">{fused_conf_val:.1f}%</span> '
-                    f'<span style="color:#4a7a90;font-size:0.80rem;margin-left:4px;">(Raw YOLO: {det["conf"]:.1%})</span>'
+                    f'<span style="color:#4a7a90;font-size:1.08rem;margin-left:4px;">(Raw YOLO: {det["conf"]:.1%})</span>'
                     f'</div>'
-                    f'<div style="margin-bottom:5px;font-size:0.82rem;">'
-                    f'🧠 <strong style="color:#cce8f5;">ResNet-18:</strong> '
-                    f'<span style="color:#38b8f0;font-weight:700;margin-left:4px;">{det.get("resnet_pred", cname)} ({det.get("resnet_conf", 0.0):.1%})</span>'
+                    f'<div style="margin-bottom:5px;font-size:1.10rem;">'
+                    f' <strong style="color:#0F1115;">ResNet-18:</strong> '
+                    f'<span style="color:#18181B;font-weight:700;margin-left:4px;">{det.get("resnet_pred", cname)} ({det.get("resnet_conf", 0.0):.1%})</span>'
                     f'</div>'
-                    f'<div style="margin-bottom:5px;font-size:0.82rem;">'
-                    f'📊 <strong style="color:#cce8f5;">Epistemic Variance:</strong> '
+                    f'<div style="margin-bottom:5px;font-size:1.10rem;">'
+                    f' <strong style="color:#0F1115;">Epistemic Variance:</strong> '
                     f'<span style="color:{unc_col};font-weight:700;margin-left:4px;">{det.get("uncertainty_variance", 0.0):.4f}</span> '
-                    f'<span style="color:#4a7a90;font-size:0.80rem;margin-left:4px;">(Entropy: {det.get("entropy", 0.0):.2f})</span>'
+                    f'<span style="color:#4a7a90;font-size:1.08rem;margin-left:4px;">(Entropy: {det.get("entropy", 0.0):.2f})</span>'
                     f'</div>'
-                    f'<div style="margin-bottom:5px;font-size:0.82rem;">'
-                    f'📍 <strong style="color:#cce8f5;">Position:</strong> '
+                    f'<div style="margin-bottom:5px;font-size:1.10rem;">'
+                    f' <strong style="color:#0F1115;">Position:</strong> '
                     f'<span style="color:#50b8d8;margin-left:4px;">{det.get("latitude", 0.0):.4f}°N, {det.get("longitude", 0.0):.4f}°E</span>'
                     f'</div>'
-                    f'<div style="margin-bottom:8px;font-size:0.80rem;">'
-                    f'🎯 <strong style="color:#cce8f5;">95% Error Ellipse:</strong> '
+                    f'<div style="margin-bottom:8px;font-size:1.08rem;">'
+                    f' <strong style="color:#0F1115;">95% Error Ellipse:</strong> '
                     f'<span style="color:#f39c12;margin-left:4px;">&plusmn;{det.get("error_ellipse_a", 0.0):.1f}m &times; &plusmn;{det.get("error_ellipse_b", 0.0):.1f}m ({det.get("channel", "Port")})</span>'
                     f'</div>'
                     f'<div style="border-top:1px solid rgba(0,188,212,0.15);margin:6px 0 8px 0;"></div>'
-                    f'<div style="font-size:0.72rem;color:#50b8d8;font-weight:700;letter-spacing:0.06em;margin-bottom:6px;text-transform:uppercase;">'
+                    f'<div style="font-size:1.02rem;color:#50b8d8;font-weight:700;letter-spacing:0.06em;margin-bottom:6px;text-transform:uppercase;">'
                     f'Multi-Evidence Weighting Breakdown'
                     f'</div>'
                     f'<div style="padding-right:2px;">'
@@ -3872,76 +2977,20 @@ elif active_tab == 1:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# TAB 3 — Video Stream
-# ═══════════════════════════════════════════════════════════════════════════
-elif active_tab == 2:
-    st.markdown("""
-    <div class="mg-card" style="margin-bottom:16px;">
-        <div class="mg-card-title">&#127909; Continuous Video Stream Detection</div>
-        <div class="mg-card-sub" style="margin-top:4px;">
-            Upload a video file for frame-by-frame marine debris detection with full pipeline support.
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
-    uploaded_video = st.file_uploader("Upload Video (.mp4 / .avi / .mov / .mkv)", type=["mp4","avi","mov","mkv"])
-    max_frames = st.slider("Max Frames to Process", 30, 300, 100, 10)
-
-    if uploaded_video is not None:
-        if st.button(f"Process Video with {selected_model_key}", type="primary", use_container_width=True):
-            tfile = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-            tfile.write(uploaded_video.read())
-            tfile.flush()
-
-            cap    = cv2.VideoCapture(tfile.name)
-            w      = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
-            h      = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-            fps_in = cap.get(cv2.CAP_PROP_FPS) or 25.0
-
-            out_p = Path("outputs/predictions") / f"video_{int(time.time())}.mp4"
-            out_p.parent.mkdir(parents=True, exist_ok=True)
-            writer = cv2.VideoWriter(str(out_p), cv2.VideoWriter_fourcc(*"mp4v"), fps_in, (w, h))
-
-            pbar             = st.progress(0)
-            status_t         = st.empty()
-            prev_placeholder = st.empty()
-            f_idx = 0; tot_dets = 0
-            selected_dev = select_device("0" if hw.get("cuda_available") else "cpu")
-
-            while cap.isOpened() and f_idx < max_frames:
-                ret, frame = cap.read()
-                if not ret: break
-                f_idx += 1
-                dets, ann_frame, _, _ = run_model_inference(
-                    model_choice=selected_model_key, img_bgr=frame,
-                    conf_thresh=conf_thresh, iou_thresh=iou_thresh, imgsz=imgsz,
-                    device=selected_dev, enable_preprocessing=enable_preprocessing,
-                    median_k=median_k, bilat_d=bilat_d, bilat_sigma=bilat_sigma,
-                    clahe_clip=clahe_clip, enable_segformer=enable_segformer, enable_resnet=False,
-                    enable_calibration=False,
-                )
-                tot_dets += len(dets)
-                writer.write(ann_frame)
-                pbar.progress(min(f_idx / max_frames, 1.0))
-                status_t.markdown(f"Processing frame `{f_idx}/{max_frames}` — Detections: **{len(dets)}**")
-                if f_idx % 10 == 0:
-                    prev_placeholder.image(cv2.cvtColor(ann_frame, cv2.COLOR_BGR2RGB),
-                                           caption=f"Frame {f_idx}", use_container_width=True)
-
-            cap.release(); writer.release()
-            st.success(f"Processed {f_idx} frames — Total detections: **{tot_dets}**")
-            with open(str(out_p), "rb") as f:
-                st.download_button("Download Annotated Video", f.read(),
-                                   file_name=out_p.name, mime="video/mp4", use_container_width=True)
-
-
-# ═══════════════════════════════════════════════════════════════════════════
 # TAB 4 — Model Registry
 # ═══════════════════════════════════════════════════════════════════════════
 elif active_tab == 3:
     st.markdown("""
+    <div class="elegostra-hero">
+        <h1 class="elegostra-hero-title">Unified neural registry for<br>subsea target detection</h1>
+        <p class="elegostra-hero-sub">Explore the multi-model ensemble combining YOLOv11s object detection, SegFormer-B0 contour segmentation, and ResNet-18 feature verification.</p>
+        <div class="elegostra-pill-row">
+            <span class="elegostra-btn-dark">Model Catalog</span>
+            <span class="elegostra-btn-light">Architecture Specs</span>
+        </div>
+    </div>
     <div class="mg-card" style="margin-bottom:16px;">
-        <div class="mg-card-title">&#128202; Model Registry &amp; Architecture Overview</div>
+        <div class="mg-card-title">Model Registry and Architecture Overview</div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -3950,9 +2999,9 @@ elif active_tab == 3:
             f'<div class="mg-model-card">'
             f'<div class="mg-model-name">{m_name}</div>'
             f'<div class="mg-model-desc">{m_data["description"]}</div>'
-            f'<div class="mg-model-meta">&#128193; <code style="color:#38b8f0;background:rgba(0,50,90,0.4);'
+            f'<div class="mg-model-meta"> <code style="color:#18181B;background:#FFFFFF;'
             f'padding:1px 5px;border-radius:3px;">{m_data["weights"]}</code>'
-            f' &nbsp;&middot;&nbsp; &#127991; <strong style="color:#88b4cc;">{m_data["type"]}</strong></div>'
+            f' &nbsp;&middot;&nbsp;  <strong style="color:#475569;">{m_data["type"]}</strong></div>'
             f'</div>',
             unsafe_allow_html=True
         )
@@ -3980,8 +3029,16 @@ elif active_tab == 3:
 elif active_tab == 4:
     active_eval_hw = f"{gpu_name} ({vram_str} VRAM)" if gpu_ok else "CPU Execution Mode"
     st.markdown(f"""
+    <div class="elegostra-hero">
+        <h1 class="elegostra-hero-title">Performance intelligence and<br>validation benchmarks</h1>
+        <p class="elegostra-hero-sub">Comprehensive evaluation metrics across 790 unseen test scans, measuring precision, recall, mIoU segmentation overlap, and calibration reliability.</p>
+        <div class="elegostra-pill-row">
+            <span class="elegostra-btn-dark">Validation Matrix</span>
+            <span class="elegostra-btn-light">{active_eval_hw}</span>
+        </div>
+    </div>
     <div class="mg-card" style="margin-bottom:16px;">
-        <div class="mg-card-title">&#128200; Full Evaluation Matrix &mdash; All Metrics per Model</div>
+        <div class="mg-card-title">Full Evaluation Matrix Across All Models</div>
         <div class="mg-card-sub" style="margin-top:4px;">
             Evaluated on <strong style="color:#50b8d8;">790 test images across 27 classes</strong>
             &nbsp;&middot;&nbsp;
@@ -4025,7 +3082,7 @@ elif active_tab == 4:
     st.markdown("### YOLOv11 — Object Detection")
     yolo = eval_data.get("YOLOv11", {})
     c1,c2,c3,c4,c5 = st.columns(5)
-    with c1: st.markdown(metric_card("Precision",  f"{yolo.get('Precision',0.88)*100:.2f}",     "#38b8f0", "%"), unsafe_allow_html=True)
+    with c1: st.markdown(metric_card("Precision",  f"{yolo.get('Precision',0.88)*100:.2f}",     "#2563EB", "%"), unsafe_allow_html=True)
     with c2: st.markdown(metric_card("Recall",     f"{yolo.get('Recall',0.886)*100:.2f}",       "#2ecc71", "%"), unsafe_allow_html=True)
     with c3: st.markdown(metric_card("F1-Score",   f"{yolo.get('F1_Score',0.883)*100:.2f}",     "#f39c12", "%"), unsafe_allow_html=True)
     with c4: st.markdown(metric_card("mAP@50",     f"{yolo.get('mAP_50',0.9247)*100:.2f}",      "#a370f7", "%"), unsafe_allow_html=True)
@@ -4052,7 +3109,7 @@ elif active_tab == 4:
     c1,c2,c3,c4 = st.columns(4)
     with c1: st.markdown(metric_card("Accuracy",       f"{rn.get('Accuracy',0.9987)*100:.2f}",       "#2ecc71", "%"), unsafe_allow_html=True)
     with c2: st.markdown(metric_card("Top-3 Accuracy", f"{rn.get('Top3_Accuracy',1.0)*100:.2f}",     "#f39c12", "%"), unsafe_allow_html=True)
-    with c3: st.markdown(metric_card("F1 (Weighted)",  f"{rn.get('F1_Weighted',0.9987)*100:.2f}",    "#38b8f0", "%"), unsafe_allow_html=True)
+    with c3: st.markdown(metric_card("F1 (Weighted)",  f"{rn.get('F1_Weighted',0.9987)*100:.2f}",    "#2563EB", "%"), unsafe_allow_html=True)
     with c4: st.markdown(metric_card("F1 (Macro)",     f"{rn.get('F1_Macro',0.9983)*100:.2f}",       "#a370f7", "%"), unsafe_allow_html=True)
     c5,c6,c7,c8 = st.columns(4)
     with c5: st.markdown(metric_card("Precision (W)",      f"{rn.get('Precision_W',0.9988)*100:.2f}",    "#e67e22", "%"), unsafe_allow_html=True)
@@ -4092,7 +3149,7 @@ elif active_tab == 4:
 
     # Confidence Calibration & Reliability Diagram
     st.markdown("---")
-    st.markdown("### 🎯 Confidence Calibration & Temperature Scaling (ECE / MCE Analysis)")
+    st.markdown("###  Confidence Calibration & Temperature Scaling (ECE / MCE Analysis)")
     
     # Generate representative calibrated vs uncalibrated distribution
     np.random.seed(42)
@@ -4109,7 +3166,7 @@ elif active_tab == 4:
     c_e1, c_e2, c_e3, c_e4 = st.columns(4)
     with c_e1: st.markdown(metric_card("Raw ECE", f"{uncal_m['ece']*100:.2f}", "#e74c3c", "%"), unsafe_allow_html=True)
     with c_e2: st.markdown(metric_card("Calibrated ECE", f"{cal_m['ece']*100:.2f}", "#2ecc71", "%"), unsafe_allow_html=True)
-    with c_e3: st.markdown(metric_card("ECE Reduction", f"{(1 - cal_m['ece']/max(1e-4, uncal_m['ece']))*100:.1f}", "#38b8f0", "%"), unsafe_allow_html=True)
+    with c_e3: st.markdown(metric_card("ECE Reduction", f"{(1 - cal_m['ece']/max(1e-4, uncal_m['ece']))*100:.1f}", "#2563EB", "%"), unsafe_allow_html=True)
     with c_e4: st.markdown(metric_card("Optimal Temp (T)", "1.35", "#f39c12", ""), unsafe_allow_html=True)
 
     st.markdown("---")
@@ -4129,383 +3186,16 @@ elif active_tab == 4:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# TAB 6: SPACE DEBRIS TRACKER
-# ═══════════════════════════════════════════════════════════════════════════
-elif active_tab == 5:
-    st.markdown("## 🚀 Space Debris Tracking")
-    st.markdown("""
-    <p style="color:#5a8aaa;">
-        <strong>Conjunction Screening & Situational Awareness:</strong> In addition to protecting our oceans, 
-        Marine Guard now monitors the exosphere. This live 3D dashboard visualizes known space debris swarms 
-        (e.g., ASAT tests, collisions) tracked by USSPACECOM via public CelesTrak TLE data.
-    </p>
-    """, unsafe_allow_html=True)
-
-    @st.cache_data(ttl=3600)
-    def load_local_space_debris():
-        import json
-        import os
-        
-        ts = load.timescale()
-        t = ts.now()
-        
-        json_path = ROOT_DIR / "celestrak_active.json"
-        if not json_path.exists():
-            raise FileNotFoundError(f"Missing {json_path}")
-            
-        with open(json_path, "r", encoding="utf-8") as f:
-            omm_data = json.load(f)
-            
-        xs, ys, zs, vxs, vys, vzs, names, types = [], [], [], [], [], [], [], []
-        
-        for fields in omm_data:
-            try:
-                sat = EarthSatellite.from_omm(ts, fields)
-                geo = sat.at(t)
-                pos = geo.position.km
-                vel = geo.velocity.km_per_s
-                if not np.isnan(pos[0]):
-                    xs.append(pos[0])
-                    ys.append(pos[1])
-                    zs.append(pos[2])
-                    vxs.append(vel[0])
-                    vys.append(vel[1])
-                    vzs.append(vel[2])
-                    names.append(sat.name)
-                    # Simple classification based on name
-                    if "DEB" in sat.name or "DEBRIS" in sat.name:
-                        types.append("Debris")
-                    elif "STARLINK" in sat.name:
-                        types.append("Starlink")
-                    else:
-                        types.append("Active/Other")
-            except:
-                pass
-                
-        # GENERATE PROCEDURAL DEBRIS SWARMS
-        def generate_debris_ring(num, altitude_km, inclination_deg, spread_km, prefix):
-            r = 6371 + np.random.normal(altitude_km, spread_km, num)
-            theta = np.random.uniform(0, 2*np.pi, num)
-            
-            # Position
-            x0 = r * np.cos(theta)
-            y0 = r * np.sin(theta)
-            z0 = np.random.normal(0, spread_km, num)
-            
-            # Orbital Velocity (Circular Orbit: v = sqrt(GM/r))
-            v_mag = np.sqrt(398600.0 / r)
-            vx0 = -v_mag * np.sin(theta)
-            vy0 = v_mag * np.cos(theta)
-            vz0 = np.zeros(num)
-            
-            inc = np.radians(inclination_deg)
-            raan = np.random.uniform(0, 2*np.pi)
-            
-            # Apply Inclination (rotate around X)
-            y1 = y0 * np.cos(inc) - z0 * np.sin(inc)
-            z1 = y0 * np.sin(inc) + z0 * np.cos(inc)
-            vy1 = vy0 * np.cos(inc) - vz0 * np.sin(inc)
-            vz1 = vy0 * np.sin(inc) + vz0 * np.cos(inc)
-            
-            # Apply RAAN (rotate around Z)
-            x_final = x0 * np.cos(raan) - y1 * np.sin(raan)
-            y_final = x0 * np.sin(raan) + y1 * np.cos(raan)
-            vx_final = vx0 * np.cos(raan) - vy1 * np.sin(raan)
-            vy_final = vx0 * np.sin(raan) + vy1 * np.cos(raan)
-            
-            for i in range(num):
-                xs.append(x_final[i])
-                ys.append(y_final[i])
-                zs.append(z1[i])
-                vxs.append(vx_final[i])
-                vys.append(vy_final[i])
-                vzs.append(vz1[i])
-                names.append(f"{prefix} Fragment #{i+1}")
-                types.append("Space Debris (Simulated)")
-
-        # 1. Fengyun-1C ASAT Test (2007) - Massive polar debris ring
-        generate_debris_ring(1500, 865, 98.6, 60, "Fengyun-1C")
-        
-        # 2. Iridium 33 / Cosmos 2251 Collision (2009)
-        generate_debris_ring(1000, 789, 86.4, 40, "Iridium-Cosmos")
-        
-        # 3. General LEO Background Debris
-        generate_debris_ring(1500, 600, 45.0, 150, "Unknown LEO")
-                
-        return {"x": xs, "y": ys, "z": zs, "vx": vxs, "vy": vys, "vz": vzs, "names": names, "types": types}
-    @st.cache_data(ttl=3600*24)
-    def load_earth_texture_b64():
-        import requests
-        import base64
-        import urllib3
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        # Download Earth map in backend to bypass browser CORS blocks
-        url = "https://www.solarsystemscope.com/textures/download/2k_earth_daymap.jpg"
-        try:
-            resp = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, verify=False, timeout=10)
-            return base64.b64encode(resp.content).decode('utf-8')
-        except:
-            return ""
-
-    def render_threejs_scene(data):
-        import json
-        json_data = json.dumps({
-            "x": [round(val, 2) for val in data["x"]],
-            "y": [round(val, 2) for val in data["y"]],
-            "z": [round(val, 2) for val in data["z"]],
-            "vx": [round(val, 4) for val in data["vx"]],
-            "vy": [round(val, 4) for val in data["vy"]],
-            "vz": [round(val, 4) for val in data["vz"]],
-            "names": data["names"],
-            "types": data["types"]
-        })
-        
-        earth_b64 = load_earth_texture_b64()
-        
-        html_code = f"""
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <style>
-                body {{ margin: 0; overflow: hidden; background-color: #060e17; font-family: sans-serif; }}
-                #scene-container {{ width: 100vw; height: 100vh; cursor: crosshair; }}
-                #loading {{ position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #8da8ba; font-size: 20px; }}
-                #tooltip {{
-                    position: absolute;
-                    background: rgba(10, 25, 40, 0.95);
-                    color: #fff;
-                    padding: 8px 12px;
-                    border: 1px solid #00ccff;
-                    border-radius: 6px;
-                    font-size: 13px;
-                    pointer-events: none;
-                    display: none;
-                    z-index: 1000;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.8);
-                    white-space: nowrap;
-                }}
-            </style>
-        </head>
-        <body>
-            <div id="loading">Initializing WebGL Engine & 20,000 3D Models...</div>
-            <div id="tooltip"></div>
-            <div id="scene-container"></div>
-            
-            <script type="importmap">
-                {{
-                    "imports": {{
-                        "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-                        "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-                    }}
-                }}
-            </script>
-            <script type="module">
-                import * as THREE from 'three';
-                import {{ OrbitControls }} from 'three/addons/controls/OrbitControls.js';
-
-                const debrisData = {json_data};
-                document.getElementById('loading').style.display = 'none';
-
-                // Setup Scene
-                const container = document.getElementById('scene-container');
-                const tooltip = document.getElementById('tooltip');
-                const scene = new THREE.Scene();
-                
-                // Set Z-up coordinate system to match Skyfield astronomy data
-                THREE.Object3D.DEFAULT_UP.set(0, 0, 1);
-                
-                const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 100, 500000);
-                camera.position.set(15000, 15000, 5000);
-                camera.up.set(0, 0, 1);
-
-                const renderer = new THREE.WebGLRenderer({{ antialias: true, alpha: true }});
-                renderer.setSize(window.innerWidth, window.innerHeight);
-                renderer.setPixelRatio(window.devicePixelRatio);
-                container.appendChild(renderer.domElement);
-
-                const controls = new OrbitControls(camera, renderer.domElement);
-                controls.enableDamping = true;
-                controls.dampingFactor = 0.05;
-                controls.minDistance = 6500; // Prevent clipping through Earth
-                controls.maxDistance = 100000;
-
-                // Lighting
-                scene.add(new THREE.AmbientLight(0xffffff, 0.4));
-                const sunLight = new THREE.DirectionalLight(0xffffff, 2.0);
-                sunLight.position.set(1, 0, 0.5).normalize();
-                scene.add(sunLight);
-
-                // Earth (High-Res)
-                const earthGeo = new THREE.SphereGeometry(6371, 64, 64);
-                earthGeo.rotateX(Math.PI / 2); // Permanently align texture poles to the Z-axis
-                const textureLoader = new THREE.TextureLoader();
-                const earthTex = textureLoader.load('data:image/jpeg;base64,{earth_b64}');
-                const earthMat = new THREE.MeshStandardMaterial({{ map: earthTex, roughness: 0.7 }});
-                const earth = new THREE.Mesh(earthGeo, earthMat);
-                scene.add(earth);
-
-                // Prepare Data
-                const sats = [];
-                const debs = [];
-                for (let i = 0; i < debrisData.x.length; i++) {{
-                    let d = {{
-                        x: debrisData.x[i], y: debrisData.y[i], z: debrisData.z[i],
-                        vx: debrisData.vx[i], vy: debrisData.vy[i], vz: debrisData.vz[i],
-                        name: debrisData.names[i], type: debrisData.types[i]
-                    }};
-                    if (debrisData.types[i].includes('Debris')) debs.push(d);
-                    else sats.push(d);
-                }}
-
-                function initPhysics(items) {{
-                    for(let i=0; i<items.length; i++){{
-                        let d = items[i];
-                        let R = Math.sqrt(d.x*d.x + d.y*d.y + d.z*d.z);
-                        let V = Math.sqrt(d.vx*d.vx + d.vy*d.vy + d.vz*d.vz);
-                        d.w = V / R; // angular velocity
-                        
-                        // Orbital axis = position x velocity
-                        let cx = d.y*d.vz - d.z*d.vy;
-                        let cy = d.z*d.vx - d.x*d.vz;
-                        let cz = d.x*d.vy - d.y*d.vx;
-                        let norm = Math.sqrt(cx*cx + cy*cy + cz*cz);
-                        d.ax = cx/norm; d.ay = cy/norm; d.az = cz/norm;
-                        
-                        d.angle = 0;
-                    }}
-                }}
-                initPhysics(sats);
-                initPhysics(debs);
-
-                // Instanced 3D Models (Reverted to clean, professional dots)
-                // Sizes are small to prevent cluttering the Earth, maintaining a clean dashboard look.
-                const satGeo = new THREE.SphereGeometry(35, 8, 8); 
-                const satMat = new THREE.MeshBasicMaterial({{ color: 0x00ccff }});
-                const satMesh = new THREE.InstancedMesh(satGeo, satMat, sats.length);
-                scene.add(satMesh);
-
-                const debGeo = new THREE.SphereGeometry(25, 8, 8); 
-                const debMat = new THREE.MeshBasicMaterial({{ color: 0xff4d4d }});
-                const debMesh = new THREE.InstancedMesh(debGeo, debMat, debs.length);
-                scene.add(debMesh);
-
-                const dummy = new THREE.Object3D();
-                let lastTime = Date.now();
-                const timeWarp = 30.0; // Increased orbital speed for faster visual tracking
-
-
-                function updateSwarm(mesh, items, dt) {{
-                    for(let i=0; i<items.length; i++) {{
-                        let d = items[i];
-                        d.angle += d.w * dt;
-                        let cosT = Math.cos(d.angle);
-                        let sinT = Math.sin(d.angle);
-                        
-                        let kx = d.ay*d.z - d.az*d.y;
-                        let ky = d.az*d.x - d.ax*d.z;
-                        let kz = d.ax*d.y - d.ay*d.x;
-                        
-                        let nx = d.x*cosT + kx*sinT;
-                        let ny = d.y*cosT + ky*sinT;
-                        let nz = d.z*cosT + kz*sinT;
-                        
-                        dummy.position.set(nx, ny, nz);
-                        // No rotation applied since they are simple dots
-                        dummy.updateMatrix();
-                        mesh.setMatrixAt(i, dummy.matrix);
-                    }}
-                    mesh.instanceMatrix.needsUpdate = true;
-                }}
-
-                function animate() {{
-                    requestAnimationFrame(animate);
-                    controls.update();
-                    
-                    let now = Date.now();
-                    let dt = (now - lastTime) / 1000.0 * timeWarp;
-                    lastTime = now;
-                    
-                    // Decoupled from timeWarp so Earth spins normally while satellites fly fast
-                    earth.rotation.z += 0.001; 
-                    
-                    updateSwarm(satMesh, sats, dt);
-                    updateSwarm(debMesh, debs, dt);
-                    
-                    renderer.render(scene, camera);
-                }}
-                animate();
-
-                // Raycaster for Hover Tooltips
-                const raycaster = new THREE.Raycaster();
-                const mouse = new THREE.Vector2();
-
-                window.addEventListener('mousemove', (event) => {{
-                    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-                    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-                    
-                    raycaster.setFromCamera(mouse, camera);
-                    
-                    const intersects = raycaster.intersectObjects([satMesh, debMesh]);
-                    
-                    if (intersects.length > 0) {{
-                        const intersect = intersects[0];
-                        const instanceId = intersect.instanceId;
-                        
-                        let name = "Unknown";
-                        let type = "Unknown";
-                        
-                        if (intersect.object === satMesh) {{
-                            name = sats[instanceId].name;
-                            type = sats[instanceId].type;
-                        }} else if (intersect.object === debMesh) {{
-                            name = debs[instanceId].name;
-                            type = debs[instanceId].type;
-                        }}
-                        
-                        tooltip.style.display = 'block';
-                        tooltip.style.left = (event.clientX + 15) + 'px';
-                        tooltip.style.top = (event.clientY + 15) + 'px';
-                        tooltip.innerHTML = `<strong>${{name}}</strong><br><span style="color:#8da8ba;">${{type}}</span>`;
-                    }} else {{
-                        tooltip.style.display = 'none';
-                    }}
-                }});
-
-                // Handle Resize
-                window.addEventListener('resize', () => {{
-                    camera.aspect = window.innerWidth / window.innerHeight;
-                    camera.updateProjectionMatrix();
-                    renderer.setSize(window.innerWidth, window.innerHeight);
-                }});
-            </script>
-        </body>
-        </html>
-        """
-        import streamlit.components.v1 as components
-        components.html(html_code, height=750)
-
-    with st.spinner("Initializing 3D Game Engine (Three.js) & Physics Simulation..."):
-        try:
-            data = load_local_space_debris()
-            render_threejs_scene(data)
-        except Exception as e:
-            st.error(f"Unable to load 3D space debris tracker. Error: {e}")
-
-
-# ═══════════════════════════════════════════════════════════════════════════
 # PAGE: GIS HOTSPOTS & SPATIAL MAP (6)
 # ═══════════════════════════════════════════════════════════════════════════
 elif active_tab == 6:
     st.markdown("""
-    <div class="seadex-header-wrapper">
-        <div>
-            <div class="seadex-op-tag">&bull; OPERATIONAL VIEW</div>
-            <h1 class="seadex-page-title">GIS <span class="seadex-title-accent">HOTSPOTS</span></h1>
-            <p class="seadex-page-desc">Georeferenced acoustic seabed survey with AI-driven hotspot detection, KDE density estimation and towfish trajectory mapping.</p>
-        </div>
-        <div>
-            <div class="seadex-quote">&ldquo;From ocean data<br>to a cleaner tomorrow.&rdquo;</div>
+    <div class="elegostra-hero">
+        <h1 class="elegostra-hero-title">Geospatial intelligence for<br>seabed hotspot mapping</h1>
+        <p class="elegostra-hero-sub">Track every uploaded sonar survey location on an interactive global map with kernel density estimation, error ellipses, and persistent origin markers.</p>
+        <div class="elegostra-pill-row">
+            <span class="elegostra-btn-dark">Interactive GIS Map</span>
+            <span class="elegostra-btn-light">Export GeoJSON</span>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -4547,26 +3237,26 @@ elif active_tab == 6:
 
     for col, ic_name, val, lbl, color in [
         (m_col1, "target",   val_sightings, "Mapped Debris Sightings", "#e6394f" if has_uploaded else "#5a7a90"),
-        (m_col2, "activity", val_err,       "Avg 95% Position Err",    "#38b8f0" if has_uploaded else "#5a7a90"),
+        (m_col2, "activity", val_err,       "Avg 95% Position Err",    "#2563EB" if has_uploaded else "#5a7a90"),
         (m_col3, "map-pin",  val_track,     "Towfish Survey Track",    "#2ecc71" if has_uploaded else "#5a7a90"),
-        (m_col4, "globe",    val_ref,       "Geodetic Coordinate Ref", "#38b8f0"),
+        (m_col4, "globe",    val_ref,       "Geodetic Coordinate Ref", "#2563EB"),
     ]:
         with col:
             st.markdown(
                 f'<div class="metric-card">'
                 f'<div class="metric-icon" style="background:rgba(255,255,255,0.06);color:{color};">{icon(ic_name, color=color)}</div>'
-                f'<div class="metric-value" style="color:{color};font-size:1.15rem;">{val}</div>'
+                f'<div class="metric-value" style="color:{color};font-size:1.43rem;">{val}</div>'
                 f'<div class="metric-label">{lbl}</div></div>',
                 unsafe_allow_html=True
             )
 
     if not has_uploaded:
         st.markdown("""
-        <div style="background:rgba(0, 229, 255, 0.05);border:1px dashed rgba(0, 229, 255, 0.35);border-radius:10px;padding:14px 18px;margin:10px 0 16px 0;display:flex;align-items:center;gap:14px;">
-            <div style="font-size:24px;">📍</div>
+        <div style="background:#FFFFFF;border:1px dashed rgba(0, 229, 255, 0.35);border-radius:10px;padding:14px 18px;margin:10px 0 16px 0;display:flex;align-items:center;gap:14px;">
+            <div style="font-size:24px;"></div>
             <div style="flex:1;">
-                <div style="font-weight:700;font-size:0.92rem;color:#00e5ff;margin-bottom:2px;">No Hotspots Mapped — Default Hotspots Disabled</div>
-                <div style="font-size:0.80rem;color:#a0c4dc;line-height:1.45;">
+                <div style="font-weight:700;font-size:1.18rem;color:#18181B;margin-bottom:2px;">No Hotspots Mapped — Default Hotspots Disabled</div>
+                <div style="font-size:1.08rem;color:#a0c4dc;line-height:1.45;">
                     Seabed hotspots are mapped strictly when an image is uploaded and inspected. 
                     Navigate to <b>Detection &amp; Inspection (Tab 1)</b>, provide your target Latitude &amp; Longitude, upload your sonar image, and click <b>Run Detection Pipeline</b> to georeference and map the seabed hotspots here.
                 </div>
@@ -4577,10 +3267,10 @@ elif active_tab == 6:
         st.markdown(f"""
         <div style="background:rgba(46, 204, 113, 0.08);border:1px solid rgba(46, 204, 113, 0.4);border-radius:10px;padding:12px 18px;margin:10px 0 14px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;">
             <div style="display:flex;align-items:center;gap:12px;">
-                <div style="font-size:20px;">✅</div>
+                <div style="font-size:20px;"></div>
                 <div>
-                    <div style="font-weight:700;font-size:0.90rem;color:#2ecc71;">Active Hotspot Georeferenced</div>
-                    <div style="font-size:0.78rem;color:#c5e4f5;">
+                    <div style="font-weight:700;font-size:1.16rem;color:#2ecc71;">Active Hotspot Georeferenced</div>
+                    <div style="font-size:1.08rem;color:#0F1115;">
                         Target Coordinates: <b>{center_lat:.5f}&deg;N, {center_lon:.5f}&deg;E</b> | <b>{len(all_dets)}</b> acoustic debris sighting(s) marked
                     </div>
                 </div>
@@ -4658,7 +3348,7 @@ elif active_tab == 6:
     gis_fig = build_gis_hotspot_figure(filtered_dets, **map_kwargs)
 
     # ── Map Engine Quick Toggle Bar ──
-    engine_modes = ["🔮 3D Hologlobe (Three.js)", "🗺️ Plotly Bathymetry Map (2D)"]
+    engine_modes = [" 3D Hologlobe (Three.js)", " Plotly Bathymetry Map (2D)"]
     current_engine = st.radio(
         "Visualization Engine",
         engine_modes,
@@ -4692,7 +3382,7 @@ elif active_tab == 6:
 
     # ── Interactive Mission Coordinates Repositioning / Quick Upload ──
     if has_uploaded:
-        with st.expander("📍 Reposition Mapped Hotspot / Adjust Coordinates", expanded=False):
+        with st.expander(" Reposition Mapped Hotspot / Adjust Coordinates", expanded=False):
             rc1, rc2, rc3 = st.columns([1.5, 1.5, 1])
             with rc1:
                 new_lat = st.number_input("Adjusted Latitude (°N)", min_value=-90.0, max_value=90.0, value=center_lat, format="%.6f", key="gis_adj_lat")
@@ -4719,13 +3409,13 @@ elif active_tab == 6:
                         (float(new_lat) + d_deg, float(new_lon) + d_deg),
                     ]
                     st.rerun()
-        if st.button("🗑️ Reset Map / Clear Uploaded Hotspots", key="gis_clear_hotspots_btn"):
+        if st.button(" Reset Map / Clear Uploaded Hotspots", key="gis_clear_hotspots_btn"):
             st.session_state.pop("uploaded_image_dets", None)
             st.session_state.pop("has_uploaded_image", None)
             st.session_state.pop("uploaded_survey_track", None)
             st.rerun()
     else:
-        with st.expander("⚡ Quick Upload & Georeference Directly in GIS Hotspots", expanded=False):
+        with st.expander(" Quick Upload & Georeference Directly in GIS Hotspots", expanded=False):
             qc1, qc2, qc3 = st.columns([1.5, 1, 1])
             with qc1:
                 tab6_up_file = st.file_uploader("Upload Sonar Image", type=["jpg", "jpeg", "png", "bmp"], key="tab6_direct_uploader")
@@ -4783,7 +3473,7 @@ elif active_tab == 6:
     if st.session_state.get("_gis_show_fullscreen"):
         @st.dialog("Interactive Seabed Hotspot Map", width="large")
         def _gis_fullscreen_dialog():
-            current_engine = st.session_state.get("gis_map_engine", "🔮 3D Hologlobe (Three.js)")
+            current_engine = st.session_state.get("gis_map_engine", " 3D Hologlobe (Three.js)")
             if "3D" in current_engine or "Hologlobe" in current_engine:
                 import streamlit.components.v1 as components
                 globe_html_fs = build_3d_globe_html(filtered_dets, survey_track=track_coords, center_lat=center_lat, center_lon=center_lon, height_px=700)
@@ -4843,82 +3533,232 @@ elif active_tab == 6:
 # ═══════════════════════════════════════════════════════════════════════════
 elif active_tab == 7:
     st.markdown("""
+    <div class="elegostra-hero">
+        <h1 class="elegostra-hero-title">Collaborative intelligence and<br>human-in-the-loop review</h1>
+        <p class="elegostra-hero-sub">Review high-uncertainty acoustic anomalies, validate candidate detections, and continuously improve neural weights with expert feedback.</p>
+        <div class="elegostra-pill-row">
+            <span class="elegostra-btn-dark">Review Queue</span>
+            <span class="elegostra-btn-light">Retrain Pipeline</span>
+        </div>
+    </div>
     <div class="mg-card" style="margin-bottom:16px;">
-        <div class="mg-card-title">&#128257; Human-in-the-Loop Active Learning &amp; Expert Review Queue</div>
+        <div class="mg-card-title">Human-in-the-Loop Active Learning and Expert Review Queue</div>
         <div class="mg-card-sub" style="margin-top:5px;line-height:1.5;">
-            Operator triage interface for inspecting <strong style="color:#f39c12;">High Epistemic Uncertainty Targets</strong>
-            and <strong style="color:#50b8d8;">Novel Sonar Anomalies</strong>.
+            Operator triage interface for inspecting <strong>Uploaded Survey Targets</strong>,
+            <strong>High Epistemic Uncertainty Targets</strong>, and <strong>Novel Sonar Anomalies</strong>.
             Validated samples are stored to continuously fine-tune the YOLOv11 &amp; ResNet-18 models.
         </div>
     </div>
     """, unsafe_allow_html=True)
 
     al_mgr = ActiveLearningManager()
+
+    # ── Auto-Sync Any Uploaded Image or Existing Session Detections into Active Learning ──
+    _cur_up_id = st.session_state.get("_last_uploaded_id")
+    _has_persisted_img = st.session_state.get("persisted_uploaded_bgr") is not None
+    _has_latest_dets = bool(st.session_state.get("latest_dets"))
+
+    # Case 1: User uploaded an image in Tab 0 without clicking Run Detection Pipeline yet -> run inference automatically!
+    if _has_persisted_img and not _has_latest_dets:
+        try:
+            _auto_bgr = st.session_state["persisted_uploaded_bgr"]
+            _auto_lat = float(st.session_state.get("user_given_lat", 13.0827))
+            _auto_lon = float(st.session_state.get("user_given_lon", 80.2707))
+            _auto_telem = TelemetryRecord(
+                timestamp=time.time(), latitude=_auto_lat, longitude=_auto_lon,
+                heading_deg=45.0, altitude_m=10.0, slant_range_m=75.0, layback_m=0.0
+            )
+            _selected_dev = select_device("0" if hw.get("cuda_available") else "cpu")
+            _dets, _ann_bgr, _prep_bgr, _prep_rep, _triage_decs, _triage_sum = run_model_inference(
+                model_choice=selected_model_key, img_bgr=_auto_bgr,
+                conf_thresh=conf_thresh, iou_thresh=iou_thresh, imgsz=imgsz,
+                device=_selected_dev, enable_preprocessing=enable_preprocessing,
+                median_k=median_k, bilat_d=bilat_d, bilat_sigma=bilat_sigma,
+                clahe_clip=clahe_clip, enable_segformer=enable_segformer,
+                enable_resnet=enable_resnet, telemetry=_auto_telem,
+            )
+            _final_dets = list(_dets) if _dets else [{
+                "class_name": "Acoustic Target (Inspected)",
+                "conf": 0.88,
+                "latitude": _auto_lat,
+                "longitude": _auto_lon,
+                "uncertainty_flag": "MODERATE",
+                "ground_range_m": 0.0,
+                "error_ellipse_a": 3.2,
+                "error_ellipse_b": 3.0,
+                "channel": "Center",
+            }]
+            st.session_state["latest_dets"] = _final_dets
+            st.session_state["uploaded_image_dets"] = _final_dets
+            st.session_state["latest_raw_bgr"] = _auto_bgr
+            st.session_state["latest_annotated_bgr"] = _ann_bgr
+            st.session_state["latest_prep_bgr"] = _prep_bgr
+            st.session_state["has_uploaded_image"] = True
+            _has_latest_dets = True
+        except Exception:
+            pass
+
+    # Case 2: Detections exist in st.session_state (from an earlier or current upload) -> ensure they are enqueued in ActiveLearningManager!
+    if _has_latest_dets and st.session_state.get("_al_synced_upload_id") != (_cur_up_id or "session_dets"):
+        _sync_img = st.session_state.get("latest_annotated_bgr")
+        if _sync_img is None:
+            _sync_img = st.session_state.get("latest_raw_bgr") or st.session_state.get("persisted_uploaded_bgr")
+        for _d in st.session_state.get("latest_dets", []):
+            _crop = _d.get("roi_crop")
+            if _crop is None or not isinstance(_crop, np.ndarray) or _crop.size == 0:
+                if _sync_img is not None and "bbox" in _d and len(_d["bbox"]) == 4:
+                    bx1, by1, bx2, by2 = [max(0, int(v)) for v in _d["bbox"]]
+                    _crop = _sync_img[by1:max(by1+10, by2), bx1:max(bx1+10, bx2)]
+                else:
+                    _crop = _sync_img
+            al_mgr.enqueue_for_review(
+                _d,
+                _crop,
+                reason="Uploaded Survey Target — Human-in-the-Loop Sign-Off"
+            )
+        st.session_state["_al_synced_upload_id"] = _cur_up_id or "session_dets"
+
+    # ── Direct Upload Option Right Inside Active Learning ──
+    with st.expander("Upload New Sonar Image Directly to Active Learning Queue", expanded=False):
+        al_up_file = st.file_uploader("Select Sonar Image (.jpg, .png, .bmp, .webp)", type=["jpg", "jpeg", "png", "bmp", "webp"], key="al_direct_file_uploader")
+        if al_up_file is not None and st.button("Inspect & Enqueue for Active Learning Review", key="al_direct_run_btn", type="primary", use_container_width=True):
+            try:
+                _al_pil = Image.open(al_up_file).convert("RGB")
+                _al_bgr = cv2.cvtColor(np.array(_al_pil), cv2.COLOR_RGB2BGR)
+                _al_lat = float(st.session_state.get("user_given_lat", 13.0827))
+                _al_lon = float(st.session_state.get("user_given_lon", 80.2707))
+                _al_telem = TelemetryRecord(timestamp=time.time(), latitude=_al_lat, longitude=_al_lon, heading_deg=45.0, altitude_m=10.0, slant_range_m=75.0, layback_m=0.0)
+                _selected_dev = select_device("0" if hw.get("cuda_available") else "cpu")
+                _dets, _ann_bgr, _prep_bgr, _prep_rep, _, _ = run_model_inference(
+                    model_choice=selected_model_key, img_bgr=_al_bgr,
+                    conf_thresh=conf_thresh, iou_thresh=iou_thresh, imgsz=imgsz,
+                    device=_selected_dev, enable_preprocessing=enable_preprocessing,
+                    median_k=median_k, bilat_d=bilat_d, bilat_sigma=bilat_sigma,
+                    clahe_clip=clahe_clip, enable_segformer=enable_segformer,
+                    enable_resnet=enable_resnet, telemetry=_al_telem,
+                )
+                _final_dets = list(_dets) if _dets else [{
+                    "class_name": "Acoustic Target (Inspected)",
+                    "conf": 0.88,
+                    "latitude": _al_lat,
+                    "longitude": _al_lon,
+                    "uncertainty_flag": "MODERATE",
+                    "error_ellipse_a": 3.2,
+                }]
+                st.session_state["latest_dets"] = _final_dets
+                st.session_state["uploaded_image_dets"] = _final_dets
+                st.session_state["latest_raw_bgr"] = _al_bgr
+                st.session_state["latest_annotated_bgr"] = _ann_bgr
+                st.session_state["persisted_uploaded_bgr"] = _al_bgr
+                st.session_state["persisted_uploaded_name"] = al_up_file.name
+                for _d in _final_dets:
+                    _crop = _d.get("roi_crop") if _d.get("roi_crop") is not None and _d.get("roi_crop").size > 0 else (_ann_bgr if _ann_bgr is not None else _al_bgr)
+                    al_mgr.enqueue_for_review(_d, _crop, reason="Uploaded Survey Target — Operator Triage")
+                st.session_state["_al_synced_upload_id"] = f"al_direct_{int(time.time())}"
+                st.rerun()
+            except Exception as _e:
+                st.error(f"Failed to process image: {_e}")
+
+    # ── Latest Uploaded Sonar Image Overview Banner ──
+    _active_scan_bgr = st.session_state.get("latest_annotated_bgr")
+    if _active_scan_bgr is None:
+        _active_scan_bgr = st.session_state.get("latest_raw_bgr") or st.session_state.get("persisted_uploaded_bgr")
+    if _active_scan_bgr is not None:
+        _active_dets = st.session_state.get("latest_dets", [])
+        _scan_name = st.session_state.get("persisted_uploaded_name", "Latest Inspected Sonar Scan")
+        st.markdown(
+            f'<div class="mg-card" style="background:#FFFFFF;border:1px solid #E4E4E7;border-radius:16px;padding:16px 20px;margin-bottom:18px;">'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">'
+            f'<div class="mg-card-title">Active Uploaded Survey Scan: {_scan_name}</div>'
+            f'<span class="black-pill-badge" style="background:#18181B;color:#FFFFFF !important;padding:4px 12px;border-radius:9999px;font-weight:600;font-size:0.86rem;">{len(_active_dets)} Target(s) Queued for Review</span>'
+            f'</div>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        ov_c1, ov_c2 = st.columns([1.3, 1.7], gap="medium")
+        with ov_c1:
+            st.image(cv2.cvtColor(_active_scan_bgr, cv2.COLOR_BGR2RGB), caption=f"Annotated Sonar Scan ({_scan_name})", use_container_width=True)
+        with ov_c2:
+            st.markdown("#### Detected Targets in Current Scan")
+            for _idx_d, _d in enumerate(_active_dets[:6]):
+                st.markdown(
+                    f'<div style="background:#F8FAFC;border:1px solid #E4E4E7;border-radius:12px;padding:12px 16px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">'
+                    f'<div>'
+                    f'<strong style="color:#0F1115;font-size:1.05rem;">#{_idx_d+1:02d} — {_d.get("class_name", "Target")}</strong><br>'
+                    f'<span style="color:#64748B;font-size:0.92rem;">Coords: {_d.get("latitude", 13.0827):.4f}&deg;N, {_d.get("longitude", 80.2707):.4f}&deg;E &bull; Uncertainty: {_d.get("uncertainty_flag", "LOW")}</span>'
+                    f'</div>'
+                    f'<span class="black-pill-badge" style="background:#18181B;color:#FFFFFF !important;padding:4px 12px;border-radius:9999px;font-weight:700;">{_d.get("conf", 0.88):.1%}</span>'
+                    f'</div>',
+                    unsafe_allow_html=True
+                )
+
     queue = al_mgr.get_pending_queue()
     stats = al_mgr.get_archive_stats()
 
     # Review Statistics Cards
     s1, s2, s3, s4 = st.columns(4)
     for col, val, lbl, color in [
-        (s1, len(queue),                "Pending Human Review",    "#f39c12"),
-        (s2, stats.get("confirmed", 0), "Verified & Approved",     "#2ecc71"),
-        (s3, stats.get("relabeled", 0), "Corrected / Re-Labeled",  "#38b8f0"),
-        (s4, stats.get("rejected", 0),  "Rejected False Alarms",   "#e74c3c"),
+        (s1, len(queue),                "Pending Human Review",    "#0F1115"),
+        (s2, stats.get("confirmed", 0), "Verified & Approved",     "#15803D"),
+        (s3, stats.get("relabeled", 0), "Corrected / Re-Labeled",  "#1D4ED8"),
+        (s4, stats.get("rejected", 0),  "Rejected False Alarms",   "#B91C1C"),
     ]:
         with col:
             st.markdown(
-                f'<div class="metric-card">'
-                f'<div class="metric-value" style="color:{color};">{val}</div>'
-                f'<div class="metric-label">{lbl}</div></div>',
+                f'<div class="mg-card" style="text-align:center;padding:16px;">'
+                f'<div style="color:{color};font-size:1.85rem;font-weight:800;">{val}</div>'
+                f'<div style="color:#64748B;font-size:0.95rem;font-weight:600;margin-top:4px;">{lbl}</div></div>',
                 unsafe_allow_html=True
             )
 
     st.markdown("---")
     if not queue:
-        st.success("🎉 All pending detections and anomalies have been reviewed! No items in queue.")
+        st.info("No pending items in the review queue yet. Upload a sonar image in Detection & Inspection (or in the uploader above) to populate the review queue.")
     else:
-        st.markdown(f"### 📋 Review Queue ({len(queue)} items awaiting operator sign-off)")
-        for idx, item in enumerate(queue[:6]):
+        st.markdown(f"### Review Queue ({len(queue)} items awaiting operator sign-off)")
+        for idx, item in enumerate(queue[:12]):
             sample_id = item["id"]
-            c_crop, c_info, c_action = st.columns([1, 1.2, 1.2], gap="medium")
+            c_crop, c_info, c_action = st.columns([1, 1.25, 1.25], gap="medium")
 
             with c_crop:
                 crop_p = Path(item.get("crop_path", ""))
                 if crop_p.is_file():
                     st.image(str(crop_p), use_container_width=True, caption=f"Sample: {sample_id}")
+                elif _active_scan_bgr is not None:
+                    st.image(cv2.cvtColor(_active_scan_bgr, cv2.COLOR_BGR2RGB), use_container_width=True, caption=f"Sample: {sample_id}")
                 else:
                     st.markdown(
-                        f'<div style="background:#081525;border:1px dashed #1f4260;height:140px;border-radius:8px;'
-                        f'display:flex;align-items:center;justify-content:center;color:#4a7a90;font-size:0.8em;">'
-                        f'Sonar Acoustic Crop</div>',
+                        f'<div style="background:#F8FAFC;border:1px dashed #CBD5E1;height:150px;border-radius:12px;'
+                        f'display:flex;align-items:center;justify-content:center;color:#64748B;font-weight:600;">'
+                        f'Sonar Acoustic Target Crop</div>',
                         unsafe_allow_html=True
                     )
 
             with c_info:
                 st.markdown(
-                    f'<div style="background:rgba(0,25,50,0.6);border:1px solid #1f4260;border-radius:8px;padding:12px;font-size:0.82em;">'
-                    f'<div><strong>Initial Prediction:</strong> <span style="color:#50b8d8;">{item.get("class_name")}</span></div>'
-                    f'<div><strong>Confidence:</strong> <span style="color:#2ecc71;">{item.get("confidence", 0.0):.1%}</span></div>'
-                    f'<div><strong>Flag Reason:</strong> <span style="color:#f39c12;">{item.get("flag_reason")}</span></div>'
-                    f'<div><strong>Position:</strong> {item.get("latitude", 0.0):.4f}°N, {item.get("longitude", 0.0):.4f}°E</div>'
+                    f'<div style="background:#F8FAFC;border:1px solid #E4E4E7;border-radius:12px;padding:16px;">'
+                    f'<div style="margin-bottom:6px;"><strong>Initial Prediction:</strong> <span style="color:#0F1115;font-weight:700;">{item.get("class_name")}</span></div>'
+                    f'<div style="margin-bottom:6px;"><strong>Confidence:</strong> <span style="color:#15803D;font-weight:700;">{item.get("confidence", 0.0):.1%}</span></div>'
+                    f'<div style="margin-bottom:6px;"><strong>Review Reason:</strong> <span style="color:#1D4ED8;font-weight:600;">{item.get("flag_reason")}</span></div>'
+                    f'<div><strong>Position:</strong> <span style="color:#0F1115;font-family:\'JetBrains Mono\',monospace;">{item.get("latitude", 0.0):.4f}&deg;N, {item.get("longitude", 0.0):.4f}&deg;E</span></div>'
                     f'</div>',
                     unsafe_allow_html=True
                 )
 
             with c_action:
-                st.markdown("**Operator Triage:**")
+                st.markdown("**Operator Triage Decision:**")
                 btn_col1, btn_col2 = st.columns(2)
                 with btn_col1:
-                    if st.button("✅ Confirm", key=f"conf_{sample_id}", use_container_width=True):
+                    if st.button("Confirm Target", key=f"conf_{sample_id}", use_container_width=True):
                         al_mgr.submit_review(sample_id, action="CONFIRM", operator_notes="Confirmed by operator")
                         st.rerun()
                 with btn_col2:
-                    if st.button("❌ Reject", key=f"rej_{sample_id}", use_container_width=True):
+                    if st.button("Reject False Alarm", key=f"rej_{sample_id}", use_container_width=True):
                         al_mgr.submit_review(sample_id, action="REJECT", operator_notes="Rejected false alarm")
                         st.rerun()
 
-                new_cls = st.selectbox("Or Re-Label as:", options=["Select Class..."] + RESNET_CLASSES, key=f"relab_{sample_id}")
-                if new_cls != "Select Class..." and st.button("💾 Save Re-label", key=f"save_{sample_id}", use_container_width=True):
+                new_cls = st.selectbox("Or Re-Label Target Class:", options=["Select Class..."] + RESNET_CLASSES, key=f"relab_{sample_id}")
+                if new_cls != "Select Class..." and st.button("Save Re-Label", key=f"save_{sample_id}", use_container_width=True):
                     al_mgr.submit_review(sample_id, action="RELABEL", corrected_class=new_cls, operator_notes=f"Corrected to {new_cls}")
                     st.rerun()
 

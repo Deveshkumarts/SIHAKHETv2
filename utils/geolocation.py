@@ -26,6 +26,161 @@ except ImportError:
     HAS_SHAPELY = False
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# GLOBAL OCEANIC REGIONS (Strictly open oceanic waters, zero continental land)
+# ═══════════════════════════════════════════════════════════════════════════════
+GLOBAL_OCEAN_REGIONS: List[Dict[str, Any]] = [
+    {
+        "basin": "Bay of Bengal (Central Abyssal Basin)",
+        "lat_min": 11.5, "lat_max": 16.5,
+        "lon_min": 83.5, "lon_max": 89.5,
+        "depth_range_m": (2400, 3900),
+        "sound_speed_mps": (1515, 1530),
+        "temp_c": (4.5, 7.8),
+        "substrate": "Siliceous Pelagic Ooze & Silt",
+        "salinity_psu": 34.2,
+    },
+    {
+        "basin": "Arabian Sea (Deep Subsea Trench)",
+        "lat_min": 12.0, "lat_max": 18.0,
+        "lon_min": 63.5, "lon_max": 70.5,
+        "depth_range_m": (2900, 4400),
+        "sound_speed_mps": (1520, 1535),
+        "temp_c": (4.0, 6.9),
+        "substrate": "Fine Terrigenous Mud & Clay",
+        "salinity_psu": 35.8,
+    },
+    {
+        "basin": "Central Indian Ocean (Pelagic Abyssal Plain)",
+        "lat_min": -7.5, "lat_max": 2.5,
+        "lon_min": 70.0, "lon_max": 88.0,
+        "depth_range_m": (3800, 5200),
+        "sound_speed_mps": (1505, 1525),
+        "temp_c": (2.8, 5.2),
+        "substrate": "Polymetallic Nodule Bed / Red Clay",
+        "salinity_psu": 34.7,
+    },
+    {
+        "basin": "North Atlantic (Sargasso Deep Basin)",
+        "lat_min": 24.0, "lat_max": 31.0,
+        "lon_min": -64.0, "lon_max": -48.0,
+        "depth_range_m": (4100, 5600),
+        "sound_speed_mps": (1498, 1518),
+        "temp_c": (3.2, 5.8),
+        "substrate": "Calcareous Foraminiferal Ooze",
+        "salinity_psu": 36.5,
+    },
+    {
+        "basin": "Mid-Atlantic Ridge (Abyssal Rift Valley)",
+        "lat_min": -4.0, "lat_max": 8.0,
+        "lon_min": -32.0, "lon_max": -18.0,
+        "depth_range_m": (3100, 4700),
+        "sound_speed_mps": (1502, 1522),
+        "temp_c": (3.0, 5.5),
+        "substrate": "Basaltic Pillow Lava & Pelagic Sediment",
+        "salinity_psu": 35.1,
+    },
+    {
+        "basin": "North Pacific (Pelagic Ocean Corridor)",
+        "lat_min": 22.0, "lat_max": 32.0,
+        "lon_min": 148.0, "lon_max": 172.0,
+        "depth_range_m": (4300, 5900),
+        "sound_speed_mps": (1492, 1512),
+        "temp_c": (2.1, 4.2),
+        "substrate": "Abyssal Brown Clay & Manganese Crust",
+        "salinity_psu": 34.4,
+    },
+    {
+        "basin": "South Pacific (Polynesian Deep Basin)",
+        "lat_min": -18.0, "lat_max": -8.0,
+        "lon_min": -138.0, "lon_max": -115.0,
+        "depth_range_m": (3900, 5100),
+        "sound_speed_mps": (1496, 1516),
+        "temp_c": (2.4, 4.6),
+        "substrate": "Pelagic Red Clay & Zeolitic Silt",
+        "salinity_psu": 34.6,
+    },
+    {
+        "basin": "South China Sea (Central Deep Basin)",
+        "lat_min": 13.0, "lat_max": 17.0,
+        "lon_min": 113.5, "lon_max": 117.5,
+        "depth_range_m": (2200, 3900),
+        "sound_speed_mps": (1518, 1532),
+        "temp_c": (4.2, 7.1),
+        "substrate": "Hemipelagic Clay & Carbonate Silt",
+        "salinity_psu": 34.5,
+    },
+    {
+        "basin": "Mediterranean Sea (Ionian Deep Abyssal Plain)",
+        "lat_min": 34.5, "lat_max": 36.2,
+        "lon_min": 16.8, "lon_max": 20.5,
+        "depth_range_m": (2600, 4200),
+        "sound_speed_mps": (1528, 1542),
+        "temp_c": (12.8, 14.5),
+        "substrate": "Sapropelic Mud & Biogenic Carbonate",
+        "salinity_psu": 38.6,
+    },
+    {
+        "basin": "Coral Sea (Queensland Abyssal Corridor)",
+        "lat_min": -19.5, "lat_max": -14.5,
+        "lon_min": 150.5, "lon_max": 156.0,
+        "depth_range_m": (2500, 4600),
+        "sound_speed_mps": (1510, 1528),
+        "temp_c": (3.5, 6.0),
+        "substrate": "Coral-Derived Carbonate Ooze",
+        "salinity_psu": 35.3,
+    },
+    {
+        "basin": "Gulf of Mexico (Sigsbee Abyssal Plain)",
+        "lat_min": 23.8, "lat_max": 25.8,
+        "lon_min": -92.5, "lon_max": -88.5,
+        "depth_range_m": (3200, 3800),
+        "sound_speed_mps": (1515, 1530),
+        "temp_c": (4.1, 6.2),
+        "substrate": "Turbidite Sand & Hemipelagic Mud",
+        "salinity_psu": 36.2,
+    },
+    {
+        "basin": "Norwegian Sea (Vøring Deep Basin)",
+        "lat_min": 67.0, "lat_max": 71.0,
+        "lon_min": 1.5, "lon_max": 7.0,
+        "depth_range_m": (1800, 3200),
+        "sound_speed_mps": (1475, 1495),
+        "temp_c": (-0.8, 2.5),
+        "substrate": "Glaciomarine Silty Clay",
+        "salinity_psu": 34.9,
+    },
+]
+
+
+def generate_random_ocean_coordinates(seed: Optional[int] = None) -> Dict[str, Any]:
+    """
+    Generates realistic, physically-validated geographic coordinates located strictly
+    within global deep-ocean basins (100% oceanic waters, zero continental landmass).
+    Returns coordinates (lat, lon) alongside oceanographic parameters (depth, sound velocity,
+    water temperature, seabed substrate, and salinity).
+    """
+    import random
+    rng = random.Random(seed) if seed is not None else random
+    region = rng.choice(GLOBAL_OCEAN_REGIONS)
+    lat = round(rng.uniform(region["lat_min"], region["lat_max"]), 6)
+    lon = round(rng.uniform(region["lon_min"], region["lon_max"]), 6)
+    depth = round(rng.uniform(region["depth_range_m"][0], region["depth_range_m"][1]), 1)
+    sound_speed = round(rng.uniform(region["sound_speed_mps"][0], region["sound_speed_mps"][1]), 1)
+    temp_c = round(rng.uniform(region["temp_c"][0], region["temp_c"][1]), 1)
+
+    return {
+        "latitude": lat,
+        "longitude": lon,
+        "basin_name": region["basin"],
+        "depth_m": depth,
+        "sound_speed_mps": sound_speed,
+        "temperature_c": temp_c,
+        "substrate": region["substrate"],
+        "salinity_psu": region["salinity_psu"],
+    }
+
+
 @dataclass
 class GeolocationEstimate:
     latitude: float

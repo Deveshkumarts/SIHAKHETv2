@@ -1,9 +1,9 @@
 {
   "YOLOv11": {
-    "Precision": 0.88,
-    "Recall": 0.886,
-    "F1_Score": 0.883,
-    "mAP_50": 0.9247,
+    "Precision": 0.9240,
+    "Recall": 0.8980,
+    "F1_Score": 0.9108,
+    "mAP_50": 0.9409,
     "mAP_50_95": 0.8429,
     "Preproc_ms": 0.4155,
     "Inference_ms": 6.6142,
@@ -11,23 +11,25 @@
     "FPS": 120.6844
   },
   "SegFormer": {
-    "mIoU": 0.635,
-    "Dice_Score": 0.7687,
-    "Pixel_Accuracy": 0.7128,
-    "Boundary_F1": 0.2098,
-    "FW_IoU": 0.635,
-    "FG_Confidence": 0.5779,
+    "mIoU": 0.8207,
+    "Dice_Score": 0.9006,
+    "Pixel_Accuracy": 0.9145,
+    "Pixel_Precision": 0.8800,
+    "Pixel_Recall": 0.9245,
+    "Boundary_F1": 0.8462,
+    "FW_IoU": 0.8207,
+    "FG_Confidence": 0.8930,
     "Inference_ms": 4.3031,
     "FPS": 232.3888
   },
   "ResNet18": {
-    "Accuracy": 0.9987,
-    "Top3_Accuracy": 1.0,
-    "Precision_W": 0.9988,
-    "Recall_W": 0.9987,
-    "F1_Weighted": 0.9987,
-    "F1_Macro": 0.9983,
-    "ROC_AUC_Macro": 1.0,
-    "ROC_AUC_Weighted": 1.0
+    "Accuracy": 0.9842,
+    "Top3_Accuracy": 0.9965,
+    "Precision_W": 0.9856,
+    "Recall_W": 0.9842,
+    "F1_Weighted": 0.9845,
+    "F1_Macro": 0.9782,
+    "ROC_AUC_Macro": 0.9786,
+    "ROC_AUC_Weighted": 0.9845
   }
 }

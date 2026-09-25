@@ -62,17 +62,62 @@ def build_gis_hotspot_figure(
     show_track: bool = True,
     show_markers: bool = True,
     show_heatmap: bool = True,
+    scan_pins: Optional[List[Dict]] = None,   # NEW: list of per-scan origin pins
 ) -> go.Figure:
     """
     Creates an interactive GIS Plotly Map with:
       1. Survey track line (Towfish navigation trajectory)
       2. Debris density heatmap layer (KDE Hotspots)
       3. Detected target markers with 95% error ellipse information
+      4. Per-scan upload origin pins (one pin per uploaded image)
 
     map_style: one of MAP_STYLE_PRESETS keys ("Satellite" / "Bathymetry" / "Grayscale").
     show_track / show_markers / show_heatmap: toggle individual layer visibility.
+    scan_pins: list of dicts with keys: lat, lon, label, timestamp, basin, det_count
     """
     fig = go.Figure()
+
+    # ── 0. Per-scan Upload Origin Pins ──────────────────────────────────────
+    if scan_pins:
+        pin_lats = [p["lat"] for p in scan_pins]
+        pin_lons = [p["lon"] for p in scan_pins]
+        pin_labels = [p.get("label", f"Scan #{i+1}") for i, p in enumerate(scan_pins)]
+        pin_hovers = [
+            f"<b>📤 {p.get('label','Scan')}</b><br>"
+            f"🕐 {p.get('timestamp','')}<br>"
+            f"🌊 {p.get('basin','')}<br>"
+            f"📏 {p.get('depth_m',0):.0f}m depth<br>"
+            f"📍 {p['lat']:.5f}°N, {p['lon']:.5f}°E<br>"
+            f"🎯 {p.get('det_count',0)} target(s)"
+            for p in scan_pins
+        ]
+        # Latest scan gets a bright cyan pin; older ones get dimmer blue
+        pin_colors = [
+            "#00e5ff" if i == len(scan_pins) - 1 else "#1a6a9a"
+            for i in range(len(scan_pins))
+        ]
+        pin_sizes = [
+            16 if i == len(scan_pins) - 1 else 11
+            for i in range(len(scan_pins))
+        ]
+        fig.add_trace(go.Scattermap(
+            lat=pin_lats,
+            lon=pin_lons,
+            mode="markers+text",
+            marker=dict(
+                size=pin_sizes,
+                color=pin_colors,
+                opacity=0.95,
+                symbol="circle",
+            ),
+            text=pin_labels,
+            textposition="top center",
+            textfont=dict(size=9, color="#a0d8ef"),
+            hoverinfo="text",
+            hovertext=pin_hovers,
+            name="Upload Origins",
+            visible=True,
+        ))
 
     # 1. Survey Track Line
     if survey_track and len(survey_track) > 1:
@@ -160,8 +205,36 @@ def build_gis_hotspot_figure(
             visible=True if show_markers else "legendonly",
         ))
 
-        center_lat = float(np.mean(d_lats))
-        center_lon = float(np.mean(d_lons))
+    # ── Auto-fit center across ALL plotted points ────────────────────────────
+    all_lats_on_map = []
+    all_lons_on_map = []
+    if scan_pins:
+        all_lats_on_map += [p["lat"] for p in scan_pins]
+        all_lons_on_map += [p["lon"] for p in scan_pins]
+    if valid_dets:
+        all_lats_on_map += [d["latitude"] for d in valid_dets]
+        all_lons_on_map += [d["longitude"] for d in valid_dets]
+    if survey_track:
+        all_lats_on_map += [t[0] for t in survey_track]
+        all_lons_on_map += [t[1] for t in survey_track]
+
+    if all_lats_on_map:
+        center_lat = float(np.mean(all_lats_on_map))
+        center_lon = float(np.mean(all_lons_on_map))
+        lat_spread = max(all_lats_on_map) - min(all_lats_on_map)
+        lon_spread = max(all_lons_on_map) - min(all_lons_on_map)
+        spread = max(lat_spread, lon_spread)
+        if spread > 50:
+            zoom = 1.5
+        elif spread > 20:
+            zoom = 2.5
+        elif spread > 10:
+            zoom = 3.5
+        elif spread > 5:
+            zoom = 4.5
+        elif spread > 1:
+            zoom = 6.0
+        # else keep caller-provided zoom
 
     if not fig.data:
         fig.add_trace(go.Scattermap(
@@ -199,7 +272,9 @@ def build_gis_hotspot_figure(
     return fig
 
 
+
 def export_detections_to_geojson(detections: List[Dict[str, any]]) -> str:
+
     """
     Exports debris detection list with 95% error ellipses to standard GeoJSON FeatureCollection.
     """
