@@ -1,9 +1,10 @@
 """
 Universal Marine & Sonar Image Preprocessing Module
-Implements the standardized 3-Stage Acoustic & Optical Enhancement Pipeline:
+Implements the standardized 4-Stage Acoustic & Optical Enhancement Pipeline:
   Step 1: Median Filter (Removes isolated salt-and-pepper noise & high-frequency speckle spikes)
   Step 2: Bilateral Filter (Edge-preserving smoothing, protects structural boundaries & acoustic shadows)
   Step 3: CLAHE (Contrast-Limited Adaptive Histogram Equalization on Luminance channel in LAB color space)
+  Step 4: Unsharp-Mask Sharpening (Restores target/edge micro-contrast softened by denoising)
 """
 
 import cv2
@@ -58,26 +59,63 @@ def apply_clahe(
     return cv2.cvtColor(merged_lab, cv2.COLOR_LAB2BGR)
 
 
+def apply_unsharp_mask(
+    image_bgr: np.ndarray,
+    amount: float = 1.0,
+    radius: float = 2.0,
+    threshold: int = 3
+) -> np.ndarray:
+    """
+    Step 4: Unsharp-Mask Sharpening.
+    Restores target-edge and micro-texture contrast that median/bilateral denoising
+    softens, so debris silhouettes and acoustic shadow boundaries visibly "pop"
+    against the seabed instead of blending into it. `threshold` avoids re-amplifying
+    flat-noise pixels (only edges above the threshold get sharpened).
+    """
+    blurred = cv2.GaussianBlur(image_bgr, (0, 0), sigmaX=radius, sigmaY=radius)
+    sharpened = cv2.addWeighted(image_bgr, 1.0 + amount, blurred, -amount, 0)
+
+    if threshold > 0:
+        low_contrast_mask = np.abs(image_bgr.astype(np.int16) - blurred.astype(np.int16)) < threshold
+        sharpened = np.where(low_contrast_mask, image_bgr, sharpened)
+
+    return np.clip(sharpened, 0, 255).astype(np.uint8)
+
+
 def preprocess_universal_image(
     image_bgr: np.ndarray,
     median_ksize: int = 3,
     bilateral_d: int = 7,
     bilateral_sigma: float = 50.0,
-    clahe_clip: float = 1.3,
-    clahe_grid: Tuple[int, int] = (8, 8)
+    clahe_clip: float = 2.6,
+    clahe_grid: Tuple[int, int] = (8, 8),
+    sharpen_amount: float = 1.1,
+    sharpen_radius: float = 2.0,
 ) -> np.ndarray:
     """
-    Standardized 3-Stage Acoustic & Optical Denoising & Enhancement Pipeline:
+    Standardized 4-Stage Acoustic & Optical Denoising & Enhancement Pipeline:
       Step 1: Median Filter (Removes isolated salt-and-pepper noise & high-frequency acoustic speckle spikes)
       Step 2: Bilateral Filter (Smooths background speckle and seabed grain while preserving physical object boundaries)
-      Step 3: Gentle CLAHE (Enhances target highlight vs shadow dynamic range without noise amplification)
+      Step 3: Strong Adaptive CLAHE (Pushes target-highlight vs acoustic-shadow dynamic range hard, tile-local)
+      Step 4: Unsharp-Mask Sharpening (Re-injects edge/texture micro-contrast so the result reads as visibly enhanced,
+              not just denoised)
     """
     if image_bgr is None or image_bgr.size == 0:
         return image_bgr
 
+    # Tiny thumbnails (e.g. sample-library preview chips, small dataset crops)
+    # have very few pixels per tile — full strength posterizes them instead of
+    # enhancing them. Taper down smoothly below ~120px on the short side, but
+    # never below 60% strength — small images still need a visibly enhanced result.
+    min_side = min(image_bgr.shape[0], image_bgr.shape[1])
+    if min_side < 120:
+        taper = max(0.6, min_side / 120.0)
+        clahe_clip = 1.1 + (clahe_clip - 1.1) * taper
+        sharpen_amount = sharpen_amount * taper
+
     # 1. Median Filter (Speckle spike suppression)
     step1 = apply_median_filter(image_bgr, ksize=median_ksize)
-    
+
     # 2. Bilateral Denoising (Edge-preserving background smoothing)
     step2 = apply_bilateral_denoise(
         step1,
@@ -85,19 +123,29 @@ def preprocess_universal_image(
         sigma_color=bilateral_sigma,
         sigma_space=bilateral_sigma
     )
-    
-    # 3. CLAHE with adaptive grid on Luminance channel only
+
+    # 3. CLAHE with a finer adaptive grid on the Luminance channel only —
+    #    smaller tiles + a higher clip limit make the local contrast boost obvious
+    #    rather than barely perceptible.
     lab = cv2.cvtColor(step2, cv2.COLOR_BGR2LAB)
     l_channel, a_channel, b_channel = cv2.split(lab)
-    
+
+    # Target ~48px per tile so small crops get near-global (gentle) CLAHE while
+    # large full-frame sonar images get finer, more locally-adaptive contrast.
     h, w = l_channel.shape
-    gw = max(2, min(8, w // 20))
-    gh = max(2, min(8, h // 20))
+    gw = max(2, min(12, w // 48))
+    gh = max(2, min(12, h // 48))
     clahe = cv2.createCLAHE(clipLimit=clahe_clip, tileGridSize=(gw, gh))
     cl_channel = clahe.apply(l_channel)
-    
+
     merged_lab = cv2.merge((cl_channel, a_channel, b_channel))
-    return cv2.cvtColor(merged_lab, cv2.COLOR_LAB2BGR)
+    step3 = cv2.cvtColor(merged_lab, cv2.COLOR_LAB2BGR)
+
+    # 4. Unsharp-mask sharpening — brings back the edge micro-contrast the
+    #    denoising stages removed, so the enhancement reads clearly against the raw image.
+    step4 = apply_unsharp_mask(step3, amount=sharpen_amount, radius=sharpen_radius)
+
+    return step4
 
 
 def calibrate_and_preprocess_sonar(
@@ -114,8 +162,10 @@ def calibrate_and_preprocess_sonar(
     median_ksize: int = 3,
     bilateral_d: int = 5,
     bilateral_sigma: float = 35.0,
-    clahe_clip: float = 2.0,
+    clahe_clip: float = 2.6,
     clahe_grid: Tuple[int, int] = (8, 8),
+    sharpen_amount: float = 1.1,
+    sharpen_radius: float = 2.0,
 ) -> Tuple[np.ndarray, dict]:
     """
     Complete Side-Scan Sonar Acoustic Signal Chain:
@@ -148,6 +198,8 @@ def calibrate_and_preprocess_sonar(
             bilateral_sigma=bilateral_sigma,
             clahe_clip=clahe_clip,
             clahe_grid=clahe_grid,
+            sharpen_amount=sharpen_amount,
+            sharpen_radius=sharpen_radius,
         )
 
     final_snr = compute_snr_index(processed)
