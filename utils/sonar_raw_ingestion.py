@@ -285,76 +285,140 @@ class XTFReader:
 # ─────────────────────────────────────────────────────────────────────────────
 class JSFReader:
     """
-    Binary Parser for EdgeTech Sonar Format (.jsf).
-    Reads 16-byte message envelopes and extracts Message 2080 (Side-Scan Acoustic Data).
+    Binary parser for EdgeTech JSF side-scan logs (verified against a real 409 MB file).
+
+    Layout: repeated  [16-byte message header `<HBBHBBBBHI`: marker 0x1601, version, session, message type, command,
+    subsystem, channel, sequence, reserved, payload size][payload].  Side-scan traces are message 80; channel 0 = port,
+    channel 1 = starboard.  Payload = 240-byte trace header + N samples.  Trace-header fields used (payload offsets):
+        0  i32 ping time (unix s)      8  i32 ping number        34  i16 data format (0 = 16-bit envelope)
+      108  i32 altitude (mm)         114  u16 sample count      116  u32 sample interval (ns)
+      168  i16 weighting exponent (amplitude = raw * 2^-exp)     80/84 i32 X/Y, 88 i16 coordinate units
+    Navigation: many side-scan-only logs carry NO position in the trace header (the file this was verified on has
+    X/Y = 0 in every ping; the fix is logged elsewhere).  Then the telemetry is synthetic and metadata says so.
     """
 
     JSF_MARKER = 0x1601
-    MSG_SIDESCAN = 2080
+    MSG_SIDESCAN = 80
+    HDR = struct.Struct("<HBBHBBBBHI")
+    TRACE_HDR = 240
+    MAX_WIDTH = 1024                                     # per-channel waterfall width (matches XTFReader)
+
+    def _scan(self, buf) -> List[Tuple[int, int, int]]:
+        """Return [(payload_offset, channel, payload_size)] for every side-scan message; resync on corruption."""
+        n, pos, out, resyncs = len(buf), 0, [], 0
+        while pos + 16 <= n:
+            marker, _v, _s, mtype, _c, _sub, ch, _q, _r, size = self.HDR.unpack_from(buf, pos)
+            if marker != self.JSF_MARKER or pos + 16 + size > n:
+                nxt = bytes(buf[pos + 1:pos + 1 + 65536]).find(b"\x01\x16")
+                pos += 65536 if nxt < 0 else 1 + nxt
+                resyncs += 1
+                continue
+            if mtype == self.MSG_SIDESCAN and size > self.TRACE_HDR:
+                out.append((pos + 16, ch, size))
+            pos += 16 + size
+        self._resyncs = resyncs
+        return out
 
     def read(self, source: Union[str, Path, bytes, io.BytesIO]) -> Tuple[np.ndarray, List[TelemetryRecord], Dict[str, Any]]:
+        import mmap
+        fh = None
         if isinstance(source, (str, Path)):
-            with open(source, "rb") as f:
-                data = f.read()
+            fh = open(source, "rb")
+            buf = mmap.mmap(fh.fileno(), 0, access=mmap.ACCESS_READ)
         elif isinstance(source, io.BytesIO):
-            data = source.getvalue()
-        elif isinstance(source, bytes):
-            data = source
+            buf = source.getbuffer()
+        elif isinstance(source, (bytes, bytearray)):
+            buf = memoryview(source)
         else:
             raise TypeError("Source must be file path, bytes, or io.BytesIO")
+        try:
+            return self._decode(buf)
+        finally:
+            del_view = getattr(self, "_view", None)
+            if hasattr(buf, "close"):
+                try:
+                    buf.close()
+                except BufferError:
+                    pass
+            if fh:
+                fh.close()
 
-        stream = io.BytesIO(data)
-        file_size = len(data)
+    def _decode(self, buf):
+        file_size = len(buf)
+        msgs = self._scan(buf)
+        if not msgs:
+            raise ValueError("no side-scan (message 80) traces found - not a side-scan JSF file")
 
-        port_lines = []
-        stbd_lines = []
+        # group traces into pings by message order (ping numbers are not monotonic in real files): a trace on a channel
+        # that the current ping already has opens the next ping; port/starboard of one ping are logged back to back
+        pings: Dict[int, Dict[str, Any]] = {}
+        order: List[int] = []
+        for off, ch, size in msgs:
+            if not order or ch in pings[order[-1]]["ch"]:
+                order.append(len(order))
+                pings[order[-1]] = {"ch": {}, "t": struct.unpack_from("<i", buf, off)[0], "off": off}
+            pings[order[-1]]["ch"][ch] = (off, size)
+
+        n_pings = len(order)
+        first = msgs[0][0]
+        n_samp = struct.unpack_from("<H", buf, first + 114)[0] or (msgs[0][2] - self.TRACE_HDR) // 2
+        interval_ns = struct.unpack_from("<I", buf, first + 116)[0] or 15000
+        width = max(128, min(self.MAX_WIDTH, n_samp))
+
+        def trace(off: int, size: int) -> np.ndarray:
+            ns = struct.unpack_from("<H", buf, off + 114)[0] or (size - self.TRACE_HDR) // 2
+            fmt = struct.unpack_from("<h", buf, off + 34)[0]
+            wexp = struct.unpack_from("<h", buf, off + 168)[0]
+            if fmt in (0, 1):                                    # 16-bit envelope / magnitude
+                ns = min(ns, (size - self.TRACE_HDR) // 2)
+                raw = np.frombuffer(buf, dtype="<u2", count=ns, offset=off + self.TRACE_HDR).astype(np.float32)
+                return raw * (2.0 ** -wexp)
+            ns = min(ns, size - self.TRACE_HDR)                  # 8-bit fallback
+            return np.frombuffer(buf, dtype=np.uint8, count=ns, offset=off + self.TRACE_HDR).astype(np.float32)
+
+        def reduce(a: np.ndarray) -> np.ndarray:
+            if a.size == width:
+                return a
+            return cv2.resize(a.reshape(1, -1), (width, 1), interpolation=cv2.INTER_AREA).ravel()
+
+        port = np.zeros((n_pings, width), np.float32)
+        stbd = np.zeros((n_pings, width), np.float32)
+        for i, k in enumerate(order):
+            for ch, (off, size) in pings[k]["ch"].items():
+                v = reduce(trace(off, size))
+                if ch == 0:
+                    port[i] = v[::-1]                            # stored near->far; the waterfall has nadir in the middle
+                else:
+                    stbd[i] = v
+
+        # log-compress the (huge dynamic range) envelope and map robustly to 8 bit
+        both = np.log1p(np.hstack([port, stbd]))
+        lo, hi = np.percentile(both[::max(1, n_pings // 512)], [1.0, 99.7])
+        gray8 = (np.clip((both - lo) / max(hi - lo, 1e-6), 0, 1) * 255).astype(np.uint8)
+        sep = np.full((n_pings, 6), 15, np.uint8)
+        waterfall_bgr = cv2.cvtColor(np.hstack([gray8[:, :width], sep, gray8[:, width:]]), cv2.COLOR_GRAY2BGR)
+
+        # telemetry: real ping times; position is synthetic when the trace headers carry none
+        stride = max(1, n_pings // 64)
+        has_nav = any(struct.unpack_from("<ii", buf, pings[k]["off"] + 80) != (0, 0) for k in order[::stride])
+        rng_m = n_samp * interval_ns * 1e-9 * 1500.0 / 2.0
+        alt = max(struct.unpack_from("<i", buf, first + 108)[0] / 1000.0, 0.0)
         records = []
-
-        while stream.tell() + 16 <= file_size:
-            pos = stream.tell()
-            marker, ver, session, msg_type, cmd, subsys, ch, seq, rsvd, data_size = struct.unpack(
-                "<HBBHBBBHI", stream.read(16)
-            )
-
-            if marker != self.JSF_MARKER or pos + 16 + data_size > file_size:
-                stream.seek(pos + 1)
-                continue
-
-            if msg_type == self.MSG_SIDESCAN and data_size >= 64:
-                sub_bytes = stream.read(data_size)
-                sample_count = struct.unpack_from("<H", sub_bytes, 10)[0]
-                if sample_count > 0:
-                    raw_samples = sub_bytes[240:240 + sample_count]
-                    if raw_samples:
-                        arr = np.frombuffer(raw_samples, dtype=np.uint8)
-                        if ch == 0:
-                            port_lines.append(arr)
-                        else:
-                            stbd_lines.append(arr)
-
-                        if len(records) < len(port_lines):
-                            records.append(TelemetryRecord(
-                                timestamp=time.time(),
-                                latitude=13.0827 + len(records) * 0.0001,
-                                longitude=80.2707 + len(records) * 0.0001,
-                                heading_deg=45.0,
-                                depth_m=15.0,
-                                altitude_m=10.0,
-                                slant_range_m=75.0,
-                            ))
+        for i, k in enumerate(order):
+            x, y, units = struct.unpack_from("<iih", buf, pings[k]["off"] + 80)
+            if has_nav:                                          # JSF units: 1 = 1/1000 arc-minute, 2 = 1/10000 arc-minute
+                div = 60000.0 if units == 1 else 600000.0
+                lon, lat = x / div, y / div
             else:
-                stream.seek(pos + 16 + data_size)
-
-        max_len = max([len(p) for p in port_lines] + [len(s) for s in stbd_lines] + [256])
-        xtf_reader = XTFReader()
-        waterfall_bgr = xtf_reader._assemble_waterfall(port_lines, stbd_lines, max_len)
-
+                lat, lon = 13.0827 + i * 1e-5, 80.2707 + i * 1e-5
+            records.append(TelemetryRecord(timestamp=float(pings[k]["t"]), latitude=lat, longitude=lon, heading_deg=45.0,
+                                           depth_m=alt or 15.0, altitude_m=alt or 10.0, slant_range_m=rng_m))
         metadata = {
-            "format": "EdgeTech JSF",
-            "num_pings": max(len(port_lines), len(stbd_lines)),
-            "channels": 2,
-            "samples_per_channel": max_len,
-            "file_size_bytes": file_size,
+            "format": "EdgeTech JSF", "num_pings": n_pings, "channels": 2, "samples_per_channel": width,
+            "native_samples_per_channel": int(n_samp), "sample_interval_ns": int(interval_ns),
+            "max_slant_range_m": round(rng_m, 2), "file_size_bytes": file_size, "resyncs": getattr(self, "_resyncs", 0),
+            "navigation_synthetic": not has_nav,
+            "ping_time_start": int(pings[order[0]]["t"]), "ping_time_end": int(pings[order[-1]]["t"]),
         }
         return waterfall_bgr, records, metadata
 

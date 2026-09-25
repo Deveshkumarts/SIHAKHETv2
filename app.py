@@ -1869,6 +1869,53 @@ def run_model_inference(
     return filtered_dets, annotated_img, processed_img_bgr, prep_report, triage_decisions, triage_summary
 
 
+TILE_ROWS = 1024
+TILE_TRIGGER_ROWS = 2048
+
+
+def run_model_inference_tiled(img_bgr, **kw):
+    """Same as run_model_inference, but tall side-scan waterfalls (real .xtf/.jsf surveys are thousands of pings long)
+    are processed in TILE_ROWS-ping tiles and merged: detections keep survey-level pixel coordinates."""
+    h = img_bgr.shape[0]
+    if h <= TILE_TRIGGER_ROWS:
+        return run_model_inference(img_bgr=img_bgr, **kw)
+
+    all_dets, all_tri, annotated, prepped, reports = [], [], [], [], []
+    starts = list(range(0, h, TILE_ROWS))
+    if h - starts[-1] < TILE_ROWS // 4 and len(starts) > 1:          # fold a sliver into the previous tile
+        starts.pop()
+    bar = st.progress(0.0, text="Analysing survey in tiles...")
+    for i, y0 in enumerate(starts):
+        y1 = h if i == len(starts) - 1 else y0 + TILE_ROWS
+        dets, ann, prep, rep, tri, _ = run_model_inference(img_bgr=img_bgr[y0:y1], **kw)
+        for d in dets:
+            d["bbox"] = [d["bbox"][0], d["bbox"][1] + y0, d["bbox"][2], d["bbox"][3] + y0]
+            if "roi_bbox" in d:
+                r = d["roi_bbox"]
+                d["roi_bbox"] = [r[0], r[1] + y0, r[2], r[3] + y0]
+            d["tile_start_row"] = y0
+        for t in tri:
+            t.bbox = [t.bbox[0], t.bbox[1] + y0, t.bbox[2], t.bbox[3] + y0]
+        all_dets += dets
+        all_tri += tri
+        annotated.append(ann)
+        prepped.append(prep)
+        reports.append(rep)
+        bar.progress((i + 1) / len(starts), text=f"Analysing survey in tiles... {i + 1}/{len(starts)}")
+    bar.empty()
+
+    prep_report = dict(reports[0])
+    prep_report["raw_snr_db"] = float(np.mean([r["raw_snr_db"] for r in reports]))
+    prep_report["final_snr_db"] = float(np.mean([r["final_snr_db"] for r in reports]))
+    prep_report["warnings"] = sorted({w for r in reports for w in r.get("warnings", [])})
+    prep_report["sa_candidates"] = [c for r in reports for c in (r.get("sa_candidates") or [])]
+    prep_report["tiles"] = len(starts)
+    all_tri.sort(key=lambda d: d.confidence, reverse=True)
+    all_tri = all_tri[:8]
+    summary = {"known_debris_count": len(all_dets), "unknown_anomaly_count": len(all_tri), "rejected_count": 0}
+    return all_dets, np.vstack(annotated), np.vstack(prepped), prep_report, all_tri, summary
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # HARDWARE CONTEXT & DEVICE INFO
 # ═══════════════════════════════════════════════════════════════════════════
@@ -2126,7 +2173,10 @@ if active_tab == 0:
                 sample_xtf_files = [sample_xtf_dir / "survey_track_alpha.xtf"]
 
             raw_opts = (["Uploaded File"] if uploaded_raw_file is not None else []) + [f"Sample: {p.name}" for p in sample_xtf_files]
-            sample_xtf_choice = st.selectbox("Select Raw Sonar Mission:", raw_opts, index=0)
+            sample_xtf_choice = st.selectbox(
+                "Select Raw Sonar Mission:", raw_opts, index=0,
+                key=f"raw_mission_{uploaded_raw_file.file_id if uploaded_raw_file is not None else 'none'}",
+            )
         elif input_source == "Sample Data":
             sample_options = [
                 " Sample: Tire",
@@ -2349,7 +2399,7 @@ if active_tab == 0:
             with st.spinner(f"Running Marine Guard multi-modal pipeline..."):
                 t0 = time.perf_counter()
                 selected_dev = select_device("0" if hw.get("cuda_available") else "cpu")
-                dets, annotated_bgr, prep_bgr, prep_report, triage_decisions, triage_summary = run_model_inference(
+                dets, annotated_bgr, prep_bgr, prep_report, triage_decisions, triage_summary = run_model_inference_tiled(
                     model_choice=selected_model_key, img_bgr=img_bgr,
                     conf_thresh=conf_thresh, iou_thresh=iou_thresh, imgsz=imgsz,
                     device=selected_dev, enable_preprocessing=enable_preprocessing,

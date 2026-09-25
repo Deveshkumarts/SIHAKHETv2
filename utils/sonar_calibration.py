@@ -123,11 +123,19 @@ def detect_nadir_lines(
         (nadir_port_col, nadir_starboard_col) pixel indices.
     """
     gray = cv2.cvtColor(image_bgr, cv2.COLOR_BGR2GRAY) if len(image_bgr.shape) == 3 else image_bgr
-    h, w = gray.shape
-    mid = w // 2
+    intensity_profile = np.mean(gray.astype(np.float32), axis=0)     # mean intensity profile along range axis
+    return nadir_from_profile(intensity_profile, gray.shape[1], gradient_threshold, min_water_column_frac, max_water_column_frac)
 
-    # Mean intensity profile along range axis
-    intensity_profile = np.mean(gray.astype(np.float32), axis=0)
+
+def nadir_from_profile(
+    intensity_profile: np.ndarray,
+    w: int,
+    gradient_threshold: float = 15.0,
+    min_water_column_frac: float = 0.03,
+    max_water_column_frac: float = 0.35
+) -> Tuple[int, int]:
+    """Nadir search on a precomputed column-mean intensity profile (lets very tall surveys be processed in chunks)."""
+    mid = w // 2
 
     # Smooth profile to eliminate speckle spikes
     profile_smooth = cv2.GaussianBlur(intensity_profile.reshape(1, -1), (1, 15), 3.0).flatten()
@@ -225,11 +233,23 @@ def slant_to_ground_range_conversion(
     rg_norm = (rg_m / max_rg)
     target_x = np.where(x_indices < mid, mid - rg_norm * mid, mid + rg_norm * mid).astype(np.float32)
 
-    # Remap image using inverse lookup grid
-    map_x = np.tile(target_x, (h, 1)).astype(np.float32)
-    map_y = np.tile(np.arange(h, dtype=np.float32).reshape(-1, 1), (1, w)).astype(np.float32)
+    # Remap image using inverse lookup grid.
+    # cv2.remap asserts rows < 32767, and a long XTF/JSF survey (1 GB is ~60,000 pings) exceeds that. The mapping only
+    # moves pixels ALONG the range axis (each row is independent), so processing row chunks is exactly equivalent.
+    chunk = 16384
+    if h <= chunk:
+        map_x = np.tile(target_x, (h, 1)).astype(np.float32)
+        map_y = np.tile(np.arange(h, dtype=np.float32).reshape(-1, 1), (1, w)).astype(np.float32)
+        return cv2.remap(image_bgr, map_x, map_y, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
 
-    corrected = cv2.remap(image_bgr, map_x, map_y, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REFLECT)
+    corrected = np.empty_like(image_bgr)
+    for y0 in range(0, h, chunk):
+        y1 = min(h, y0 + chunk)
+        rows = y1 - y0
+        map_x = np.tile(target_x, (rows, 1)).astype(np.float32)
+        map_y = np.tile(np.arange(rows, dtype=np.float32).reshape(-1, 1), (1, w)).astype(np.float32)
+        corrected[y0:y1] = cv2.remap(image_bgr[y0:y1], map_x, map_y, interpolation=cv2.INTER_LINEAR,
+                                     borderMode=cv2.BORDER_REFLECT)
     return corrected
 
 
@@ -316,6 +336,55 @@ def apply_beam_pattern_correction(
     return corrected.astype(np.uint8)
 
 
+_TALL_ROWS = 8192        # above this many pings the whole-image float32 copies no longer fit in memory
+_SNR_MAX_PX = 4_000_000
+
+
+def _snr_for_large(image_bgr: np.ndarray) -> "QualityMetrics":
+    """SNR statistics on a row-subsampled view: percentiles of a ~4 M-pixel sample match the full image closely and avoid a
+    multi-GB float32 copy on very long surveys (images below the cap use every row, i.e. exact)."""
+    h, w = image_bgr.shape[:2]
+    step = max(1, int(np.ceil(h * w / _SNR_MAX_PX)))
+    return compute_snr_index(image_bgr[::step])
+
+
+def _calibrate_tall(image_bgr, altitude_m, slant_range_m, enable_tvg, enable_wcr, enable_src, enable_beam_correction,
+                    tvg_alpha, tvg_beta):
+    """Row-chunked equivalent of calibrate_side_scan_sonar for surveys with many thousands of pings.
+    TVG, beam pattern, water-column crop and slant->ground remap are all independent per row, so chunking is exact; the only
+    global quantity (the nadir column) comes from the accumulated column-mean profile."""
+    h, w = image_bgr.shape[:2]
+    quality = _snr_for_large(image_bgr)
+    stage = np.empty_like(image_bgr)
+    col_sum = np.zeros(w, np.float64)
+    for y0 in range(0, h, _TALL_ROWS):
+        c = image_bgr[y0:y0 + _TALL_ROWS]
+        if enable_tvg:
+            c = apply_tvg_compensation(c, alpha=tvg_alpha, beta=tvg_beta, slant_range_m=slant_range_m)
+        if enable_beam_correction:
+            c = apply_beam_pattern_correction(c)
+        stage[y0:y0 + len(c)] = c
+        g = c[..., 0].astype(np.float64) if c.ndim == 3 else c.astype(np.float64)    # channels are identical grayscale
+        col_sum += g.sum(axis=0)
+    nadir_port, nadir_stbd = nadir_from_profile((col_sum / h).astype(np.float32), w)
+    if enable_wcr:
+        nadir_port = int(np.clip(nadir_port, 0, w // 2 - 5)); nadir_stbd = int(np.clip(nadir_stbd, w // 2 + 5, w - 1))
+
+    out = np.empty_like(image_bgr)
+    for y0 in range(0, h, _TALL_ROWS):
+        c = stage[y0:y0 + _TALL_ROWS]
+        if enable_wcr:
+            c, _ = remove_water_column(c, nadir_port=nadir_port, nadir_stbd=nadir_stbd, mode="crop")
+        if enable_src:
+            c = slant_to_ground_range_conversion(c, altitude_m=altitude_m, slant_range_m=slant_range_m)
+        out[y0:y0 + len(c)] = c
+    del stage
+    calibrated_quality = _snr_for_large(out)
+    return out, {"raw_snr_db": quality.snr_db, "calibrated_snr_db": calibrated_quality.snr_db, "nadir_port_col": nadir_port,
+                 "nadir_stbd_col": nadir_stbd, "clutter_mean": calibrated_quality.clutter_mean,
+                 "clutter_std": calibrated_quality.clutter_std, "quality_metrics": calibrated_quality, "chunked": True}
+
+
 def calibrate_side_scan_sonar(
     image_bgr: np.ndarray,
     altitude_m: float = 10.0,
@@ -335,6 +404,9 @@ def calibrate_side_scan_sonar(
       4. Nadir Detection & Water-Column Removal (WCR)
       5. Slant-to-Ground Range Conversion (SRC)
     """
+    if image_bgr.shape[0] > _TALL_ROWS:
+        return _calibrate_tall(image_bgr, altitude_m, slant_range_m, enable_tvg, enable_wcr, enable_src,
+                               enable_beam_correction, tvg_alpha, tvg_beta)
     quality = compute_snr_index(image_bgr)
     processed = image_bgr.copy()
 

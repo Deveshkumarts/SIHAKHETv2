@@ -22,7 +22,7 @@ paths:
 
 ingestion:
   supported: [".xtf", ".jsf", ".png", ".jpg", ".jpeg", ".bmp", ".webp"]
-  max_upload_mb: 512
+  max_upload_mb: 1024
 
 quality_control:                       # gate BEFORE any processing; failures are reported, not hidden
   max_zero_ratio: 0.60                 # fraction of exactly-zero samples (ping dropout / dead channel)

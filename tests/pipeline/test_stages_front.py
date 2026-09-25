@@ -159,3 +159,32 @@ def test_merge_candidates_joins_fragments_and_keeps_distant_ones():
     big = max(out, key=lambda c: c["area"])
     assert big["bbox"] == [0, 0, 10, 24] and big["area"] == 80 and big["merged_fragments"] == 2
     assert merge_candidates([_cand([0, 0, 10, 10], 5)], 6)[0]["area"] == 5
+
+
+# ---------------- very long surveys (1 GB XTF ~ 60,000 pings) ----------------
+def test_calibration_of_a_tall_survey_is_exactly_the_chunked_equivalent(monkeypatch):
+    """OpenCV's remap aborts above 32,767 rows and whole-image float32 copies exhaust RAM on ~1 GB surveys. Tall images
+    take a row-chunked path that must give byte-identical output to the normal path."""
+    from utils import sonar_calibration as sc
+    rng = np.random.default_rng(1)
+    g = np.clip(rng.normal(90, 20, (2400, 300)), 0, 255).astype(np.uint8)
+    g[:, 120:180] = np.clip(rng.normal(15, 5, (2400, 60)), 0, 255)                      # nadir water column
+    img = np.dstack([g] * 3)
+    ref, r_ref = sc.calibrate_side_scan_sonar(img, 10.0, 75.0)
+    monkeypatch.setattr(sc, "_TALL_ROWS", 500)                                            # force the chunked path
+    out, r_out = sc.calibrate_side_scan_sonar(img, 10.0, 75.0)
+    assert r_out.get("chunked") and np.array_equal(ref, out)
+    assert (r_ref["nadir_port_col"], r_ref["nadir_stbd_col"]) == (r_out["nadir_port_col"], r_out["nadir_stbd_col"])
+
+
+def test_range_remap_survives_more_rows_than_opencv_allows():
+    from utils.sonar_calibration import slant_to_ground_range_conversion
+    tall = np.zeros((40000, 8, 3), np.uint8)                                              # > SHRT_MAX rows
+    assert slant_to_ground_range_conversion(tall, 10.0, 75.0).shape == tall.shape
+
+
+def test_upload_limits_are_1gb():
+    from pathlib import Path
+    from backend.config import load_config
+    assert int(load_config().ingestion.max_upload_mb) == 1024
+    assert "maxUploadSize = 1024" in (Path(__file__).resolve().parents[2] / ".streamlit" / "config.toml").read_text()
